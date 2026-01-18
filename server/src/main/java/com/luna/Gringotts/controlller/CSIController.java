@@ -27,7 +27,7 @@ public class CSIController {
         Pageable pageable = Pageable.ofSize(100);
         Page<Category> categories = CSIService.getCategories(pageable);
         HashMap<String,Object> response = new HashMap<>();
-        response.put("categories",categories.getContent());
+        response.put("data",categories.getContent());
         response.put("total_count",categories.getTotalElements());
         response.put("page",pageable.getPageNumber());
         response.put("has_more",categories.hasNext());
@@ -43,7 +43,7 @@ public class CSIController {
         }
         Page<SubCategory> result = CSIService.getSubCategories(category.getId(), pageable);
         HashMap<String,Object> response = new HashMap<>();
-        response.put("subcategories",result.getContent());
+        response.put("data",result.getContent());
         response.put("total_count",result.getTotalElements());
         response.put("page",pageable.getPageNumber());
         response.put("has_more",result.hasNext());
@@ -61,7 +61,7 @@ public class CSIController {
 
         Page<com.luna.Gringotts.records.Item> result = CSIService.getItems(Long.parseLong(subCategoryId),pageable);
         HashMap<String,Object> response = new HashMap<>();
-        response.put("items",result.getContent());
+        response.put("data",result.getContent());
         response.put("total_count",result.getTotalElements());
         response.put("page",pageable.getPageNumber());
         response.put("has_more",result.hasNext());
@@ -115,20 +115,23 @@ public class CSIController {
         return ResponseEntity.ok(Map.of("item",added,"status", "success"));
     }
 
-    @PutMapping("/categories")
-    public ResponseEntity<Map<String,Object>> updateCategory(@RequestBody Category category){
+    @PutMapping("/categories/{id}")
+    public ResponseEntity<Map<String,Object>> updateCategory(@RequestBody Category category, @PathVariable Long id){
+        category.setId(id);
         Category updated = CSIService.updateCategory(category);
         return ResponseEntity.ok(Map.of("sub_category", updated, "status","success"));
     }
 
-    @PutMapping("/subcategories")
-    public ResponseEntity<Map<String,Object>> updateSubCategory(@RequestBody SubCategory subCategory){
+    @PutMapping("/subcategories/{id}")
+    public ResponseEntity<Map<String,Object>> updateSubCategory(@RequestBody SubCategory subCategory, @PathVariable Long id){
+        subCategory.setId(id);
         SubCategory updated = CSIService.updateSubCategory(subCategory);
         return ResponseEntity.ok(Map.of("sub_category", updated, "status","success"));
     }
 
-    @PutMapping("/items")
-    public ResponseEntity<Map<String,Object>> updateItem(@RequestBody Item item){
+    @PutMapping("/items/{id}")
+    public ResponseEntity<Map<String,Object>> updateItem(@RequestBody Item item, @PathVariable Long id){
+        item.setId(id);
         Item updated = CSIService.updateItem(item);
         return ResponseEntity.ok(Map.of("item", updated, "status","success"));
     }

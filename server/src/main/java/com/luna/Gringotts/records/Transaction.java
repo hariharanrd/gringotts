@@ -25,7 +25,6 @@ public class Transaction {
     String description;
 
     @Column(name = "transaction_time", nullable = false)
-    @JsonFormat(pattern = "dd-MM-yyyy HH:mm")
     @JsonProperty("transaction_time")
     LocalDateTime transactionTime;
 

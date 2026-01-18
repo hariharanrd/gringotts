@@ -6,4 +6,7 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface ExpenseRepository extends TransactionRepository<Expense> {
+
+    @Override
+    void deleteById(Long aLong);
 }
