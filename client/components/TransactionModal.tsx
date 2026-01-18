@@ -1,8 +1,9 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { X, Save, AlertCircle } from 'lucide-react';
 import { api } from '../services/api';
 import { Category, SubCategory, Item, TransactionType, Expense, Income, Saving, Transaction} from '../types';
+import { useToast } from '../components/ToastContext';
 
 interface TransactionModalProps {
   isOpen: boolean;
@@ -22,17 +23,20 @@ type TransactionFormState = Omit<Partial<Transaction>, 'value' > & {
 };
 
 const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, onSuccess, transaction }) => {
+  const { showToast } = useToast();
   const [type, setType] = useState<TransactionType>(TransactionType.EXPENSE);
   const [categories, setCategories] = useState<Category[]>([]);
   const [subCategories, setSubCategories] = useState<SubCategory[]>([]);
   const [items, setItems] = useState<Item[]>([]);
+  const subCategoryCache = useRef<Record<number, SubCategory[]>>({});
+  const itemCache = useRef<Record<number, Item[]>>({});
 
   const [formData, setFormData] = useState<TransactionFormState>({
     value: 0,
     description: '',
-    category: transaction? transaction.category : undefined,
-    subcategory: transaction ? transaction.subcategory : undefined,
-    item: transaction ? transaction.item : undefined,
+    category: undefined,
+    subcategory: undefined,
+    item: undefined,
     transaction_time: new Date().toISOString().slice(0, 16),
     payment_mode: 'CASH',
     source: '',
@@ -42,24 +46,43 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, on
 
   const [loading, setLoading] = useState(false);
 
+  const getSubCategories = async (categoryId: number) => {
+    if (subCategoryCache.current[categoryId]) {
+      return subCategoryCache.current[categoryId];
+    }
+    const subs = await api.getSubCategories(categoryId);
+    subCategoryCache.current[categoryId] = subs;
+    return subs;
+  };
+
+  const getItems = async (subCategoryId: number) => {
+    if (itemCache.current[subCategoryId]) {
+      return itemCache.current[subCategoryId];
+    }
+    const its = await api.getItems(subCategoryId);
+    itemCache.current[subCategoryId] = its;
+    return its;
+  };
+
   useEffect(() => {
     const fetchDropdownData = async () => {
       if (isOpen) {
+        
+        if (categories.length === 0) {
+          const cats = await api.getCategories();
+          setCategories(cats);
+        }
 
         if (transaction) {
           setType(transaction.type);
           
-          if(!transaction.category){
-            const cats = await api.getCategories();
-            setCategories(cats);
-          }
-          if (transaction.category && !transaction.subcategory) {
-            const subs = await api.getSubCategories(transaction.category.id);
+          if (transaction.category) {
+            const subs = await getSubCategories(transaction.category.id);
             setSubCategories(subs);
           }
 
-          if (transaction.subcategory && !transaction.item) {
-            const its = await api.getItems(transaction.subcategory.id);
+          if (transaction.subcategory) {
+            const its = await getItems(transaction.subcategory.id);
             setItems(its);
           }
 
@@ -83,7 +106,7 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, on
     const category = categories.find(c => c.id === catId);
     setFormData(prev => ({ ...prev, category, subcategory: undefined, item: undefined }));
     if (catId) {
-      const subs = await api.getSubCategories(catId);
+      const subs = await getSubCategories(catId);
       setSubCategories(subs);
     } else {
       setSubCategories([]);
@@ -95,7 +118,7 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, on
     const subcategory = subCategories.find(s => s.id === subId);
     setFormData(prev => ({ ...prev, subcategory, item: undefined }));
     if (subId) {
-      const its = await api.getItems(subId);
+      const its = await getItems(subId);
       setItems(its);
     } else {
       setItems([]);
@@ -133,10 +156,12 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, on
         await apiCall({ ...commonPayload, active: formData.active, type: TransactionType.SAVING } as any);
       }
       
+      showToast('Transaction saved successfully', 'success');
       onSuccess();
       onClose();
     } catch (err) {
       console.error(err);
+      showToast('Failed to save transaction', 'error');
     } finally {
       setLoading(false);
     }

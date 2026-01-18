@@ -25,6 +25,8 @@ async function handleResponse(response: Response) {
 
 export const api = {
 
+  // Transaction API Start
+
   getExpenses: async (): Promise<Expense[]> => {
     const response = await fetch(`${BASE_URL}/expenses`, { headers });
     const data = await handleResponse(response);
@@ -41,22 +43,6 @@ export const api = {
     const response = await fetch(`${BASE_URL}/savings`, { headers });
     const data = await handleResponse(response);
     return data.map((saving: any) => ({ ...saving, type: TransactionType.SAVING }));
-  },
-
-
-  getCategories: async (): Promise<Category[]> => {
-    const response = await fetch(`${BASE_URL}/categories`, { headers });
-    return handleResponse(response);
-  },
-
-  getSubCategories: async (categoryId: number): Promise<SubCategory[]> => {
-    const response = await fetch(`${BASE_URL}/categories/${categoryId}/subcategories`, { headers });
-    return handleResponse(response);
-  },
-
-  getItems: async (subCategoryId: number): Promise<Item[]> => {
-    const response = await fetch(`${BASE_URL}/subcategories/${subCategoryId}/items`, { headers });
-    return handleResponse(response);
   },
 
   createExpense: async (data: Partial<Expense>) => {
@@ -119,5 +105,117 @@ export const api = {
         body: JSON.stringify({ ...data, type: TransactionType.SAVING }),
     });
     return handleResponse(response);
+  },
+
+  //Transaction API end
+
+  // Configuration API start
+
+  getCategories: async (): Promise<Category[]> => {
+    const response = await fetch(`${BASE_URL}/categories`, { headers });
+    return handleResponse(response);
+  },
+
+  getSubCategories: async (categoryId: number): Promise<SubCategory[]> => {
+    const response = await fetch(`${BASE_URL}/categories/${categoryId}/subcategories`, { headers });
+    return handleResponse(response);
+  },
+
+  getItems: async (subCategoryId: number): Promise<Item[]> => {
+    const response = await fetch(`${BASE_URL}/subcategories/${subCategoryId}/items`, { headers });
+    return handleResponse(response);
+  },
+
+  addCategory: async (data: Partial<Category>) => {
+    const response = await fetch(`${BASE_URL}/categories`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(data),
+    });
+    return handleResponse(response);
+  },
+
+  addSubCategory: async (data: Partial<SubCategory>) => {
+    const input = {
+      ...data,
+      category: {
+        id: data.categoryId
+      }
+    }
+    delete input.categoryId
+    const response = await fetch(`${BASE_URL}/subcategories`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(input),
+    });
+    return handleResponse(response);
+  },
+
+  addItem: async (data: Partial<Item>) => {
+    const input = {
+      ...data,
+      subcategory: {
+        id: data.subCategoryId
+      }
+    }
+    delete input.subCategoryId
+    const response = await fetch(`${BASE_URL}/items`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(input),
+    });
+    return handleResponse(response);
+  },
+
+  updateCategory: async (data: Partial<Category>) => {
+    const response = await fetch(`${BASE_URL}/categories/${data.id}`, {
+      method: 'PUT',
+      headers,
+      body: JSON.stringify(data),
+    });
+    return handleResponse(response);
+  },
+
+  updateSubCategory: async (data: Partial<SubCategory>) => {
+    const response = await fetch(`${BASE_URL}/subcategories/${data.id}`, {
+      method: 'PUT',
+      headers,
+      body: JSON.stringify(data),
+    });
+    return handleResponse(response);
+  },
+
+  updateItem: async (data: Partial<Item>) => {
+    const response = await fetch(`${BASE_URL}/items/${data.id}`, {
+      method: 'PUT',
+      headers,
+      body: JSON.stringify(data),
+    });
+    return handleResponse(response);
+  },
+
+  deleteCategory: async (id: number) => {
+    const response = await fetch(`${BASE_URL}/categories/${id}`, {
+      method: 'DELETE',
+      headers,
+    });
+    if (!response.ok) throw new Error('Failed to delete category');
+  },
+
+  deleteSubCategory: async (id: number) => {
+    const response = await fetch(`${BASE_URL}/subcategories/${id}`, {
+      method : 'DELETE',
+      headers
+    });
+    if (!response.ok) throw new Error('Failed to delete subcategory');
+  },
+
+  deleteItem: async (id: number) => {
+    const response = await fetch(`${BASE_URL}/items/${id}`, {
+      method : 'DELETE',
+      headers
+    });
+    if (!response.ok) throw new Error('Failed to delete item');
   }
+  //Configuration API End
 };

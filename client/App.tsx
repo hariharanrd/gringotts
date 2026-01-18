@@ -8,8 +8,10 @@ import Transactions from './pages/Transactions';
 import Configuration from './pages/Configuration';
 import { api } from './services/api';
 import { Expense, Income, Saving, Transaction, TransactionType } from './types';
+import { ToastProvider, useToast } from './components/ToastContext';
 
-const App: React.FC = () => {
+const GringottsApp: React.FC = () => {
+  const { showToast } = useToast();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -42,9 +44,13 @@ const App: React.FC = () => {
   }, []);
 
   const handleDeleteTransaction = async (id: number) => {
-    if (window.confirm("Are you sure you want to delete this transaction?")) {
+    try {
       await api.deleteTransaction(id)
       setTransactions(prev => prev.filter(t => t.id !== id));
+      showToast('Transaction deleted successfully', 'success');
+    } catch (error) {
+      console.error("Failed to delete transaction:", error);
+      showToast('Failed to delete transaction', 'error');
     }
   };
 
@@ -87,6 +93,14 @@ const App: React.FC = () => {
         transaction={selectedTransaction}
       />
     </Router>
+  );
+};
+
+const App: React.FC = () => {
+  return (
+    <ToastProvider>
+      <GringottsApp />
+    </ToastProvider>
   );
 };
 

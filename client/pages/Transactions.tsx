@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { Search, Filter, MoreVertical, Trash2, Edit2, ChevronDown, Download } from 'lucide-react';
 import { Transaction, TransactionType } from '../types';
+import ConfirmationDialog from '../components/ConfirmationDialogue';
 
 interface TransactionProps {
   transactions: Transaction[];
@@ -12,6 +13,7 @@ interface TransactionProps {
 const Transactions: React.FC<TransactionProps> = ({ transactions, onEdit, onDelete }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<string>('ALL');
+  const [deleteId, setDeleteId] = useState<number | null>(null);
 
   const filtered = transactions.filter(t => {
     const matchesSearch = t.description.toLowerCase().includes(searchTerm.toLowerCase());
@@ -98,7 +100,7 @@ const Transactions: React.FC<TransactionProps> = ({ transactions, onEdit, onDele
                         <Edit2 className="w-4 h-4" />
                       </button>
                       <button 
-                        onClick={() => onDelete(t.id)}
+                        onClick={() => setDeleteId(t.id)}
                         className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -118,6 +120,19 @@ const Transactions: React.FC<TransactionProps> = ({ transactions, onEdit, onDele
           </table>
         </div>
       </div>
+
+      <ConfirmationDialog
+        isOpen={!!deleteId}
+        onClose={() => setDeleteId(null)}
+        onConfirm={() => {
+          if (deleteId) onDelete(deleteId);
+          setDeleteId(null);
+        }}
+        title="Delete Transaction"
+        message="Are you sure you want to delete this transaction? This action cannot be undone."
+        confirmLabel="Delete"
+        type="danger"
+      />
     </div>
   );
 };
