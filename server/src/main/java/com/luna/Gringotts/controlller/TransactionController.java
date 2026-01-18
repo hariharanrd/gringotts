@@ -27,7 +27,7 @@ public class TransactionController {
         Pageable pageable = Pageable.ofSize(100);
         Page<Expense> result = transactionService.getExpenses(pageable);
         HashMap<String,Object> map = new HashMap<>();
-        map.put("expenses",result.getContent());
+        map.put("data",result.getContent());
         map.put("total_count",result.getTotalElements());
         map.put("page",pageable.getPageNumber()+1);
         map.put("has_more",result.hasNext());
@@ -74,18 +74,12 @@ public class TransactionController {
         return ResponseEntity.ok(Map.of("status","success"));
     }
 
-    @DeleteMapping("/expenses/{id}")
-    public ResponseEntity<Void> deleteExpense(@PathVariable Long id) {
-        transactionService.deleteExpense(id);
-        return ResponseEntity.ok().build();
-    }
-
     @GetMapping("/incomes")
     public ResponseEntity<Map<String, Object>> getIncomes() {
         Pageable pageable = Pageable.ofSize(100);
         Page<Income> result = transactionService.getIncomes(pageable);
         HashMap<String, Object> map = new HashMap<>();
-        map.put("incomes", result.getContent());
+        map.put("data", result.getContent());
         map.put("total_count", result.getTotalElements());
         map.put("page", pageable.getPageNumber() + 1);
         map.put("has_more", result.hasNext());
@@ -105,18 +99,12 @@ public class TransactionController {
         return ResponseEntity.ok(Map.of("status","success"));
     }
 
-    @DeleteMapping("/incomes/{id}")
-    public ResponseEntity<Void> deleteIncome(@PathVariable Long id) {
-        transactionService.deleteIncome(id);
-        return ResponseEntity.ok().build();
-    }
-
     @GetMapping("/savings")
     public ResponseEntity<Map<String, Object>> getSavings() {
         Pageable pageable = Pageable.ofSize(100);
         Page<Saving> result = transactionService.getSavings(pageable);
         HashMap<String, Object> map = new HashMap<>();
-        map.put("savings", result.getContent());
+        map.put("data", result.getContent());
         map.put("total_count", result.getTotalElements());
         map.put("page", pageable.getPageNumber() + 1);
         map.put("has_more", result.hasNext());
@@ -136,9 +124,9 @@ public class TransactionController {
         return ResponseEntity.ok(saving);
     }
 
-    @DeleteMapping("/savings/{id}")
-    public ResponseEntity<Void> deleteSaving(@PathVariable Long id) {
-        transactionService.deleteSaving(id);
+    @DeleteMapping("/transactions/{id}")
+    public ResponseEntity<Void> deleteTransaction(@PathVariable Long id) {
+        transactionService.deleteTransaction(id);
         return ResponseEntity.ok().build();
     }
 }

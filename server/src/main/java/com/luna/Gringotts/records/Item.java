@@ -9,6 +9,22 @@ import org.hibernate.annotations.OnDeleteAction;
 @Table(name = "item", schema = "public", uniqueConstraints = {@UniqueConstraint(columnNames = {"name", "subcategory"})})
 public class Item {
 
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    public void setSubCategory(SubCategory subCategory) {
+        this.subCategory = subCategory;
+    }
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     Long id;
@@ -17,11 +33,10 @@ public class Item {
     String name;
 
     String description;
-
     @ManyToOne(optional = false)
     @JoinColumn(name = "subcategory")
     @OnDelete(action = OnDeleteAction.RESTRICT)
-    @JsonProperty("sub_category")
+    @JsonProperty("subcategory")
     SubCategory subCategory;
 
     public Long getId(){

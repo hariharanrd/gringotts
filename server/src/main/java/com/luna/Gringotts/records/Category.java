@@ -7,6 +7,18 @@ import java.time.LocalDateTime;
 @Table(name = "category", schema = "public")
 public class Category {
 
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     Long id;
@@ -26,5 +38,7 @@ public class Category {
     public String getDescription(){
         return description;
     }
+
+
 
 }

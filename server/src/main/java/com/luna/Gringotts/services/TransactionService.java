@@ -3,9 +3,11 @@ package com.luna.Gringotts.services;
 import com.luna.Gringotts.records.Expense;
 import com.luna.Gringotts.records.Income;
 import com.luna.Gringotts.records.Saving;
+import com.luna.Gringotts.records.Transaction;
 import com.luna.Gringotts.repository.ExpenseRepository;
 import com.luna.Gringotts.repository.IncomeRepository;
 import com.luna.Gringotts.repository.SavingRepository;
+import com.luna.Gringotts.repository.TransactionRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Example;
 import org.springframework.data.domain.Page;
@@ -25,6 +27,9 @@ public class TransactionService {
 
     @Autowired
     SavingRepository savingRepository;
+
+    @Autowired
+    TransactionRepository<Transaction> transactionRepository;
 
     public Expense getExpenseById(Long id){
         return expenseRepository.findById(id).orElse(null);
@@ -62,16 +67,8 @@ public class TransactionService {
         return savingRepository.findAll(pageable);
     }
 
-    public void deleteExpense(Long id){
-        expenseRepository.deleteById(id);
-    }
-
-    public void deleteIncome(Long id){
-        incomeRepository.deleteById(id);
-    }
-
-    public void deleteSaving(Long id){
-        savingRepository.deleteById(id);
+    public void deleteTransaction(Long id){
+        transactionRepository.deleteById(id);
     }
 
     public void updateExpense(Expense e){
@@ -98,9 +95,5 @@ public class TransactionService {
     public List<Saving> getSaving(Example<Saving> example){
         return savingRepository.findAll(example);
     }
-
-
-
-
 
 }
