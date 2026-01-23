@@ -18,8 +18,6 @@ public class GringottsApplication {
 	@Bean
 	public WebMvcConfigurer corsConfigurer() {
 
-
-
 		return new WebMvcConfigurer() {
 
 			@Value ("${allowed.origins}")

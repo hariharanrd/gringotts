@@ -14,7 +14,7 @@ import org.hibernate.annotations.OnDeleteAction;
 public class Saving extends Transaction {
 
     @Column(name = "active", nullable = false)
-    Boolean active;
+    Boolean active=true;
 
     @Column(name = "withdrawn_amount")
     Double withdrawnAmount;
