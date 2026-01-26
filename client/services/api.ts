@@ -10,7 +10,7 @@ const getHeaders = () => {
 };
 
 const fetchWithCredentials = async (url: string, options: RequestInit = {}) => {
-  options.credentials = 'include'; // This is crucial for sending cookies
+  options.credentials = 'include';
   options.headers = {
     ...getHeaders(),
     ...options.headers,
