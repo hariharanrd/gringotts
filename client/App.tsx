@@ -15,14 +15,17 @@ import { ToastProvider, useToast } from './components/ToastContext';
 const PrivateRoute: React.FC<{ children: React.ReactNode; isAuthenticated: boolean | null }> = ({ children, isAuthenticated }) => {
   if (isAuthenticated === null) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="w-12 h-12 border-4 border-blue-100 border-t-blue-600 rounded-full animate-spin"></div>
+      <div className="flex items-center justify-center min-h-screen bg-stone-900">
+        <div className="w-12 h-12 border-4 border-amber-900 border-t-amber-500 rounded-full animate-spin"></div>
+      <div className="flex items-center justify-center min-h-screen bg-stone-900">
+        <div className="w-12 h-12 border-4 border-amber-900 border-t-amber-500 rounded-full animate-spin"></div>
+      </div>
       </div>
     );
   }
 
   return isAuthenticated ? <>{children}</> : <Navigate to="/login" />;
-};
+}
 
 const PublicRoute: React.FC<{ children: React.ReactNode; isAuthenticated: boolean | null }> = ({ children, isAuthenticated }) => {
   if (isAuthenticated === null) {
@@ -43,7 +46,7 @@ const Logout: React.FC<{ onLogout: () => Promise<void> }> = ({ onLogout }) => {
 
   return (
     <div className="flex items-center justify-center min-h-[60vh]">
-      <div className="w-12 h-12 border-4 border-blue-100 border-t-blue-600 rounded-full animate-spin"></div>
+      <div className="w-12 h-12 border-4 border-amber-100 border-t-amber-600 rounded-full animate-spin"></div>
     </div>
   );
 };
@@ -139,8 +142,8 @@ const GringottsApp: React.FC = () => {
               {isLoading ? (
                 <div className="flex items-center justify-center min-h-[60vh]">
                   <div className="flex flex-col items-center gap-4">
-                    <div className="w-12 h-12 border-4 border-blue-100 border-t-blue-600 rounded-full animate-spin"></div>
-                    <p className="text-slate-500 font-medium animate-pulse">Loading your finances...</p>
+                    <div className="w-12 h-12 border-4 border-amber-100 border-t-amber-600 rounded-full animate-spin"></div>
+                    <p className="text-amber-800 font-serif font-medium animate-pulse">Summoning your galleons...</p>
                   </div>
                 </div>
               ) : (
@@ -151,8 +154,8 @@ const GringottsApp: React.FC = () => {
                   <Route path="/logout" element={<Logout onLogout={handleLogout} />} />
                   <Route path="*" element={
                     <div className="flex flex-col items-center justify-center min-h-[60vh]">
-                      <h1 className="text-6xl font-bold text-slate-200">404</h1>
-                      <p className="text-xl text-slate-600 mt-4">Page not found</p>
+                      <h1 className="text-6xl font-bold text-amber-900/20 font-serif">404</h1>
+                      <p className="text-xl text-amber-800 mt-4 font-serif">This scroll is empty.</p>
                     </div>
                   } />
                 </Routes>
@@ -177,6 +180,6 @@ const App: React.FC = () => {
       <GringottsApp />
     </ToastProvider>
   );
-};
+}
 
 export default App;

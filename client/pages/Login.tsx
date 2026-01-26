@@ -31,46 +31,46 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="bg-white p-8 rounded shadow-md w-96">
-        <h2 className="text-2xl mb-4 font-bold text-center">Login</h2>
+    <div className="min-h-screen flex items-center justify-center bg-stone-900">
+      <div className="bg-amber-50 p-8 rounded-lg shadow-2xl w-96 border-4 border-double border-amber-700">
+        <h2 className="text-3xl mb-6 font-serif font-bold text-center text-amber-900">Gringotts Vault</h2>
         {error && <div className="text-red-500 mb-4 text-center">{error}</div>}
         <form onSubmit={handleSubmit}>
           <div className="mb-4">
-            <label className="block mb-2" htmlFor="username">Username</label>
+            <label className="block mb-2 font-serif text-amber-900" htmlFor="username">Username</label>
             <input
               id="username"
               name="username"
               type="text"
               autoComplete="username"
-              className="w-full p-2 border rounded"
+              className="w-full p-2 border-b-2 border-amber-300 bg-amber-50 focus:border-amber-600 outline-none transition-colors font-serif"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               required
             />
           </div>
           <div className="mb-4">
-            <label className="block mb-2" htmlFor="password">Password</label>
+            <label className="block mb-2 font-serif text-amber-900" htmlFor="password">Password</label>
             <input
               id="password"
               name="password"
               type="password"
               autoComplete="current-password"
-              className="w-full p-2 border rounded"
+              className="w-full p-2 border-b-2 border-amber-300 bg-amber-50 focus:border-amber-600 outline-none transition-colors font-serif"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
             />
           </div>
           <div className="mb-6">
-            <label className="block mb-2" htmlFor="totp">2FA Code</label>
+            <label className="block mb-2 font-serif text-amber-900" htmlFor="totp">Magical Code (2FA)</label>
             <input
               id="totp"
               name="totp"
               type="text"
               inputMode="numeric"
               autoComplete="one-time-code"
-              className="w-full p-2 border rounded"
+              className="w-full p-2 border-b-2 border-amber-300 bg-amber-50 focus:border-amber-600 outline-none transition-colors font-serif"
               value={code}
               onChange={(e) => setCode(e.target.value)}
               required
@@ -78,9 +78,9 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
           </div>
           <button
             type="submit"
-            className="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600 mb-4"
+            className="w-full bg-amber-700 text-amber-50 p-2 rounded font-serif font-bold hover:bg-amber-800 transition-colors shadow-md mb-4"
           >
-            Login
+            Open Vault
           </button>
         </form>
       </div>
