@@ -21,7 +21,7 @@ public class AuthenticationController {
 
     private final AuthenticationService service;
 
-    @Value("${production}")
+    @Value("${production:false}")
     private String production;
 
     @Autowired
