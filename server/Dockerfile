@@ -9,7 +9,7 @@ RUN mvn clean package -DskipTests
 # Stage 2: Create the runtime image
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
-COPY --from=build /app/target/*.jar app.jar
+COPY --from=build /app/target/Gringotts-0.0.1-SNAPSHOT.jar app.jar
 
 # Expose the port the application runs on
 EXPOSE 8080
