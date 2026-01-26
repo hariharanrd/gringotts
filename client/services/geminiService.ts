@@ -8,7 +8,7 @@ export const getFinancialInsights = async (transactions: Transaction[]): Promise
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     
     const summary = transactions.map(t => 
-      `${t.type}: ${t.value} - ${t.description} (${t.transactionTime})`
+      `${t.type}: ${t.value} - ${t.description} (${t.transaction_time})`
     ).join('\n');
 
     const response = await ai.models.generateContent({

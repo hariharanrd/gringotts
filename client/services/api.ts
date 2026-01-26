@@ -1,20 +1,28 @@
 
 import { Expense, Income, Saving, Category, SubCategory, Item, TransactionType } from '../types';
 
-/**
- * Replace with your production Spring Boot URL in environment variables.
- * For local development, this usually points to http://localhost:8080
- */
-const BASE_URL = window.location.hostname === 'localhost' 
-  ? 'http://localhost:8787/api/v1' 
-  : ((import.meta as any).env?.VITE_API_BASE_URL || '/api');
+const BASE_URL = "/api/v1";
 
-const headers = {
-  'Content-Type': 'application/json',
-  'Access-Control-Allow-Origin': 'http://localhost:3000',
+const getHeaders = () => {
+  return {
+    'Content-Type': 'application/json'
+  };
+};
+
+const fetchWithCredentials = async (url: string, options: RequestInit = {}) => {
+  options.credentials = 'include'; // This is crucial for sending cookies
+  options.headers = {
+    ...getHeaders(),
+    ...options.headers,
+  };
+  return fetch(url, options);
 };
 
 async function handleResponse(response: Response) {
+  if (response.status === 403) {
+    window.location.href = '/login';
+    throw new Error('Session expired');
+  }
   if (!response.ok) {
     const error = await response.json().catch(() => ({ message: 'Network response was not ok' }));
     throw new Error(error.message || `Error ${response.status}: ${response.statusText}`);
@@ -25,83 +33,84 @@ async function handleResponse(response: Response) {
 
 export const api = {
 
+  checkAuth: async () => {
+    const response = await fetchWithCredentials(`${BASE_URL}/auth/me`);
+    if (response.status === 403) {
+      throw new Error('Not authenticated');
+    }
+    return true;
+  },
+
   // Transaction API Start
 
   getExpenses: async (): Promise<Expense[]> => {
-    const response = await fetch(`${BASE_URL}/expenses`, { headers });
+    const response = await fetchWithCredentials(`${BASE_URL}/expenses`);
     const data = await handleResponse(response);
     return data.map((expense: any) => ({ ...expense, type: TransactionType.EXPENSE }));
   },
 
   getIncomes: async (): Promise<Income[]> => {
-    const response = await fetch(`${BASE_URL}/incomes`, { headers });
+    const response = await fetchWithCredentials(`${BASE_URL}/incomes`);
     const data = await handleResponse(response);
     return data.map((income: any) => ({ ...income, type: TransactionType.INCOME }));
   },
 
   getSavings: async (): Promise<Saving[]> => {
-    const response = await fetch(`${BASE_URL}/savings`, { headers });
+    const response = await fetchWithCredentials(`${BASE_URL}/savings`);
     const data = await handleResponse(response);
     return data.map((saving: any) => ({ ...saving, type: TransactionType.SAVING }));
   },
 
   createExpense: async (data: Partial<Expense>) => {
-    const response = await fetch(`${BASE_URL}/expenses`, {
+    const response = await fetchWithCredentials(`${BASE_URL}/expenses`, {
       method: 'POST',
-      headers,
       body: JSON.stringify({ ...data, type: TransactionType.EXPENSE }),
     });
     return handleResponse(response);
   },
 
   createIncome: async (data: Partial<Income>) => {
-    const response = await fetch(`${BASE_URL}/incomes`, {
+    const response = await fetchWithCredentials(`${BASE_URL}/incomes`, {
       method: 'POST',
-      headers,
       body: JSON.stringify({ ...data, type: TransactionType.INCOME }),
     });
     return handleResponse(response);
   },
 
   createSaving: async (data: Partial<Saving>) => {
-    const response = await fetch(`${BASE_URL}/savings`, {
+    const response = await fetchWithCredentials(`${BASE_URL}/savings`, {
       method: 'POST',
-      headers,
       body: JSON.stringify({ ...data, type: TransactionType.SAVING }),
     });
     return handleResponse(response);
   },
 
-  deleteTransaction: async (id: number) => {
-    const response = await fetch(`${BASE_URL}/transactions/${id}`, {
+  deleteTransaction: async (id: number)     => {
+    const response = await fetchWithCredentials(`${BASE_URL}/transactions/${id}`, {
       method: 'DELETE',
-      headers,
     });
     if (!response.ok) throw new Error('Failed to delete transaction');
   },
 
   updateExpense: async (data: Partial<Expense>) => {
-    const response = await fetch(`${BASE_URL}/expenses/${data.id}`, {
+    const response = await fetchWithCredentials(`${BASE_URL}/expenses/${data.id}`, {
         method: 'PUT',
-        headers,
         body: JSON.stringify({ ...data, type: TransactionType.EXPENSE }),
     });
     return handleResponse(response);
   },
 
   updateIncome: async (data: Partial<Income>) => {
-    const response = await fetch(`${BASE_URL}/incomes/${data.id}`, {
+    const response = await fetchWithCredentials(`${BASE_URL}/incomes/${data.id}`, {
         method: 'PUT',
-        headers,
         body: JSON.stringify({ ...data, type: TransactionType.INCOME }),
     });
     return handleResponse(response);
   },
 
   updateSaving: async (data: Partial<Saving>) => {
-    const response = await fetch(`${BASE_URL}/savings/${data.id}`, {
+    const response = await fetchWithCredentials(`${BASE_URL}/savings/${data.id}`, {
         method: 'PUT',
-        headers,
         body: JSON.stringify({ ...data, type: TransactionType.SAVING }),
     });
     return handleResponse(response);
@@ -112,24 +121,23 @@ export const api = {
   // Configuration API start
 
   getCategories: async (): Promise<Category[]> => {
-    const response = await fetch(`${BASE_URL}/categories`, { headers });
+    const response = await fetchWithCredentials(`${BASE_URL}/categories`);
     return handleResponse(response);
   },
 
   getSubCategories: async (categoryId: number): Promise<SubCategory[]> => {
-    const response = await fetch(`${BASE_URL}/categories/${categoryId}/subcategories`, { headers });
+    const response = await fetchWithCredentials(`${BASE_URL}/categories/${categoryId}/subcategories`);
     return handleResponse(response);
   },
 
   getItems: async (subCategoryId: number): Promise<Item[]> => {
-    const response = await fetch(`${BASE_URL}/subcategories/${subCategoryId}/items`, { headers });
+    const response = await fetchWithCredentials(`${BASE_URL}/subcategories/${subCategoryId}/items`);
     return handleResponse(response);
   },
 
   addCategory: async (data: Partial<Category>) => {
-    const response = await fetch(`${BASE_URL}/categories`, {
+    const response = await fetchWithCredentials(`${BASE_URL}/categories`, {
       method: 'POST',
-      headers,
       body: JSON.stringify(data),
     });
     return handleResponse(response);
@@ -143,9 +151,8 @@ export const api = {
       }
     }
     delete input.categoryId
-    const response = await fetch(`${BASE_URL}/subcategories`, {
+    const response = await fetchWithCredentials(`${BASE_URL}/subcategories`, {
       method: 'POST',
-      headers,
       body: JSON.stringify(input),
     });
     return handleResponse(response);
@@ -159,61 +166,54 @@ export const api = {
       }
     }
     delete input.subCategoryId
-    const response = await fetch(`${BASE_URL}/items`, {
+    const response = await fetchWithCredentials(`${BASE_URL}/items`, {
       method: 'POST',
-      headers,
       body: JSON.stringify(input),
     });
     return handleResponse(response);
   },
 
   updateCategory: async (data: Partial<Category>) => {
-    const response = await fetch(`${BASE_URL}/categories/${data.id}`, {
+    const response = await fetchWithCredentials(`${BASE_URL}/categories/${data.id}`, {
       method: 'PUT',
-      headers,
       body: JSON.stringify(data),
     });
     return handleResponse(response);
   },
 
   updateSubCategory: async (data: Partial<SubCategory>) => {
-    const response = await fetch(`${BASE_URL}/subcategories/${data.id}`, {
+    const response = await fetchWithCredentials(`${BASE_URL}/subcategories/${data.id}`, {
       method: 'PUT',
-      headers,
       body: JSON.stringify(data),
     });
     return handleResponse(response);
   },
 
   updateItem: async (data: Partial<Item>) => {
-    const response = await fetch(`${BASE_URL}/items/${data.id}`, {
+    const response = await fetchWithCredentials(`${BASE_URL}/items/${data.id}`, {
       method: 'PUT',
-      headers,
       body: JSON.stringify(data),
     });
     return handleResponse(response);
   },
 
   deleteCategory: async (id: number) => {
-    const response = await fetch(`${BASE_URL}/categories/${id}`, {
+    const response = await fetchWithCredentials(`${BASE_URL}/categories/${id}`, {
       method: 'DELETE',
-      headers,
     });
     if (!response.ok) throw new Error('Failed to delete category');
   },
 
   deleteSubCategory: async (id: number) => {
-    const response = await fetch(`${BASE_URL}/subcategories/${id}`, {
+    const response = await fetchWithCredentials(`${BASE_URL}/subcategories/${id}`, {
       method : 'DELETE',
-      headers
     });
     if (!response.ok) throw new Error('Failed to delete subcategory');
   },
 
   deleteItem: async (id: number) => {
-    const response = await fetch(`${BASE_URL}/items/${id}`, {
+    const response = await fetchWithCredentials(`${BASE_URL}/items/${id}`, {
       method : 'DELETE',
-      headers
     });
     if (!response.ok) throw new Error('Failed to delete item');
   }

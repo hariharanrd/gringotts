@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Search, Filter, MoreVertical, Trash2, Edit2, ChevronDown, Download } from 'lucide-react';
+import { Search, Filter, MoreVertical, Trash2, Edit2, ChevronDown, Download, PlusCircle } from 'lucide-react';
 import { Transaction, TransactionType } from '../types';
 import ConfirmationDialog from '../components/ConfirmationDialogue';
 
@@ -8,9 +8,10 @@ interface TransactionProps {
   transactions: Transaction[];
   onDelete: (id: number) => void;
   onEdit: (transaction: Transaction) => void;
+  onAdd: () => void;
 }
 
-const Transactions: React.FC<TransactionProps> = ({ transactions, onEdit, onDelete }) => {
+const Transactions: React.FC<TransactionProps> = ({ transactions, onEdit, onDelete, onAdd }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<string>('ALL');
   const [deleteId, setDeleteId] = useState<number | null>(null);
@@ -36,6 +37,13 @@ const Transactions: React.FC<TransactionProps> = ({ transactions, onEdit, onDele
         </div>
         
         <div className="flex gap-2 w-full md:w-auto">
+          <button 
+            onClick={onAdd}
+            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl font-medium transition-colors shadow-sm shadow-blue-200"
+          >
+            <PlusCircle className="w-5 h-5" />
+            New Transaction
+          </button>
           <select 
             className="flex-1 md:flex-none px-4 py-2 bg-white border border-slate-200 rounded-xl font-medium text-slate-600 outline-none focus:ring-2 focus:ring-blue-500"
             value={filterType}

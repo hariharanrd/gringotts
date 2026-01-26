@@ -5,17 +5,16 @@ import {
   LayoutDashboard, 
   ReceiptText, 
   Settings, 
-  PlusCircle, 
   Menu, 
   X,
   Wallet,
-  TrendingUp,
-  PieChart
+  LogOut
 } from 'lucide-react';
 
 interface LayoutProps {
+  userName: string;
   children: React.ReactNode;
-  onAddClick: () => void;
+  onLogout: () => void;
 }
 
 const navItems = [
@@ -24,8 +23,9 @@ const navItems = [
   { id: 'configuration', label: 'Configuration', icon: Settings, path: '/configuration' },
 ];
 
-const Layout: React.FC<LayoutProps> = ({ children, onAddClick }) => {
+const Layout: React.FC<LayoutProps> = ({ userName, children }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
   const location = useLocation();
   const activeTab = location.pathname.replace('/', '');
 
@@ -71,16 +71,6 @@ const Layout: React.FC<LayoutProps> = ({ children, onAddClick }) => {
               </Link>
             ))}
           </nav>
-
-          <div className="p-4 border-t border-slate-100">
-            <button 
-              onClick={onAddClick}
-              className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-xl transition-all shadow-md shadow-blue-200"
-            >
-              <PlusCircle className="w-5 h-5" />
-              New Transaction
-            </button>
-          </div>
         </div>
       </aside>
 
@@ -99,16 +89,30 @@ const Layout: React.FC<LayoutProps> = ({ children, onAddClick }) => {
             <h2 className="text-lg font-semibold text-slate-800 capitalize">{activeTab}</h2>
           </div>
 
-          <div className="flex items-center gap-4">
-            <div className="flex flex-col text-right">
-              <span className="text-xs text-slate-500 font-medium">Logged in as</span>
-              <span className="text-sm font-semibold text-slate-900 uppercase">Demo User</span>
-            </div>
-            <img 
-              src="https://picsum.photos/40/40" 
-              alt="Profile" 
-              className="w-10 h-10 rounded-full border border-slate-200"
-            />
+          <div className="flex items-center gap-4 relative">
+            <button 
+              onClick={() => setIsProfileOpen(!isProfileOpen)}
+              className="flex items-center gap-4 hover:bg-slate-50 p-2 rounded-xl transition-colors text-right"
+            >
+              <div className="flex flex-col">
+                <span className="text-xs text-slate-500 font-medium">Logged in as</span>
+                <span className="text-sm font-semibold text-slate-900 uppercase">{userName}</span>
+              </div>
+              <img 
+                src="https://picsum.photos/40/40" 
+                alt="Profile" 
+                className="w-10 h-10 rounded-full border border-slate-200"
+              />
+            </button>
+
+            {isProfileOpen && (
+              <div className="absolute top-full right-0 mt-2 w-48 bg-white rounded-xl shadow-xl border border-slate-100 py-2 z-50 animate-in fade-in zoom-in-95 duration-200">
+                <Link to="/logout" className="flex items-center gap-2 px-4 py-2 text-sm text-rose-600 hover:bg-rose-50 transition-colors w-full">
+                  <LogOut className="w-4 h-4" />
+                  Logout
+                </Link>
+              </div>
+            )}
           </div>
         </header>
 
