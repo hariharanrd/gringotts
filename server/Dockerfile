@@ -12,10 +12,10 @@ WORKDIR /app
 COPY --from=build /app/target/*.jar app.jar
 
 # Expose the port the application runs on
-EXPOSE 8787
+EXPOSE 8080
 
 # Set environment variables (can be overridden at runtime)
-ENV SERVER_PORT=8787
+ENV SERVER_PORT=8080
 
 # Run the application
 ENTRYPOINT ["java", "-jar", "app.jar"]
