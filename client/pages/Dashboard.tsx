@@ -29,7 +29,7 @@ interface DashboardProps {
   transactions: Transaction[];
 }
 
-const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
+const COLORS = ['#b45309', '#059669', '#d97706', '#be123c', '#7c3aed']; // Amber, Emerald, Gold, Rose, Violet
 
 const Dashboard: React.FC<DashboardProps> = ({ transactions }) => {
   const [aiInsight, setAiInsight] = useState<string>("Analyzing your spending...");
@@ -71,7 +71,7 @@ const Dashboard: React.FC<DashboardProps> = ({ transactions }) => {
     }, []);
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
+    <div className="space-y-8 animate-in fade-in duration-500 font-serif">
       {/* Top Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard 
@@ -106,10 +106,10 @@ const Dashboard: React.FC<DashboardProps> = ({ transactions }) => {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Main Chart */}
-        <div className="lg:col-span-2 bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+        <div className="lg:col-span-2 bg-amber-50 p-6 rounded-2xl shadow-sm border border-amber-200">
           <div className="flex items-center justify-between mb-8">
-            <h3 className="font-bold text-slate-800">Financial Overview</h3>
-            <select className="bg-slate-50 border-none text-sm font-semibold text-slate-600 rounded-lg px-3 py-1 outline-none">
+            <h3 className="font-bold text-amber-900 text-lg">Vault Overview</h3>
+            <select className="bg-amber-100 border-none text-sm font-semibold text-amber-900 rounded-lg px-3 py-1 outline-none cursor-pointer hover:bg-amber-200 transition-colors">
               <option>Last 30 Days</option>
               <option>Year to Date</option>
             </select>
@@ -119,35 +119,35 @@ const Dashboard: React.FC<DashboardProps> = ({ transactions }) => {
               <AreaChart data={chartData}>
                 <defs>
                   <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.1}/>
-                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                    <stop offset="5%" stopColor="#d97706" stopOpacity={0.1}/>
+                    <stop offset="95%" stopColor="#d97706" stopOpacity={0}/>
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#64748b', fontSize: 12}} />
-                <YAxis axisLine={false} tickLine={false} tick={{fill: '#64748b', fontSize: 12}} />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#fde68a" />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#78350f', fontSize: 12, fontFamily: 'serif'}} />
+                <YAxis axisLine={false} tickLine={false} tick={{fill: '#78350f', fontSize: 12, fontFamily: 'serif'}} />
                 <Tooltip 
-                  contentStyle={{borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)'}}
+                  contentStyle={{borderRadius: '12px', border: '2px solid #d97706', backgroundColor: '#fffbeb', color: '#78350f', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)'}}
                 />
-                <Area type="monotone" dataKey="amount" stroke="rgb(59, 130, 246)" strokeWidth={3} fillOpacity={1} fill="url(#colorValue)" />
+                <Area type="monotone" dataKey="amount" stroke="#d97706" strokeWidth={3} fillOpacity={1} fill="url(#colorValue)" />
               </AreaChart>
             </ResponsiveContainer>
           </div>
         </div>
 
         {/* AI Insight Card */}
-        <div className="bg-gradient-to-br from-indigo-600 to-blue-700 p-6 rounded-2xl shadow-xl text-white relative overflow-hidden group">
+        <div className="bg-gradient-to-br from-slate-800 to-slate-900 p-6 rounded-2xl shadow-xl text-amber-50 relative overflow-hidden group border-2 border-amber-700">
           <Sparkles className="absolute top-4 right-4 text-white/20 w-12 h-12 group-hover:scale-110 transition-transform" />
           <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
-            AI Money Mentor
+            Goblin Financial Advisor
           </h3>
           <div className="space-y-4">
-             <p className="text-indigo-100 text-sm leading-relaxed whitespace-pre-line italic">
+             <p className="text-amber-100/90 text-sm leading-relaxed whitespace-pre-line italic font-serif">
               "{aiInsight}"
             </p>
-            <div className="pt-4 border-t border-white/10">
-              <button className="w-full bg-white/10 hover:bg-white/20 py-2 rounded-xl text-xs font-semibold transition-colors">
-                View Full Analysis
+            <div className="pt-4 border-t border-amber-500/30">
+              <button className="w-full bg-amber-900/50 hover:bg-amber-900/70 border border-amber-700/50 py-2 rounded-xl text-xs font-semibold transition-colors text-amber-200">
+                Consult the Prophecy
               </button>
             </div>
           </div>
@@ -156,8 +156,8 @@ const Dashboard: React.FC<DashboardProps> = ({ transactions }) => {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Pie Distribution */}
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-           <h3 className="font-bold text-slate-800 mb-6">Spending Distribution</h3>
+        <div className="bg-amber-50 p-6 rounded-2xl shadow-sm border border-amber-200">
+           <h3 className="font-bold text-amber-900 mb-6 text-lg">Spending Distribution</h3>
            <div className="h-[250px]">
              <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
@@ -181,22 +181,22 @@ const Dashboard: React.FC<DashboardProps> = ({ transactions }) => {
         </div>
 
         {/* Recent Activity List */}
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-          <h3 className="font-bold text-slate-800 mb-6">Recent Activity</h3>
+        <div className="bg-amber-50 p-6 rounded-2xl shadow-sm border border-amber-200">
+          <h3 className="font-bold text-amber-900 mb-6 text-lg">Recent Ledger Entries</h3>
           <div className="space-y-4">
             {transactions.slice(0, 4).map((t) => (
-              <div key={t.id} className="flex items-center justify-between p-3 hover:bg-slate-50 rounded-xl transition-colors cursor-pointer">
+              <div key={t.id} className="flex items-center justify-between p-3 hover:bg-amber-100/50 rounded-xl transition-colors cursor-pointer border border-transparent hover:border-amber-200">
                 <div className="flex items-center gap-3">
                   <div className={`p-2 rounded-lg ${
-                    t.type === TransactionType.EXPENSE ? 'bg-rose-50 text-rose-600' :
-                    t.type === TransactionType.INCOME ? 'bg-emerald-50 text-emerald-600' :
-                    'bg-amber-50 text-amber-600'
+                    t.type === TransactionType.EXPENSE ? 'bg-rose-100 text-rose-700' :
+                    t.type === TransactionType.INCOME ? 'bg-emerald-100 text-emerald-700' :
+                    'bg-amber-100 text-amber-700'
                   }`}>
                     {t.type === TransactionType.EXPENSE ? <ArrowDownRight className="w-5 h-5" /> : <ArrowUpRight className="w-5 h-5" />}
                   </div>
                   <div>
-                    <p className="text-sm font-semibold text-slate-900">{t.description}</p>
-                    <p className="text-xs text-slate-500">{new Date(t.transaction_time).toLocaleDateString()}</p>
+                    <p className="text-sm font-semibold text-amber-900">{t.description}</p>
+                    <p className="text-xs text-amber-700/70">{new Date(t.transaction_time).toLocaleDateString()}</p>
                   </div>
                 </div>
                 <p className={`text-sm font-bold ${
@@ -223,22 +223,22 @@ interface StatCardProps {
 
 const StatCard: React.FC<StatCardProps> = ({ title, value, icon: Icon, color, trend }) => {
   const colors = {
-    blue: 'bg-blue-50 text-blue-600 border-blue-100',
-    emerald: 'bg-emerald-50 text-emerald-600 border-emerald-100',
-    rose: 'bg-rose-50 text-rose-600 border-rose-100',
-    amber: 'bg-amber-50 text-amber-600 border-amber-100',
+    blue: 'bg-amber-100 text-amber-700 border-amber-200',
+    emerald: 'bg-emerald-100 text-emerald-700 border-emerald-200',
+    rose: 'bg-rose-100 text-rose-700 border-rose-200',
+    amber: 'bg-yellow-100 text-yellow-700 border-yellow-200',
   };
 
   return (
-    <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 group hover:shadow-md transition-shadow">
+    <div className="bg-amber-50 p-6 rounded-2xl shadow-sm border border-amber-200 group hover:shadow-md transition-shadow hover:border-amber-300">
       <div className="flex items-center justify-between mb-4">
         <div className={`p-3 rounded-xl ${colors[color]} transition-transform group-hover:scale-110`}>
           <Icon className="w-6 h-6" />
         </div>
-        <span className="text-xs font-medium text-slate-400">{trend}</span>
+        <span className="text-xs font-medium text-amber-800/60">{trend}</span>
       </div>
-      <p className="text-slate-500 text-sm font-medium">{title}</p>
-      <h4 className="text-2xl font-bold text-slate-900 mt-1">{value}</h4>
+      <p className="text-amber-800/70 text-sm font-medium">{title}</p>
+      <h4 className="text-2xl font-bold text-amber-900 mt-1">{value}</h4>
     </div>
   );
 };

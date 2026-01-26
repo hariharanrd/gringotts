@@ -171,24 +171,24 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, on
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-      <div className="bg-white w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
-        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-          <h3 className="text-lg font-bold text-slate-800">{isEditing ? 'Edit Transaction' : 'New Transaction'}</h3>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 transition-colors">
+      <div className="bg-amber-50 w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200 border-4 border-double border-amber-800 font-serif">
+        <div className="px-6 py-4 border-b border-amber-200 flex items-center justify-between bg-amber-100/50">
+          <h3 className="text-lg font-bold text-amber-900">{isEditing ? 'Amend Ledger' : 'New Entry'}</h3>
+          <button onClick={onClose} className="text-amber-700 hover:text-amber-900 transition-colors">
             <X className="w-6 h-6" />
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-5 max-h-[80vh] overflow-y-auto">
           {/* Type Selector */}
-          <div className="grid grid-cols-3 gap-2 p-1 bg-slate-100 rounded-xl">
+          <div className="grid grid-cols-3 gap-2 p-1 bg-amber-100 rounded-xl border border-amber-200">
             {Object.values(TransactionType).map((t) => (
               <button
                 key={t}
                 type="button"
                 onClick={() => setType(t)}
                 className={`py-2 text-sm font-semibold rounded-lg transition-all ${
-                  type === t ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                  type === t ? 'bg-white text-amber-800 shadow-sm border border-amber-200' : 'text-amber-800/60 hover:text-amber-900'
                 }`}
               >
                 {t}
@@ -199,24 +199,24 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, on
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <label className="text-sm font-medium text-slate-700">Value</label>
+                <label className="text-sm font-medium text-amber-900">Value</label>
                 <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">₹</span>
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-amber-700">₹</span>
                   <input
                     type="number"
                     required
-                    className="w-full pl-7 pr-4 py-2 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                    className="w-full pl-7 pr-4 py-2 bg-white border border-amber-300 rounded-xl focus:ring-2 focus:ring-amber-600 focus:border-amber-600 outline-none transition-all text-amber-900"
                     value={formData.value}
                     onChange={(e) => setFormData(prev => ({ ...prev, value: e.target.value }))}
                   />
                 </div>
               </div>
               <div className="space-y-1.5">
-                <label className="text-sm font-medium text-slate-700">Date & Time</label>
+                <label className="text-sm font-medium text-amber-900">Date & Time</label>
                 <input
                   type="datetime-local"
                   required
-                  className="w-full px-4 py-2 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                  className="w-full px-4 py-2 bg-white border border-amber-300 rounded-xl focus:ring-2 focus:ring-amber-600 focus:border-amber-600 outline-none transition-all text-amber-900"
                   value={formData.transaction_time?.slice(0, 16)}
                   onChange={(e) => setFormData(prev => ({ ...prev, transactionTime: e.target.value }))}
                 />
@@ -224,12 +224,12 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, on
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-slate-700">Description</label>
+              <label className="text-sm font-medium text-amber-900">Description</label>
               <input
                 type="text"
                 required
                 placeholder="What was this for?"
-                className="w-full px-4 py-2 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                className="w-full px-4 py-2 bg-white border border-amber-300 rounded-xl focus:ring-2 focus:ring-amber-600 focus:border-amber-600 outline-none transition-all text-amber-900 placeholder:text-amber-900/30"
                 value={formData.description}
                 onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
               />
@@ -237,9 +237,9 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, on
 
             <div className="grid grid-cols-2 gap-4">
                <div className="space-y-1.5">
-                <label className="text-sm font-medium text-slate-700">Category</label>
+                <label className="text-sm font-medium text-amber-900">Category</label>
                 <select
-                  className="w-full px-4 py-2 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
+                  className="w-full px-4 py-2 bg-white border border-amber-300 rounded-xl focus:ring-2 focus:ring-amber-600 outline-none text-amber-900"
                   value={formData.category?.id || ''}
                   onChange={(e) => handleCategoryChange(Number(e.target.value))}
                 >
@@ -248,9 +248,9 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, on
                 </select>
               </div>
               <div className="space-y-1.5">
-                <label className="text-sm font-medium text-slate-700">Sub-Category</label>
+                <label className="text-sm font-medium text-amber-900">Sub-Category</label>
                 <select
-                  className="w-full px-4 py-2 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none disabled:opacity-50"
+                  className="w-full px-4 py-2 bg-white border border-amber-300 rounded-xl focus:ring-2 focus:ring-amber-600 outline-none disabled:opacity-50 text-amber-900"
                   disabled={!formData.category}
                   value={formData.subcategory?.id || ''}
                   onChange={(e) => handleSubCategoryChange(Number(e.target.value))}
@@ -262,9 +262,9 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, on
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-slate-700">Item</label>
+              <label className="text-sm font-medium text-amber-900">Item</label>
               <select
-                className="w-full px-4 py-2 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none disabled:opacity-50"
+                className="w-full px-4 py-2 bg-white border border-amber-300 rounded-xl focus:ring-2 focus:ring-amber-600 outline-none disabled:opacity-50 text-amber-900"
                 disabled={!formData.subcategory || !formData.category}
                 value={formData.item?.id || ''}
                 onChange={(e) => setFormData(prev => ({ ...prev, item: items.find(i => i.id === Number(e.target.value)) }))}
@@ -276,9 +276,9 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, on
 
             {type === TransactionType.EXPENSE && (
               <div className="space-y-1.5">
-                <label className="text-sm font-medium text-slate-700">Payment Mode</label>
+                <label className="text-sm font-medium text-amber-900">Payment Mode</label>
                 <select
-                  className="w-full px-4 py-2 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
+                  className="w-full px-4 py-2 bg-white border border-amber-300 rounded-xl focus:ring-2 focus:ring-amber-600 outline-none text-amber-900"
                   value={formData.payment_mode}
                   onChange={(e) => setFormData(prev => ({ ...prev, payment_mode: e.target.value }))}
                 >
@@ -292,11 +292,11 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, on
 
             {type === TransactionType.INCOME && (
               <div className="space-y-1.5">
-                <label className="text-sm font-medium text-slate-700">Income Source</label>
+                <label className="text-sm font-medium text-amber-900">Income Source</label>
                 <input
                   type="text"
                   placeholder="e.g. Salary, Freelance"
-                  className="w-full px-4 py-2 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                  className="w-full px-4 py-2 bg-white border border-amber-300 rounded-xl focus:ring-2 focus:ring-amber-600 outline-none transition-all text-amber-900 placeholder:text-amber-900/30"
                   value={formData.source}
                   onChange={(e) => setFormData(prev => ({ ...prev, source: e.target.value }))}
                 />
@@ -304,10 +304,10 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, on
             )}
 
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-slate-700">Notes (Optional)</label>
+              <label className="text-sm font-medium text-amber-900">Notes (Optional)</label>
               <textarea
                 rows={2}
-                className="w-full px-4 py-2 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
+                className="w-full px-4 py-2 bg-white border border-amber-300 rounded-xl focus:ring-2 focus:ring-amber-600 outline-none text-amber-900"
                 value={formData.notes}
                 onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
               />
@@ -318,14 +318,14 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, on
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl transition-colors"
+              className="flex-1 px-4 py-2.5 bg-amber-100 hover:bg-amber-200 text-amber-900 font-semibold rounded-xl transition-colors"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl shadow-lg shadow-blue-200 transition-all disabled:opacity-50"
+              className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-amber-800 hover:bg-amber-900 text-amber-50 font-semibold rounded-xl shadow-lg shadow-amber-900/20 transition-all disabled:opacity-50"
             >
               {loading ? (
                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
