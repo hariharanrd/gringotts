@@ -55,6 +55,10 @@ public class TransactionService {
         savingRepository.save(s);
     }
 
+    public void saveTransactions(List<Transaction> transactions) {
+        transactionRepository.saveAll(transactions);
+    }
+
     public Page<Expense> getExpenses(Pageable pageable){
         return expenseRepository.findAll(pageable);
     }

@@ -2,10 +2,10 @@ package com.luna.Gringotts.records;
 
 import java.time.LocalDateTime;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
+import org.springframework.boot.context.properties.bind.DefaultValue;
 import org.springframework.data.annotation.ReadOnlyProperty;
 
 @Entity
@@ -13,16 +13,30 @@ import org.springframework.data.annotation.ReadOnlyProperty;
 @Inheritance(strategy = InheritanceType.JOINED)
 public class Transaction {
 
+    public Transaction(){
+
+    }
+
+    public Transaction(String refNo, LocalDateTime date, String description, Double value) {
+        this.referenceNo = refNo;
+        this.transactionTime = date;
+        this.description = description;
+        this.value = value;
+    }
+
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "transaction_seq_gen")
     @SequenceGenerator(name = "transaction_seq_gen", sequenceName = "transaction_seq", allocationSize = 1)
     Long id;
 
     @Column(nullable = false)
-    Long value;
+    Double value;
 
     @Column(nullable = false)
     String description;
+
+    @Column(name="reference_number")
+    String referenceNo;
 
     @Column(name = "transaction_time", nullable = false)
     @JsonProperty("transaction_time")
@@ -49,6 +63,9 @@ public class Transaction {
     @Column(columnDefinition = "text")
     String notes;
 
+    @Column(name = "imported")
+    Boolean imported = false;
+
     public Long getId() {
         return id;
     }
@@ -58,11 +75,11 @@ public class Transaction {
     }
 
 
-    public Long getValue() {
+    public Double getValue() {
         return value;
     }
 
-    public void setValue(Long value) {
+    public void setValue(Double value) {
         this.value = value;
     }
 
@@ -120,5 +137,21 @@ public class Transaction {
 
     public void setNotes(String notes) {
         this.notes = notes;
+    }
+
+    public String getReferenceNo() {
+        return referenceNo;
+    }
+
+    public void setReferenceNo(String referenceNo) {
+        this.referenceNo = referenceNo;
+    }
+
+    public Boolean getImported() {
+        return imported;
+    }
+
+    public void setImported(Boolean imported) {
+        this.imported = imported;
     }
 }

@@ -1,7 +1,6 @@
 package com.luna.Gringotts.records;
 
 import jakarta.persistence.*;
-import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "category", schema = "public")
