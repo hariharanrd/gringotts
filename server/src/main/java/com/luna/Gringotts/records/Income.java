@@ -1,5 +1,7 @@
 package com.luna.Gringotts.records;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.PrimaryKeyJoinColumn;
 import jakarta.persistence.Table;
@@ -30,6 +32,8 @@ public class Income extends Transaction {
         this.source = source;
     }
 
+    @Column(name = "source")
+            @JsonProperty  ("source")
     String source;
 
     public enum IncomeMode {

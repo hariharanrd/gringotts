@@ -165,7 +165,7 @@ const GringottsApp: React.FC = () => {
                 </div>
               ) : (
                 <Routes>
-                  <Route path="/dashboard" element={<Dashboard transactions={transactions} />} />
+                  <Route path="/dashboard" element={<Dashboard />} />
                   <Route path="/expenses" element={<Expenses onEdit={handleEditTransaction} onAdd={() => handleAddTransaction(TransactionType.EXPENSE)} refreshTrigger={refreshKey} />} />
                   <Route path="/incomes" element={<Incomes onEdit={handleEditTransaction} onAdd={() => handleAddTransaction(TransactionType.INCOME)} refreshTrigger={refreshKey} />} />
                   <Route path="/savings" element={<Savings onEdit={handleEditTransaction} onAdd={() => handleAddTransaction(TransactionType.SAVING)} refreshTrigger={refreshKey} />} />

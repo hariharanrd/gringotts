@@ -36,6 +36,12 @@ public class TransactionController {
     @Autowired
     private TransactionService transactionService;
 
+    @GetMapping("/summary")
+    public ResponseEntity<Map<String, Object>> getSummary(@RequestParam(value = "days", defaultValue = "30") int days) {
+        Map<String, Object> summary = transactionService.getSummary(days);
+        return ResponseEntity.ok(summary);
+    }
+
     @GetMapping("/expenses")
     public ResponseEntity<Map<String, Object>> getExpenses(@RequestParam("page") int page){
         Pageable pageable = PageRequest.of(page - 1, 10, Sort.by(Sort.Direction.DESC, "transactionTime"));
@@ -83,7 +89,13 @@ public class TransactionController {
 
     @PutMapping("/expenses/{id}")
     public ResponseEntity<Map<String,String>> updateExpense(@PathVariable Long id, @RequestBody Expense expense) {
-        expense.setId(id);
+        Transaction existing = transactionService.getTransactionById(id);
+        if (existing != null && !(existing instanceof Expense)) {
+            transactionService.deleteTransaction(id);
+            expense.setId(null);
+        } else {
+            expense.setId(id);
+        }
         transactionService.saveExpense(expense);
         return ResponseEntity.ok(Map.of("status","success"));
     }
@@ -108,7 +120,13 @@ public class TransactionController {
 
     @PutMapping("/incomes/{id}")
     public ResponseEntity<Map<String,String>> updateIncome(@PathVariable Long id, @RequestBody Income income) {
-        income.setId(id);
+        Transaction existing = transactionService.getTransactionById(id);
+        if (existing != null && !(existing instanceof Income)) {
+            transactionService.deleteTransaction(id);
+            income.setId(null);
+        } else {
+            income.setId(id);
+        }
         transactionService.saveIncome(income);
         return ResponseEntity.ok(Map.of("status","success"));
     }
@@ -133,9 +151,25 @@ public class TransactionController {
 
     @PutMapping("/savings/{id}")
     public ResponseEntity<Saving> updateSaving(@PathVariable Long id, @RequestBody Saving saving) {
-        saving.setId(id);
+        Transaction existing = transactionService.getTransactionById(id);
+        if (existing != null && !(existing instanceof Saving)) {
+            transactionService.deleteTransaction(id);
+            saving.setId(null);
+        } else {
+            saving.setId(id);
+        }
         transactionService.saveSaving(saving);
         return ResponseEntity.ok(saving);
+    }
+
+    @PutMapping("/transactions/bulk-update-category")
+    public ResponseEntity<Map<String, String>> bulkUpdateCategory(@RequestBody Map<String, Object> request) {
+        @SuppressWarnings("unchecked")
+        List<Integer> rawIds = (List<Integer>) request.get("transaction_ids");
+        List<Long> transactionIds = rawIds.stream().map(Integer::longValue).toList();
+        Long categoryId = ((Number) request.get("category_id")).longValue();
+        transactionService.bulkUpdateCategory(transactionIds, categoryId);
+        return ResponseEntity.ok(Map.of("status", "success"));
     }
 
     @DeleteMapping("/transactions/{id}")

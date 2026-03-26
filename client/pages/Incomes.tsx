@@ -1,8 +1,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { api } from '../services/api';
-import { Transaction } from '../types';
-import { ArrowUpRight, PlusCircle, Pencil, Trash2 } from 'lucide-react';
+import { Transaction, Category } from '../types';
+import { ArrowUpRight, PlusCircle, Pencil, Trash2, Tags } from 'lucide-react';
 import { useToast } from '../components/ToastContext';
 import Pagination from '../components/Pagination';
 
@@ -18,6 +18,10 @@ const Incomes: React.FC<IncomesProps> = ({ onEdit, onAdd, refreshTrigger }) => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [hasMore, setHasMore] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [bulkCategoryId, setBulkCategoryId] = useState<number | ''>('');
+  const [bulkLoading, setBulkLoading] = useState(false);
   const { showToast } = useToast();
 
   const fetchIncomes = async (page: number) => {
@@ -37,7 +41,14 @@ const Incomes: React.FC<IncomesProps> = ({ onEdit, onAdd, refreshTrigger }) => {
 
   useEffect(() => {
     fetchIncomes(currentPage);
+    setSelectedIds(new Set());
   }, [currentPage, refreshTrigger]);
+
+  useEffect(() => {
+    if (categories.length === 0) {
+      api.getCategories().then(setCategories).catch(() => {});
+    }
+  }, []);
 
   const handleDelete = async (id: number) => {
     if (window.confirm('Are you sure you want to delete this income?')) {
@@ -49,6 +60,39 @@ const Incomes: React.FC<IncomesProps> = ({ onEdit, onAdd, refreshTrigger }) => {
         console.error('Failed to delete income:', error);
         showToast('Failed to delete income.', 'error');
       }
+    }
+  };
+
+  const toggleSelect = (id: number) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === incomes.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(incomes.map(e => e.id)));
+    }
+  };
+
+  const handleBulkUpdate = async () => {
+    if (bulkCategoryId === '' || selectedIds.size === 0) return;
+    setBulkLoading(true);
+    try {
+      await api.bulkUpdateCategory(Array.from(selectedIds), bulkCategoryId as number);
+      showToast(`Category updated for ${selectedIds.size} income(s)`, 'success');
+      setSelectedIds(new Set());
+      setBulkCategoryId('');
+      fetchIncomes(currentPage);
+    } catch (error) {
+      console.error('Bulk update failed:', error);
+      showToast('Failed to bulk update category.', 'error');
+    } finally {
+      setBulkLoading(false);
     }
   };
 
@@ -78,11 +122,52 @@ const Incomes: React.FC<IncomesProps> = ({ onEdit, onAdd, refreshTrigger }) => {
         </button>
       </div>
 
+      {/* Bulk Action Bar */}
+      {selectedIds.size > 0 && (
+        <div className="flex items-center gap-4 p-4 glass-card rounded-xl border border-cyan-500/30 animate-in fade-in slide-in-from-top-2">
+          <span className="text-sm font-medium text-cyan-400">
+            {selectedIds.size} selected
+          </span>
+          <div className="flex items-center gap-2 flex-1">
+            <Tags className="w-4 h-4 text-slate-400" />
+            <select
+              className="px-3 py-2 bg-slate-800/80 border border-slate-700/60 rounded-lg text-sm text-white outline-none focus:ring-2 focus:ring-cyan-500/40"
+              value={bulkCategoryId}
+              onChange={(e) => setBulkCategoryId(e.target.value ? Number(e.target.value) : '')}
+            >
+              <option value="">Select Category</option>
+              {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+            <button
+              onClick={handleBulkUpdate}
+              disabled={bulkCategoryId === '' || bulkLoading}
+              className="px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 text-white text-sm font-medium rounded-lg shadow-lg disabled:opacity-40 transition-all hover:from-cyan-400 hover:to-blue-500"
+            >
+              {bulkLoading ? 'Applying...' : 'Apply'}
+            </button>
+          </div>
+          <button
+            onClick={() => { setSelectedIds(new Set()); setBulkCategoryId(''); }}
+            className="text-xs text-slate-500 hover:text-slate-300 transition-colors"
+          >
+            Clear
+          </button>
+        </div>
+      )}
+
       <div className="glass-card rounded-2xl overflow-hidden">
         <div className="overflow-x-auto">
           <table className="min-w-full">
             <thead>
               <tr className="border-b border-slate-700/50">
+                <th scope="col" className="px-4 py-4 text-left">
+                  <input
+                    type="checkbox"
+                    checked={incomes.length > 0 && selectedIds.size === incomes.length}
+                    onChange={toggleSelectAll}
+                    className="w-4 h-4 rounded border-slate-600 bg-slate-800 text-cyan-500 focus:ring-cyan-500/40 cursor-pointer accent-cyan-500"
+                  />
+                </th>
                 <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Date</th>
                 <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Description</th>
                 <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Category</th>
@@ -92,7 +177,15 @@ const Incomes: React.FC<IncomesProps> = ({ onEdit, onAdd, refreshTrigger }) => {
             </thead>
             <tbody className="divide-y divide-slate-800/50">
               {incomes.map((income) => (
-                <tr key={income.id} className="hover:bg-slate-700/20 transition-colors duration-150 group">
+                <tr key={income.id} className={`hover:bg-slate-700/20 transition-colors duration-150 group ${selectedIds.has(income.id) ? 'bg-cyan-500/5' : ''}`}>
+                  <td className="px-4 py-4">
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.has(income.id)}
+                      onChange={() => toggleSelect(income.id)}
+                      className="w-4 h-4 rounded border-slate-600 bg-slate-800 text-cyan-500 focus:ring-cyan-500/40 cursor-pointer accent-cyan-500"
+                    />
+                  </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-400">{new Date(income.transaction_time).toLocaleDateString()}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-200">{income.description}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-400">
@@ -123,7 +216,7 @@ const Incomes: React.FC<IncomesProps> = ({ onEdit, onAdd, refreshTrigger }) => {
               ))}
               {incomes.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center text-slate-500">No incomes found</td>
+                  <td colSpan={6} className="px-6 py-12 text-center text-slate-500">No incomes found</td>
                 </tr>
               )}
             </tbody>
