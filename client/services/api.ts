@@ -1,7 +1,14 @@
 
-import { Expense, Income, Saving, Category, SubCategory, Item, TransactionType } from '../types';
+import { Transaction, Expense, Income, Saving, Category, SubCategory, Item, TransactionType } from '../types';
 
 const BASE_URL = "/api/v1";
+
+interface ResponseProps {
+  data: Transaction[] | Expense[] | Income[] | Saving[];
+  page: number;
+  total_count: number;
+  has_more: boolean;
+}
 
 const getHeaders = () => {
   return {
@@ -28,6 +35,11 @@ async function handleResponse(response: Response) {
     throw new Error(error.message || `Error ${response.status}: ${response.statusText}`);
   }
   const data = await response.json();
+  return data;
+}
+
+async function handleResponseAndGetData(response: Response) {
+  const data = await handleResponse(response);
   return data.data;
 }
 
@@ -43,22 +55,25 @@ export const api = {
 
   // Transaction API Start
 
-  getExpenses: async (): Promise<Expense[]> => {
-    const response = await fetchWithCredentials(`${BASE_URL}/expenses`);
+  getExpenses: async (currentPage: number): Promise<ResponseProps> => {
+    const response = await fetchWithCredentials(`${BASE_URL}/expenses?page=${currentPage}`);
     const data = await handleResponse(response);
-    return data.map((expense: any) => ({ ...expense, type: TransactionType.EXPENSE }));
+    data.data = data.data.map((expense: any) => ({ ...expense, type: TransactionType.EXPENSE }));
+    return data;
   },
 
-  getIncomes: async (): Promise<Income[]> => {
-    const response = await fetchWithCredentials(`${BASE_URL}/incomes`);
+  getIncomes: async (currentPage: number): Promise<ResponseProps> => {
+    const response = await fetchWithCredentials(`${BASE_URL}/incomes?page=${currentPage}`);
     const data = await handleResponse(response);
-    return data.map((income: any) => ({ ...income, type: TransactionType.INCOME }));
+    data.data = data.data.map((income: any) => ({ ...income, type: TransactionType.INCOME }));
+    return data;
   },
 
-  getSavings: async (): Promise<Saving[]> => {
-    const response = await fetchWithCredentials(`${BASE_URL}/savings`);
+  getSavings: async (currentPage: number): Promise<ResponseProps> => {
+    const response = await fetchWithCredentials(`${BASE_URL}/savings?page=${currentPage}`);
     const data = await handleResponse(response);
-    return data.map((saving: any) => ({ ...saving, type: TransactionType.SAVING }));
+    data.data = data.data.map((saving: any) => ({ ...saving, type: TransactionType.SAVING }));
+    return data;
   },
 
   createExpense: async (data: Partial<Expense>) => {
@@ -66,7 +81,7 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ ...data, type: TransactionType.EXPENSE }),
     });
-    return handleResponse(response);
+    return handleResponseAndGetData(response);
   },
 
   createIncome: async (data: Partial<Income>) => {
@@ -74,7 +89,7 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ ...data, type: TransactionType.INCOME }),
     });
-    return handleResponse(response);
+    return handleResponseAndGetData(response);
   },
 
   createSaving: async (data: Partial<Saving>) => {
@@ -82,7 +97,7 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ ...data, type: TransactionType.SAVING }),
     });
-    return handleResponse(response);
+    return handleResponseAndGetData(response);
   },
 
   deleteTransaction: async (id: number)     => {
@@ -97,7 +112,7 @@ export const api = {
         method: 'PUT',
         body: JSON.stringify({ ...data, type: TransactionType.EXPENSE }),
     });
-    return handleResponse(response);
+    return handleResponseAndGetData(response);
   },
 
   updateIncome: async (data: Partial<Income>) => {
@@ -105,7 +120,7 @@ export const api = {
         method: 'PUT',
         body: JSON.stringify({ ...data, type: TransactionType.INCOME }),
     });
-    return handleResponse(response);
+    return handleResponseAndGetData(response);
   },
 
   updateSaving: async (data: Partial<Saving>) => {
@@ -113,7 +128,7 @@ export const api = {
         method: 'PUT',
         body: JSON.stringify({ ...data, type: TransactionType.SAVING }),
     });
-    return handleResponse(response);
+    return handleResponseAndGetData(response);
   },
 
   //Transaction API end
@@ -122,17 +137,17 @@ export const api = {
 
   getCategories: async (): Promise<Category[]> => {
     const response = await fetchWithCredentials(`${BASE_URL}/categories`);
-    return handleResponse(response);
+    return handleResponseAndGetData(response);
   },
 
   getSubCategories: async (categoryId: number): Promise<SubCategory[]> => {
     const response = await fetchWithCredentials(`${BASE_URL}/categories/${categoryId}/subcategories`);
-    return handleResponse(response);
+    return handleResponseAndGetData(response);
   },
 
   getItems: async (subCategoryId: number): Promise<Item[]> => {
     const response = await fetchWithCredentials(`${BASE_URL}/subcategories/${subCategoryId}/items`);
-    return handleResponse(response);
+    return handleResponseAndGetData(response);
   },
 
   addCategory: async (data: Partial<Category>) => {
@@ -140,7 +155,7 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(data),
     });
-    return handleResponse(response);
+    return handleResponseAndGetData(response);
   },
 
   addSubCategory: async (data: Partial<SubCategory>) => {
@@ -155,7 +170,7 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(input),
     });
-    return handleResponse(response);
+    return handleResponseAndGetData(response);
   },
 
   addItem: async (data: Partial<Item>) => {
@@ -170,7 +185,7 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(input),
     });
-    return handleResponse(response);
+    return handleResponseAndGetData(response);
   },
 
   updateCategory: async (data: Partial<Category>) => {
@@ -178,7 +193,7 @@ export const api = {
       method: 'PUT',
       body: JSON.stringify(data),
     });
-    return handleResponse(response);
+    return handleResponseAndGetData(response);
   },
 
   updateSubCategory: async (data: Partial<SubCategory>) => {
@@ -186,7 +201,7 @@ export const api = {
       method: 'PUT',
       body: JSON.stringify(data),
     });
-    return handleResponse(response);
+    return handleResponseAndGetData(response);
   },
 
   updateItem: async (data: Partial<Item>) => {
@@ -194,7 +209,7 @@ export const api = {
       method: 'PUT',
       body: JSON.stringify(data),
     });
-    return handleResponse(response);
+    return handleResponseAndGetData(response);
   },
 
   deleteCategory: async (id: number) => {

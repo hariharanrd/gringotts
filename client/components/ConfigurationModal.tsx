@@ -67,23 +67,23 @@ const ConfigurationModal: React.FC<ConfigurationModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-      <div className="bg-amber-50 w-full max-w-md rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200 border-4 border-double border-amber-800 font-serif">
-        <div className="px-6 py-4 border-b border-amber-200 flex items-center justify-between bg-amber-100/50">
-          <h3 className="text-lg font-bold text-amber-900">{getTitle()}</h3>
-          <button onClick={onClose} className="text-amber-700 hover:text-amber-900 transition-colors">
-            <X className="w-6 h-6" />
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+      <div className="bg-slate-900 w-full max-w-md rounded-2xl shadow-2xl shadow-black/40 overflow-hidden border border-slate-700/50">
+        <div className="px-6 py-4 border-b border-slate-700/50 flex items-center justify-between">
+          <h3 className="text-lg font-bold text-white">{getTitle()}</h3>
+          <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors p-1 hover:bg-slate-700/50 rounded-lg">
+            <X className="w-5 h-5" />
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-5">
           <div className="space-y-1.5">
-            <label className="text-sm font-medium text-amber-900">Name</label>
+            <label className="text-sm font-medium text-slate-300">Name</label>
             <input
               type="text"
               required
               autoFocus
-              className="w-full px-4 py-2 bg-white border border-amber-300 rounded-xl focus:ring-2 focus:ring-amber-600 focus:border-amber-600 outline-none transition-all text-amber-900 placeholder:text-amber-900/30"
+              className="w-full px-4 py-2.5 bg-slate-800/60 border border-slate-700/60 rounded-xl focus:ring-2 focus:ring-cyan-500/40 focus:border-cyan-500/50 outline-none transition-all text-white placeholder:text-slate-600"
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder={`Enter ${type.toLowerCase()} name`}
@@ -91,10 +91,10 @@ const ConfigurationModal: React.FC<ConfigurationModalProps> = ({
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-sm font-medium text-amber-900">Description</label>
+            <label className="text-sm font-medium text-slate-300">Description</label>
             <textarea
               rows={3}
-              className="w-full px-4 py-2 bg-white border border-amber-300 rounded-xl focus:ring-2 focus:ring-amber-600 outline-none transition-all text-amber-900 placeholder:text-amber-900/30"
+              className="w-full px-4 py-2.5 bg-slate-800/60 border border-slate-700/60 rounded-xl focus:ring-2 focus:ring-cyan-500/40 outline-none transition-all text-white placeholder:text-slate-600"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Optional description"
@@ -105,20 +105,20 @@ const ConfigurationModal: React.FC<ConfigurationModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2.5 bg-amber-100 hover:bg-amber-200 text-amber-900 font-semibold rounded-xl transition-colors"
+              className="flex-1 px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium rounded-xl transition-colors border border-slate-700/50"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-amber-800 hover:bg-amber-900 text-amber-50 font-semibold rounded-xl shadow-lg shadow-amber-900/20 transition-all disabled:opacity-50"
+              className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-semibold rounded-xl shadow-lg shadow-cyan-500/20 transition-all disabled:opacity-50"
             >
               {loading ? (
                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
               ) : (
                 <>
-                  <Save className="w-5 h-5" />
+                  <Save className="w-4 h-4" />
                   Save
                 </>
               )}

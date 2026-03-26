@@ -163,37 +163,36 @@ const Configuration: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6 font-serif">
-      <div className="bg-amber-50 p-6 rounded-2xl shadow-sm border border-amber-200">
+    <div className="space-y-6">
+      <div className="glass-card rounded-2xl p-6">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-bold text-amber-900">Vault Configuration</h2>
-          
+          <h2 className="text-xl font-bold text-white">Categories & Items</h2>
         </div>
 
-        <div className="space-y-3">
+        <div className="space-y-2">
           {categories.map(category => (
-            <div key={category.id} className="border border-amber-200 rounded-xl overflow-hidden bg-amber-50/50">
+            <div key={category.id} className="border border-slate-700/40 rounded-xl overflow-hidden bg-slate-800/30">
               <div 
-                className="flex items-center justify-between p-4 hover:bg-amber-100/50 transition-colors cursor-pointer select-none"
+                className="flex items-center justify-between p-4 hover:bg-slate-700/30 transition-colors cursor-pointer select-none"
                 onClick={() => toggleCategory(category.id)}
               >
                 <div className="flex items-center gap-3">
                   {expandedCategories.has(category.id) ? (
-                    <ChevronDown className="w-5 h-5 text-amber-700" />
+                    <ChevronDown className="w-4 h-4 text-cyan-400" />
                   ) : (
-                    <ChevronRight className="w-5 h-5 text-slate-400" />
+                    <ChevronRight className="w-4 h-4 text-slate-500" />
                   )}
-                  <div className="p-2 bg-amber-100 rounded-lg">
-                    <Tag className="w-5 h-5 text-amber-700" />
+                  <div className="p-2 bg-cyan-500/10 rounded-lg">
+                    <Tag className="w-4 h-4 text-cyan-400" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-amber-900">{category.name}</h3>
-                    {category.description && <p className="text-xs text-amber-700/70">{category.description}</p>}
+                    <h3 className="font-medium text-slate-200">{category.name}</h3>
+                    {category.description && <p className="text-xs text-slate-500">{category.description}</p>}
                   </div>
                 </div>
                 <button 
                   onClick={(e) => { e.stopPropagation(); handleDeleteCategory(category.id); }}
-                  className="p-2 text-amber-400 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition-colors"
+                  className="p-2 text-slate-600 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors"
                   title="Delete Category"
                 >
                   <Trash2 className="w-4 h-4" />
@@ -201,52 +200,50 @@ const Configuration: React.FC = () => {
               </div>
 
               {expandedCategories.has(category.id) && (
-                <div className="bg-amber-100/20 border-t border-amber-200">
+                <div className="border-t border-slate-700/30">
                   {loading[`cat-${category.id}`] ? (
-                    <div className="p-4 text-center text-amber-700/50 text-sm animate-pulse">Summoning subcategories...</div>
+                    <div className="p-4 text-center text-slate-500 text-sm animate-pulse">Loading subcategories...</div>
                   ) : (
                     <div className="p-2 pl-8 space-y-2">
                       {subCategories[category.id]?.map(sub => (
-                        <div key={sub.id} className="bg-amber-50 border border-amber-200 rounded-lg overflow-hidden">
+                        <div key={sub.id} className="border border-slate-700/30 rounded-lg overflow-hidden bg-slate-800/20">
                           <div 
-                            className="flex items-center justify-between p-3 hover:bg-amber-100/50 transition-colors cursor-pointer select-none"
+                            className="flex items-center justify-between p-3 hover:bg-slate-700/20 transition-colors cursor-pointer select-none"
                             onClick={() => toggleSubCategory(sub.id)}
                           >
                             <div className="flex items-center gap-3">
                               {expandedSubCategories.has(sub.id) ? (
-                                <ChevronDown className="w-4 h-4 text-amber-700" />
+                                <ChevronDown className="w-3.5 h-3.5 text-violet-400" />
                               ) : (
-                                <ChevronRight className="w-4 h-4 text-slate-400" />
+                                <ChevronRight className="w-3.5 h-3.5 text-slate-500" />
                               )}
-                              <Layers className="w-4 h-4 text-amber-700" />
-                              <span className="text-sm font-medium text-amber-900">{sub.name}</span>
+                              <Layers className="w-4 h-4 text-violet-400" />
+                              <span className="text-sm font-medium text-slate-300">{sub.name}</span>
                             </div>
-                            <div className="flex items-center gap-1">
-                              <button 
-                                onClick={(e) => { e.stopPropagation(); handleDeleteSubCategory(sub.id, category.id); }}
-                                className="p-1.5 text-amber-400 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition-colors"
-                                title="Delete Sub-Category"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
-                            </div>
+                            <button 
+                              onClick={(e) => { e.stopPropagation(); handleDeleteSubCategory(sub.id, category.id); }}
+                              className="p-1.5 text-slate-600 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors"
+                              title="Delete Sub-Category"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
                           </div>
 
                           {expandedSubCategories.has(sub.id) && (
-                            <div className="border-t border-amber-200 bg-amber-100/30 p-2 pl-8">
+                            <div className="border-t border-slate-700/20 p-2 pl-8">
                               {loading[`sub-${sub.id}`] ? (
-                                <div className="py-2 text-amber-700/50 text-xs animate-pulse">Summoning items...</div>
+                                <div className="py-2 text-slate-500 text-xs animate-pulse">Loading items...</div>
                               ) : (
                                 <div className="space-y-1">
                                   {items[sub.id]?.map(item => (
-                                    <div key={item.id} className="flex items-center justify-between p-2 rounded-md hover:bg-amber-50 hover:shadow-sm transition-all group">
+                                    <div key={item.id} className="flex items-center justify-between p-2 rounded-lg hover:bg-slate-700/20 transition-all group">
                                       <div className="flex items-center gap-2">
-                                        <Package className="w-3.5 h-3.5 text-emerald-700" />
-                                        <span className="text-sm text-amber-900">{item.name}</span>
+                                        <Package className="w-3.5 h-3.5 text-emerald-400" />
+                                        <span className="text-sm text-slate-300">{item.name}</span>
                                       </div>
                                       <button 
                                         onClick={() => handleDeleteItem(item.id, sub.id)}
-                                        className="opacity-0 group-hover:opacity-100 p-1 text-amber-400 hover:text-rose-700 hover:bg-rose-50 rounded transition-all"
+                                        className="opacity-0 group-hover:opacity-100 p-1 text-slate-600 hover:text-rose-400 hover:bg-rose-500/10 rounded transition-all"
                                         title="Delete Item"
                                       >
                                         <Trash2 className="w-3 h-3" />
@@ -255,7 +252,7 @@ const Configuration: React.FC = () => {
                                   ))}
                                   <button 
                                     onClick={() => openModal('ITEM', sub.id)}
-                                    className="w-full mt-2 py-1.5 text-xs text-amber-700/60 hover:text-amber-900 hover:bg-amber-100 rounded border border-dashed border-amber-300 hover:border-amber-400 transition-all flex items-center justify-center gap-1"
+                                    className="w-full mt-2 py-1.5 text-xs text-slate-500 hover:text-cyan-400 hover:bg-cyan-500/5 rounded-lg border border-dashed border-slate-700/50 hover:border-cyan-500/30 transition-all flex items-center justify-center gap-1"
                                   >
                                     <Plus className="w-3 h-3" />
                                     Add Item
@@ -268,7 +265,7 @@ const Configuration: React.FC = () => {
                       ))}
                       <button 
                         onClick={() => openModal('SUBCATEGORY', category.id)}
-                        className="w-full py-2 text-sm text-amber-800/70 hover:text-amber-900 hover:bg-amber-100 rounded-lg border border-dashed border-amber-300 hover:border-amber-400 transition-all flex items-center justify-center gap-2"
+                        className="w-full py-2 text-sm text-slate-500 hover:text-violet-400 hover:bg-violet-500/5 rounded-lg border border-dashed border-slate-700/50 hover:border-violet-500/30 transition-all flex items-center justify-center gap-2"
                       >
                         <Plus className="w-4 h-4" />
                         Add Sub-Category
@@ -281,14 +278,14 @@ const Configuration: React.FC = () => {
           ))}
           
           {categories.length === 0 && (
-            <div className="text-center py-12 text-amber-800/50 italic">
+            <div className="text-center py-12 text-slate-500">
               No categories found. Click "Add Category" to start.
             </div>
           )}
           <button 
             onClick={() => openModal('CATEGORY')}
-            className="w-full py-2 text-sm text-amber-800/70 hover:text-amber-900 hover:bg-amber-100 rounded-lg border border-dashed border-amber-300 hover:border-amber-400 transition-all flex items-center justify-center gap-2"
-            >
+            className="w-full py-3 text-sm text-slate-400 hover:text-cyan-400 hover:bg-cyan-500/5 rounded-xl border border-dashed border-slate-700/50 hover:border-cyan-500/30 transition-all flex items-center justify-center gap-2 font-medium"
+          >
             <Plus className="w-4 h-4" />
             Add Category
           </button>

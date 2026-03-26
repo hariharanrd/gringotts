@@ -3,23 +3,26 @@ import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Layout from './components/Layout';
 import TransactionModal from './components/TransactionModal';
+import ImportModal from './components/ImportModal';
 import Dashboard from './pages/Dashboard';
-import Transactions from './pages/Transactions';
+import Expenses from './pages/Expenses';
+import Incomes from './pages/Incomes';
+import Savings from './pages/Savings';
 import Configuration from './pages/Configuration';
 import { Login } from './pages/Login';
 import { Register } from './pages/Register';
 import { api } from './services/api';
-import { Transaction } from './types';
+import { Transaction, TransactionType } from './types';
 import { ToastProvider, useToast } from './components/ToastContext';
 
 const PrivateRoute: React.FC<{ children: React.ReactNode; isAuthenticated: boolean | null }> = ({ children, isAuthenticated }) => {
   if (isAuthenticated === null) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-stone-900">
-        <div className="w-12 h-12 border-4 border-amber-900 border-t-amber-500 rounded-full animate-spin"></div>
-      <div className="flex items-center justify-center min-h-screen bg-stone-900">
-        <div className="w-12 h-12 border-4 border-amber-900 border-t-amber-500 rounded-full animate-spin"></div>
-      </div>
+      <div className="flex items-center justify-center min-h-screen bg-slate-950">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 border-4 border-slate-700 border-t-cyan-500 rounded-full animate-spin"></div>
+          <p className="text-slate-400 text-sm font-medium animate-pulse">Loading...</p>
+        </div>
       </div>
     );
   }
@@ -30,8 +33,8 @@ const PrivateRoute: React.FC<{ children: React.ReactNode; isAuthenticated: boole
 const PublicRoute: React.FC<{ children: React.ReactNode; isAuthenticated: boolean | null }> = ({ children, isAuthenticated }) => {
   if (isAuthenticated === null) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="w-12 h-12 border-4 border-blue-100 border-t-blue-600 rounded-full animate-spin"></div>
+      <div className="flex items-center justify-center min-h-screen bg-slate-950">
+        <div className="w-12 h-12 border-4 border-slate-700 border-t-cyan-500 rounded-full animate-spin"></div>
       </div>
     );
   }
@@ -46,7 +49,10 @@ const Logout: React.FC<{ onLogout: () => Promise<void> }> = ({ onLogout }) => {
 
   return (
     <div className="flex items-center justify-center min-h-[60vh]">
-      <div className="w-12 h-12 border-4 border-amber-100 border-t-amber-600 rounded-full animate-spin"></div>
+      <div className="flex flex-col items-center gap-4">
+        <div className="w-12 h-12 border-4 border-slate-700 border-t-cyan-500 rounded-full animate-spin"></div>
+        <p className="text-slate-400 text-sm font-medium">Signing out...</p>
+      </div>
     </div>
   );
 };
@@ -54,21 +60,24 @@ const Logout: React.FC<{ onLogout: () => Promise<void> }> = ({ onLogout }) => {
 const GringottsApp: React.FC = () => {
   const { showToast } = useToast();
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [modalDefaultType, setModalDefaultType] = useState<TransactionType | undefined>(undefined);
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [username, setUsername] = useState<string>('');
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const fetchAllTransactions = async () => {
     setIsLoading(true);
     try {
-      const [expensesData, incomesData, savingsData] = await Promise.all([
-        api.getExpenses(),
-        api.getIncomes(),
-        api.getSavings(),
+      const [expensesRes, incomesRes, savingsRes] = await Promise.all([
+        api.getExpenses(1),
+        api.getIncomes(1),
+        api.getSavings(1),
       ]);
-      setTransactions([...expensesData, ...incomesData, ...savingsData]);
+      setTransactions([...expensesRes.data, ...incomesRes.data, ...savingsRes.data]);
     } catch (error) {
       console.error("Failed to fetch transactions:", error);
     } finally {
@@ -106,25 +115,32 @@ const GringottsApp: React.FC = () => {
     }
   };
 
-  const handleDeleteTransaction = async (id: number) => {
-    try {
-      await api.deleteTransaction(id)
-      setTransactions(prev => prev.filter(t => t.id !== id));
-      showToast('Transaction deleted successfully', 'success');
-    } catch (error) {
-      console.error("Failed to delete transaction:", error);
-      showToast('Failed to delete transaction', 'error');
-    }
-  };
-
   const handleEditTransaction = async (transaction: Transaction) => {
     setSelectedTransaction(transaction);
+    setModalDefaultType(undefined);
     setIsModalOpen(true); 
   }
+
+  const handleAddTransaction = (type?: TransactionType) => {
+    setSelectedTransaction(null);
+    setModalDefaultType(type);
+    setIsModalOpen(true);
+  }
+
+  const handleTransactionSuccess = () => {
+    fetchAllTransactions();
+    setRefreshKey(prev => prev + 1);
+  };
+
+  const handleImportSuccess = () => {
+    fetchAllTransactions();
+    setRefreshKey(prev => prev + 1);
+  };
 
   const handleModalClose = () => {
     setIsModalOpen(false);
     setSelectedTransaction(null);
+    setModalDefaultType(undefined);
   };
 
   return (
@@ -138,24 +154,27 @@ const GringottsApp: React.FC = () => {
             <Layout 
               userName={username}
               onLogout={handleLogout}
+              onImport={() => setIsImportModalOpen(true)}
             >
               {isLoading ? (
                 <div className="flex items-center justify-center min-h-[60vh]">
                   <div className="flex flex-col items-center gap-4">
-                    <div className="w-12 h-12 border-4 border-amber-100 border-t-amber-600 rounded-full animate-spin"></div>
-                    <p className="text-amber-800 font-serif font-medium animate-pulse">Summoning your galleons...</p>
+                    <div className="w-12 h-12 border-4 border-slate-700 border-t-cyan-500 rounded-full animate-spin"></div>
+                    <p className="text-slate-400 text-sm font-medium animate-pulse">Loading your data...</p>
                   </div>
                 </div>
               ) : (
                 <Routes>
                   <Route path="/dashboard" element={<Dashboard transactions={transactions} />} />
-                  <Route path="/transactions" element={<Transactions transactions={transactions} onDelete={handleDeleteTransaction} onEdit={handleEditTransaction} onAdd={() => setIsModalOpen(true)} />} />
+                  <Route path="/expenses" element={<Expenses onEdit={handleEditTransaction} onAdd={() => handleAddTransaction(TransactionType.EXPENSE)} refreshTrigger={refreshKey} />} />
+                  <Route path="/incomes" element={<Incomes onEdit={handleEditTransaction} onAdd={() => handleAddTransaction(TransactionType.INCOME)} refreshTrigger={refreshKey} />} />
+                  <Route path="/savings" element={<Savings onEdit={handleEditTransaction} onAdd={() => handleAddTransaction(TransactionType.SAVING)} refreshTrigger={refreshKey} />} />
                   <Route path="/configuration" element={<Configuration />} />
                   <Route path="/logout" element={<Logout onLogout={handleLogout} />} />
                   <Route path="*" element={
                     <div className="flex flex-col items-center justify-center min-h-[60vh]">
-                      <h1 className="text-6xl font-bold text-amber-900/20 font-serif">404</h1>
-                      <p className="text-xl text-amber-800 mt-4 font-serif">This scroll is empty.</p>
+                      <h1 className="text-8xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-slate-700 to-slate-500">404</h1>
+                      <p className="text-lg text-slate-400 mt-4">Page not found</p>
                     </div>
                   } />
                 </Routes>
@@ -164,8 +183,14 @@ const GringottsApp: React.FC = () => {
             <TransactionModal
               isOpen={isModalOpen}
               onClose={handleModalClose}
-              onSuccess={fetchAllTransactions}
+              onSuccess={handleTransactionSuccess}
               transaction={selectedTransaction}
+              defaultType={modalDefaultType}
+            />
+            <ImportModal
+              isOpen={isImportModalOpen}
+              onClose={() => setIsImportModalOpen(false)}
+              onSuccess={handleImportSuccess}
             />
           </PrivateRoute>
         } />
