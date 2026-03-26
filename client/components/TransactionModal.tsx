@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Save, AlertCircle } from 'lucide-react';
+import { X, Save } from 'lucide-react';
 import { api } from '../services/api';
 import { Category, SubCategory, Item, TransactionType, Expense, Income, Saving, Transaction} from '../types';
 import { useToast } from '../components/ToastContext';
@@ -10,6 +10,7 @@ interface TransactionModalProps {
   onClose: () => void;
   onSuccess: () => void;
   transaction?: Transaction | null;
+  defaultType?: TransactionType;
 }
 
 type TransactionFormState = Omit<Partial<Transaction>, 'value' > & {
@@ -22,7 +23,7 @@ type TransactionFormState = Omit<Partial<Transaction>, 'value' > & {
   item?: Item;
 };
 
-const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, onSuccess, transaction }) => {
+const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, onSuccess, transaction, defaultType }) => {
   const { showToast } = useToast();
   const [type, setType] = useState<TransactionType>(TransactionType.EXPENSE);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -94,13 +95,15 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, on
             subcategory: transaction.subcategory,
             item: transaction.item,
           });
+        } else if (defaultType) {
+          setType(defaultType);
         }
 
       }
     };
 
     fetchDropdownData();
-  }, [isOpen, transaction]);
+  }, [isOpen, transaction, defaultType]);
 
   const handleCategoryChange = async (catId: number) => {
     const category = categories.find(c => c.id === catId);
@@ -169,26 +172,33 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, on
 
   if (!isOpen) return null;
 
+  const typeColors: Record<TransactionType, string> = {
+    [TransactionType.EXPENSE]: 'from-rose-500 to-pink-600',
+    [TransactionType.INCOME]: 'from-emerald-500 to-teal-600',
+    [TransactionType.SAVING]: 'from-violet-500 to-purple-600',
+  };
+
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-      <div className="bg-amber-50 w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200 border-4 border-double border-amber-800 font-serif">
-        <div className="px-6 py-4 border-b border-amber-200 flex items-center justify-between bg-amber-100/50">
-          <h3 className="text-lg font-bold text-amber-900">{isEditing ? 'Amend Ledger' : 'New Entry'}</h3>
-          <button onClick={onClose} className="text-amber-700 hover:text-amber-900 transition-colors">
-            <X className="w-6 h-6" />
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+      <div className="bg-slate-900 w-full max-w-lg rounded-2xl shadow-2xl shadow-black/40 overflow-hidden border border-slate-700/50">
+        {/* Header */}
+        <div className={`px-6 py-4 flex items-center justify-between bg-gradient-to-r ${typeColors[type]} bg-opacity-10`}>
+          <h3 className="text-lg font-bold text-white">{isEditing ? 'Edit Transaction' : 'New Transaction'}</h3>
+          <button onClick={onClose} className="text-white/70 hover:text-white transition-colors p-1 hover:bg-white/10 rounded-lg">
+            <X className="w-5 h-5" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-5 max-h-[80vh] overflow-y-auto">
+        <form onSubmit={handleSubmit} className="p-6 space-y-5 max-h-[75vh] overflow-y-auto">
           {/* Type Selector */}
-          <div className="grid grid-cols-3 gap-2 p-1 bg-amber-100 rounded-xl border border-amber-200">
+          <div className="grid grid-cols-3 gap-1 p-1 bg-slate-800/60 rounded-xl border border-slate-700/50">
             {Object.values(TransactionType).map((t) => (
               <button
                 key={t}
                 type="button"
                 onClick={() => setType(t)}
-                className={`py-2 text-sm font-semibold rounded-lg transition-all ${
-                  type === t ? 'bg-white text-amber-800 shadow-sm border border-amber-200' : 'text-amber-800/60 hover:text-amber-900'
+                className={`py-2.5 text-sm font-semibold rounded-lg transition-all ${
+                  type === t ? `bg-gradient-to-r ${typeColors[t]} text-white shadow-lg` : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700/50'
                 }`}
               >
                 {t}
@@ -199,37 +209,37 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, on
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <label className="text-sm font-medium text-amber-900">Value</label>
+                <label className="text-sm font-medium text-slate-300">Value</label>
                 <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-amber-700">₹</span>
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">₹</span>
                   <input
                     type="number"
                     required
-                    className="w-full pl-7 pr-4 py-2 bg-white border border-amber-300 rounded-xl focus:ring-2 focus:ring-amber-600 focus:border-amber-600 outline-none transition-all text-amber-900"
+                    className="w-full pl-7 pr-4 py-2.5 bg-slate-800/60 border border-slate-700/60 rounded-xl focus:ring-2 focus:ring-cyan-500/40 focus:border-cyan-500/50 outline-none transition-all text-white"
                     value={formData.value}
                     onChange={(e) => setFormData(prev => ({ ...prev, value: e.target.value }))}
                   />
                 </div>
               </div>
               <div className="space-y-1.5">
-                <label className="text-sm font-medium text-amber-900">Date & Time</label>
+                <label className="text-sm font-medium text-slate-300">Date & Time</label>
                 <input
                   type="datetime-local"
                   required
-                  className="w-full px-4 py-2 bg-white border border-amber-300 rounded-xl focus:ring-2 focus:ring-amber-600 focus:border-amber-600 outline-none transition-all text-amber-900"
+                  className="w-full px-4 py-2.5 bg-slate-800/60 border border-slate-700/60 rounded-xl focus:ring-2 focus:ring-cyan-500/40 focus:border-cyan-500/50 outline-none transition-all text-white [color-scheme:dark]"
                   value={formData.transaction_time?.slice(0, 16)}
-                  onChange={(e) => setFormData(prev => ({ ...prev, transactionTime: e.target.value }))}
+                  onChange={(e) => setFormData(prev => ({ ...prev, transaction_time: e.target.value }))}
                 />
               </div>
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-amber-900">Description</label>
+              <label className="text-sm font-medium text-slate-300">Description</label>
               <input
                 type="text"
                 required
                 placeholder="What was this for?"
-                className="w-full px-4 py-2 bg-white border border-amber-300 rounded-xl focus:ring-2 focus:ring-amber-600 focus:border-amber-600 outline-none transition-all text-amber-900 placeholder:text-amber-900/30"
+                className="w-full px-4 py-2.5 bg-slate-800/60 border border-slate-700/60 rounded-xl focus:ring-2 focus:ring-cyan-500/40 focus:border-cyan-500/50 outline-none transition-all text-white placeholder:text-slate-600"
                 value={formData.description}
                 onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
               />
@@ -237,9 +247,9 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, on
 
             <div className="grid grid-cols-2 gap-4">
                <div className="space-y-1.5">
-                <label className="text-sm font-medium text-amber-900">Category</label>
+                <label className="text-sm font-medium text-slate-300">Category</label>
                 <select
-                  className="w-full px-4 py-2 bg-white border border-amber-300 rounded-xl focus:ring-2 focus:ring-amber-600 outline-none text-amber-900"
+                  className="w-full px-4 py-2.5 bg-slate-800/60 border border-slate-700/60 rounded-xl focus:ring-2 focus:ring-cyan-500/40 outline-none text-white"
                   value={formData.category?.id || ''}
                   onChange={(e) => handleCategoryChange(Number(e.target.value))}
                 >
@@ -248,9 +258,9 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, on
                 </select>
               </div>
               <div className="space-y-1.5">
-                <label className="text-sm font-medium text-amber-900">Sub-Category</label>
+                <label className="text-sm font-medium text-slate-300">Sub-Category</label>
                 <select
-                  className="w-full px-4 py-2 bg-white border border-amber-300 rounded-xl focus:ring-2 focus:ring-amber-600 outline-none disabled:opacity-50 text-amber-900"
+                  className="w-full px-4 py-2.5 bg-slate-800/60 border border-slate-700/60 rounded-xl focus:ring-2 focus:ring-cyan-500/40 outline-none disabled:opacity-40 text-white"
                   disabled={!formData.category}
                   value={formData.subcategory?.id || ''}
                   onChange={(e) => handleSubCategoryChange(Number(e.target.value))}
@@ -262,9 +272,9 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, on
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-amber-900">Item</label>
+              <label className="text-sm font-medium text-slate-300">Item</label>
               <select
-                className="w-full px-4 py-2 bg-white border border-amber-300 rounded-xl focus:ring-2 focus:ring-amber-600 outline-none disabled:opacity-50 text-amber-900"
+                className="w-full px-4 py-2.5 bg-slate-800/60 border border-slate-700/60 rounded-xl focus:ring-2 focus:ring-cyan-500/40 outline-none disabled:opacity-40 text-white"
                 disabled={!formData.subcategory || !formData.category}
                 value={formData.item?.id || ''}
                 onChange={(e) => setFormData(prev => ({ ...prev, item: items.find(i => i.id === Number(e.target.value)) }))}
@@ -276,9 +286,9 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, on
 
             {type === TransactionType.EXPENSE && (
               <div className="space-y-1.5">
-                <label className="text-sm font-medium text-amber-900">Payment Mode</label>
+                <label className="text-sm font-medium text-slate-300">Payment Mode</label>
                 <select
-                  className="w-full px-4 py-2 bg-white border border-amber-300 rounded-xl focus:ring-2 focus:ring-amber-600 outline-none text-amber-900"
+                  className="w-full px-4 py-2.5 bg-slate-800/60 border border-slate-700/60 rounded-xl focus:ring-2 focus:ring-cyan-500/40 outline-none text-white"
                   value={formData.payment_mode}
                   onChange={(e) => setFormData(prev => ({ ...prev, payment_mode: e.target.value }))}
                 >
@@ -292,11 +302,11 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, on
 
             {type === TransactionType.INCOME && (
               <div className="space-y-1.5">
-                <label className="text-sm font-medium text-amber-900">Income Source</label>
+                <label className="text-sm font-medium text-slate-300">Income Source</label>
                 <input
                   type="text"
                   placeholder="e.g. Salary, Freelance"
-                  className="w-full px-4 py-2 bg-white border border-amber-300 rounded-xl focus:ring-2 focus:ring-amber-600 outline-none transition-all text-amber-900 placeholder:text-amber-900/30"
+                  className="w-full px-4 py-2.5 bg-slate-800/60 border border-slate-700/60 rounded-xl focus:ring-2 focus:ring-cyan-500/40 outline-none transition-all text-white placeholder:text-slate-600"
                   value={formData.source}
                   onChange={(e) => setFormData(prev => ({ ...prev, source: e.target.value }))}
                 />
@@ -304,10 +314,10 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, on
             )}
 
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-amber-900">Notes (Optional)</label>
+              <label className="text-sm font-medium text-slate-300">Notes (Optional)</label>
               <textarea
                 rows={2}
-                className="w-full px-4 py-2 bg-white border border-amber-300 rounded-xl focus:ring-2 focus:ring-amber-600 outline-none text-amber-900"
+                className="w-full px-4 py-2.5 bg-slate-800/60 border border-slate-700/60 rounded-xl focus:ring-2 focus:ring-cyan-500/40 outline-none text-white placeholder:text-slate-600"
                 value={formData.notes}
                 onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
               />
@@ -318,21 +328,21 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, on
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2.5 bg-amber-100 hover:bg-amber-200 text-amber-900 font-semibold rounded-xl transition-colors"
+              className="flex-1 px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium rounded-xl transition-colors border border-slate-700/50"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-amber-800 hover:bg-amber-900 text-amber-50 font-semibold rounded-xl shadow-lg shadow-amber-900/20 transition-all disabled:opacity-50"
+              className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r ${typeColors[type]} text-white font-semibold rounded-xl shadow-lg transition-all disabled:opacity-50`}
             >
               {loading ? (
                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
               ) : (
                 <>
-                  <Save className="w-5 h-5" />
-                  Save Record
+                  <Save className="w-4 h-4" />
+                  Save
                 </>
               )}
             </button>

@@ -1,30 +1,44 @@
 package com.luna.Gringotts.controlller;
 
 
+import com.luna.Gringotts.parsers.APayCCStatementParser;
+import com.luna.Gringotts.parsers.HDFCCCStatementParser;
+import com.luna.Gringotts.parsers.HDFCStatementParser;
+import com.luna.Gringotts.parsers.StatementParser;
 import com.luna.Gringotts.records.Expense;
 import com.luna.Gringotts.records.Income;
 import com.luna.Gringotts.records.Saving;
+import com.luna.Gringotts.records.Transaction;
 import com.luna.Gringotts.services.TransactionService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 @RestController
 @RequestMapping("/api/v1")
 public class TransactionController {
 
+    private static final Logger LOGGER = Logger.getLogger(TransactionController.class.getName());
+
     @Autowired
     private TransactionService transactionService;
 
     @GetMapping("/expenses")
-    public ResponseEntity<Map<String, Object>> getExpenses(){
-        Pageable pageable = Pageable.ofSize(100);
+    public ResponseEntity<Map<String, Object>> getExpenses(@RequestParam("page") int page){
+        Pageable pageable = PageRequest.of(page - 1, 10, Sort.by(Sort.Direction.DESC, "transactionTime"));
         Page<Expense> result = transactionService.getExpenses(pageable);
         HashMap<String,Object> map = new HashMap<>();
         map.put("data",result.getContent());
@@ -75,8 +89,8 @@ public class TransactionController {
     }
 
     @GetMapping("/incomes")
-    public ResponseEntity<Map<String, Object>> getIncomes() {
-        Pageable pageable = Pageable.ofSize(100);
+    public ResponseEntity<Map<String, Object>> getIncomes(@RequestParam("page") int page) {
+        Pageable pageable = PageRequest.of(page-1, 10, Sort.by(Sort.Direction.DESC, "transactionTime"));
         Page<Income> result = transactionService.getIncomes(pageable);
         HashMap<String, Object> map = new HashMap<>();
         map.put("data", result.getContent());
@@ -100,8 +114,8 @@ public class TransactionController {
     }
 
     @GetMapping("/savings")
-    public ResponseEntity<Map<String, Object>> getSavings() {
-        Pageable pageable = Pageable.ofSize(100);
+    public ResponseEntity<Map<String, Object>> getSavings(@RequestParam("page") int page) {
+        Pageable pageable = PageRequest.of(page-1, 10, Sort.by(Sort.Direction.DESC, "transactionTime"));
         Page<Saving> result = transactionService.getSavings(pageable);
         HashMap<String, Object> map = new HashMap<>();
         map.put("data", result.getContent());
@@ -128,5 +142,43 @@ public class TransactionController {
     public ResponseEntity<Void> deleteTransaction(@PathVariable Long id) {
         transactionService.deleteTransaction(id);
         return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/upload")
+    public ResponseEntity<Map<String, String>> uploadFile(@RequestParam("file") MultipartFile file, @RequestParam("type") String type) {
+        if (file.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("status", "error", "message", "File is empty"));
+        }
+
+        try {
+            File tempFile = File.createTempFile("upload", file.getOriginalFilename());
+            file.transferTo(tempFile);
+
+            StatementParser parser;
+            if ("HDFC".equalsIgnoreCase(type)) {
+                parser = new HDFCStatementParser(tempFile.getAbsolutePath());
+            } else if ("APayCC".equalsIgnoreCase(type)) {
+                parser = new APayCCStatementParser(tempFile.getAbsolutePath());
+            } else if ("HDFCCC".equalsIgnoreCase(type)) {
+                parser = new HDFCCCStatementParser(tempFile.getAbsolutePath());
+            } else {
+                return ResponseEntity.badRequest().body(Map.of("status", "error", "message", "Invalid type"));
+            }
+
+            parser.parseStatement();
+            List<Transaction> transactions = parser.getTransactions();
+            transactionService.saveTransactions(transactions);
+
+            if (!tempFile.delete()) {
+                LOGGER.log(Level.WARNING, "Failed to delete temp file: {0}", tempFile.getAbsolutePath());
+            }
+
+            return ResponseEntity.ok(Map.of("status", "success", "message", "Transactions imported successfully"));
+
+        } catch (IOException e) {
+            return ResponseEntity.internalServerError().body(Map.of("status", "error", "message", "Failed to upload file"));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of("status", "error", "message", "Failed to parse file: " + e.getMessage()));
+        }
     }
 }
