@@ -61,6 +61,7 @@ public class TransactionSpecification {
             if (fieldType.isAssignableFrom(Double.class) || fieldType.isAssignableFrom(double.class)) return Double.valueOf(value);
             if (fieldType.isAssignableFrom(Long.class) || fieldType.isAssignableFrom(long.class)) return Long.valueOf(value);
             if (fieldType.isAssignableFrom(Integer.class) || fieldType.isAssignableFrom(int.class)) return Integer.valueOf(value);
+            if (fieldType.isAssignableFrom(Boolean.class) || fieldType.isAssignableFrom(boolean.class)) return Boolean.valueOf(value);
             if (Enum.class.isAssignableFrom(fieldType)) return Enum.valueOf((Class<Enum>) fieldType, value);
         } catch (Exception e) {
             // fallback for parsing failures

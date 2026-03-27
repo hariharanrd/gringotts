@@ -2,7 +2,8 @@
 export enum TransactionType {
   EXPENSE = 'EXPENSE',
   INCOME = 'INCOME',
-  SAVING = 'SAVING'
+  SAVING = 'SAVING',
+  REVOLVING = 'REVOLVING'
 }
 
 export interface Category {
@@ -52,6 +53,12 @@ export interface Income extends Transaction {
 export interface Saving extends Transaction {
   is_in: boolean
   type: TransactionType.SAVING
+}
+
+export interface Revolving extends Transaction {
+  is_give: boolean
+  closed: boolean
+  type: TransactionType.REVOLVING
 }
 
 export interface DashboardStats {

@@ -1,10 +1,10 @@
 
-import { Transaction, Expense, Income, Saving, Category, SubCategory, Item, TransactionType } from '../types';
+import { Transaction, Expense, Income, Saving, Revolving, Category, SubCategory, Item, TransactionType } from '../types';
 
 const BASE_URL = "/api/v1";
 
 interface ResponseProps {
-  data: Transaction[] | Expense[] | Income[] | Saving[];
+  data: Transaction[] | Expense[] | Income[] | Saving[] | Revolving[];
   page: number;
   total_count: number;
   has_more: boolean;
@@ -87,6 +87,15 @@ export const api = {
     return data;
   },
 
+  getRevolvings: async (currentPage: number, filters?: {field: string, condition: string, value: string}[]): Promise<ResponseProps> => {
+    let url = `${BASE_URL}/revolvings?page=${currentPage}`;
+    if (filters && filters.length > 0) url += `&filters=${encodeURIComponent(JSON.stringify(filters))}`;
+    const response = await fetchWithCredentials(url);
+    const data = await handleResponse(response);
+    data.data = data.data.map((revolving: any) => ({ ...revolving, type: TransactionType.REVOLVING }));
+    return data;
+  },
+
   createExpense: async (data: Partial<Expense>) => {
     const response = await fetchWithCredentials(`${BASE_URL}/expenses`, {
       method: 'POST',
@@ -107,6 +116,14 @@ export const api = {
     const response = await fetchWithCredentials(`${BASE_URL}/savings`, {
       method: 'POST',
       body: JSON.stringify({ ...data, type: TransactionType.SAVING }),
+    });
+    return handleResponseAndGetData(response);
+  },
+
+  createRevolving: async (data: Partial<Revolving>) => {
+    const response = await fetchWithCredentials(`${BASE_URL}/revolvings`, {
+      method: 'POST',
+      body: JSON.stringify({ ...data, type: TransactionType.REVOLVING }),
     });
     return handleResponseAndGetData(response);
   },
@@ -146,6 +163,14 @@ export const api = {
     const response = await fetchWithCredentials(`${BASE_URL}/savings/${data.id}`, {
         method: 'PUT',
         body: JSON.stringify({ ...data, type: TransactionType.SAVING }),
+    });
+    return handleResponseAndGetData(response);
+  },
+
+  updateRevolving: async (data: Partial<Revolving>) => {
+    const response = await fetchWithCredentials(`${BASE_URL}/revolvings/${data.id}`, {
+        method: 'PUT',
+        body: JSON.stringify({ ...data, type: TransactionType.REVOLVING }),
     });
     return handleResponseAndGetData(response);
   },

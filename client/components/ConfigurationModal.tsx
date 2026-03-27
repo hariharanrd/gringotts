@@ -127,8 +127,8 @@ const ConfigurationModal: React.FC<ConfigurationModalProps> = ({
           {type === 'CATEGORY' && (
             <div className="space-y-1.5">
               <label className="text-sm font-medium text-slate-600 dark:text-slate-300">Type</label>
-              <div className="grid grid-cols-3 gap-1 p-1 bg-slate-100 dark:bg-slate-800/60 rounded-xl border border-slate-200 dark:border-slate-700/50">
-                {['EXPENSE', 'INCOME', 'SAVING'].map((t) => (
+              <div className="grid grid-cols-4 gap-1 p-1 bg-slate-100 dark:bg-slate-800/60 rounded-xl border border-slate-200 dark:border-slate-700/50">
+                {['EXPENSE', 'INCOME', 'SAVING', 'REVOLVING'].map((t) => (
                   <button
                     key={t}
                     type="button"
@@ -136,7 +136,8 @@ const ConfigurationModal: React.FC<ConfigurationModalProps> = ({
                     className={`py-2 text-xs font-semibold rounded-lg transition-all ${categoryType === t
                         ? t === 'EXPENSE' ? 'bg-gradient-to-r from-rose-500 to-pink-600 text-white shadow-lg'
                           : t === 'INCOME' ? 'bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-lg'
-                            : 'bg-gradient-to-r from-violet-500 to-purple-600 text-white shadow-lg'
+                            : t === 'SAVING' ? 'bg-gradient-to-r from-violet-500 to-purple-600 text-white shadow-lg'
+                              : 'bg-gradient-to-r from-blue-500 to-cyan-600 text-white shadow-lg'
                         : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700/50'
                       }`}
                   >

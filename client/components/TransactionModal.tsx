@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Save } from 'lucide-react';
 import { api } from '../services/api';
-import { Category, SubCategory, Item, TransactionType, Expense, Income, Saving, Transaction} from '../types';
+import { Category, SubCategory, Item, TransactionType, Expense, Income, Saving, Revolving, Transaction} from '../types';
 import { useToast } from '../components/ToastContext';
 
 interface TransactionModalProps {
@@ -18,6 +18,8 @@ type TransactionFormState = Omit<Partial<Transaction>, 'value' > & {
   payment_mode?: string;
   source?: string;
   is_in?: boolean;
+  is_give?: boolean;
+  closed?: boolean;
   category?: Category;
   subcategory?: SubCategory;
   item?: Item;
@@ -42,6 +44,8 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, on
     payment_mode: 'CASH',
     source: '',
     is_in: true,
+    is_give: true,
+    closed: false,
     notes: ''
   });
 
@@ -145,8 +149,8 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, on
       };
       
       const apiCall = isEditing
-        ? (type === TransactionType.EXPENSE ? api.updateExpense : type === TransactionType.INCOME ? api.updateIncome : api.updateSaving)
-        : (type === TransactionType.EXPENSE ? api.createExpense : type === TransactionType.INCOME ? api.createIncome : api.createSaving);
+        ? (type === TransactionType.EXPENSE ? api.updateExpense : type === TransactionType.INCOME ? api.updateIncome : type === TransactionType.SAVING ? api.updateSaving : api.updateRevolving)
+        : (type === TransactionType.EXPENSE ? api.createExpense : type === TransactionType.INCOME ? api.createIncome : type === TransactionType.SAVING ? api.createSaving : api.createRevolving);
 
 
       if (type === TransactionType.EXPENSE) {
@@ -155,6 +159,8 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, on
         await apiCall({ ...commonPayload, source: formData.source, type: TransactionType.INCOME } as any);
       } else if (type === TransactionType.SAVING) {
         await apiCall({ ...commonPayload, is_in: formData.is_in, type: TransactionType.SAVING } as any);
+      } else if (type === TransactionType.REVOLVING) {
+        await apiCall({ ...commonPayload, is_give: formData.is_give, closed: formData.closed, type: TransactionType.REVOLVING } as any);
       }
       
       showToast('Transaction saved successfully', 'success');
@@ -174,6 +180,7 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, on
     [TransactionType.EXPENSE]: 'from-rose-500 to-pink-600',
     [TransactionType.INCOME]: 'from-emerald-500 to-teal-600',
     [TransactionType.SAVING]: 'from-violet-500 to-purple-600',
+    [TransactionType.REVOLVING]: 'from-blue-500 to-cyan-600',
   };
 
   return (
@@ -189,7 +196,7 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, on
 
         <form onSubmit={handleSubmit} className="p-6 space-y-5 max-h-[75vh] overflow-y-auto">
           {/* Type Selector */}
-          <div className="grid grid-cols-3 gap-1 p-1 bg-slate-100 dark:bg-slate-800/60 rounded-xl border border-slate-200 dark:border-slate-700/50">
+          <div className="grid grid-cols-4 gap-1 p-1 bg-slate-100 dark:bg-slate-800/60 rounded-xl border border-slate-200 dark:border-slate-700/50">
             {Object.values(TransactionType).map((t) => (
               <button
                 key={t}
@@ -344,6 +351,46 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, on
                       OUT (Withdrawal)
                     </button>
                   </div>
+                </div>
+              </div>
+            )}
+
+            {type === TransactionType.REVOLVING && (
+              <div className="space-y-4">
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-slate-600 dark:text-slate-300">Transaction Type</label>
+                  <div className="grid grid-cols-2 gap-2 p-1 bg-slate-100 dark:bg-slate-800/60 rounded-xl border border-slate-200 dark:border-slate-700/60">
+                    <button
+                      type="button"
+                      onClick={() => setFormData(prev => ({ ...prev, is_give: true }))}
+                      className={`py-2 text-sm font-semibold rounded-lg transition-all ${
+                        formData.is_give !== false ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
+                      }`}
+                    >
+                      GIVE
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setFormData(prev => ({ ...prev, is_give: false }))}
+                      className={`py-2 text-sm font-semibold rounded-lg transition-all ${
+                        formData.is_give === false ? 'bg-white dark:bg-slate-700 text-cyan-600 dark:text-cyan-400 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
+                      }`}
+                    >
+                      RECEIVE
+                    </button>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 mt-4">
+                  <input
+                    type="checkbox"
+                    id="closed-checkbox"
+                    className="w-5 h-5 rounded border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-cyan-500 focus:ring-cyan-500/40 cursor-pointer accent-cyan-500"
+                    checked={formData.closed || false}
+                    onChange={(e) => setFormData(prev => ({ ...prev, closed: e.target.checked }))}
+                  />
+                  <label htmlFor="closed-checkbox" className="text-sm font-medium text-slate-600 dark:text-slate-300 cursor-pointer">
+                    Mark as Closed (Settled)
+                  </label>
                 </div>
               </div>
             )}

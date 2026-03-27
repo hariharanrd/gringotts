@@ -8,3 +8,4 @@ target/*
 .env
 client/.vite/*
 client/dist/assets/index-BDAbBSKe.js
+AGENT.md

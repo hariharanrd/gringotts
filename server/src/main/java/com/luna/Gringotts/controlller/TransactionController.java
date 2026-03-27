@@ -8,6 +8,7 @@ import com.luna.Gringotts.parsers.StatementParser;
 import com.luna.Gringotts.records.Expense;
 import com.luna.Gringotts.records.Income;
 import com.luna.Gringotts.records.Saving;
+import com.luna.Gringotts.records.Revolving;
 import com.luna.Gringotts.records.Transaction;
 import com.luna.Gringotts.services.TransactionService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -187,6 +188,50 @@ public class TransactionController {
         transactionService.saveSaving(saving);
         return ResponseEntity.ok(saving);
     }
+
+    @GetMapping("/revolvings")
+    public ResponseEntity<Map<String, Object>> getRevolvings(
+            @RequestParam("page") int page,
+            @RequestParam(value = "filters", required = false) String filtersJson) {
+        Pageable pageable = PageRequest.of(page-1, 10, Sort.by(Sort.Direction.DESC, "transactionTime"));
+        List<com.luna.Gringotts.records.SearchCriteria> filters = parseFilters(filtersJson);
+        Page<Revolving> result = transactionService.getRevolvings(filters, pageable);
+        HashMap<String, Object> map = new HashMap<>();
+        map.put("data", result.getContent());
+        map.put("total_count", result.getTotalElements());
+        map.put("page", pageable.getPageNumber() + 1);
+        map.put("has_more", result.hasNext());
+        return ResponseEntity.ok(map);
+    }
+
+    @GetMapping("/revolvings/{id}")
+    public ResponseEntity<Revolving> getRevolvingById(@PathVariable Long id) {
+        Revolving revolving = transactionService.getRevolvingById(id);
+        if (revolving == null) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(revolving);
+    }
+
+    @PostMapping("/revolvings")
+    public ResponseEntity<Revolving> addRevolving(@RequestBody Revolving revolving) {
+        transactionService.saveRevolving(revolving);
+        return ResponseEntity.ok(revolving);
+    }
+
+    @PutMapping("/revolvings/{id}")
+    public ResponseEntity<Revolving> updateRevolving(@PathVariable Long id, @RequestBody Revolving revolving) {
+        Transaction existing = transactionService.getTransactionById(id);
+        if (existing != null && !(existing instanceof Revolving)) {
+            transactionService.deleteTransaction(id);
+            revolving.setId(null);
+        } else {
+            revolving.setId(id);
+        }
+        transactionService.saveRevolving(revolving);
+        return ResponseEntity.ok(revolving);
+    }
+
 
     @PutMapping("/transactions/bulk-update-category")
     public ResponseEntity<Map<String, String>> bulkUpdateCategory(@RequestBody Map<String, Object> request) {

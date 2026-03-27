@@ -202,7 +202,8 @@ const Configuration: React.FC = () => {
                         <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full uppercase tracking-wider ${
                           category.type === 'EXPENSE' ? 'bg-rose-500/15 text-rose-500 dark:text-rose-400' :
                           category.type === 'INCOME' ? 'bg-emerald-500/15 text-emerald-500 dark:text-emerald-400' :
-                          'bg-violet-500/15 text-violet-500 dark:text-violet-400'
+                          category.type === 'SAVING' ? 'bg-violet-500/15 text-violet-500 dark:text-violet-400' :
+                          'bg-blue-500/15 text-blue-500 dark:text-blue-400'
                         }`}>{category.type}</span>
                       )}
                     </div>

@@ -19,7 +19,7 @@ import java.util.Set;
 @RequestMapping("/api/v1")
 public class CSIController {
 
-    private static final Set<String> VALID_CATEGORY_TYPES = Set.of("EXPENSE", "INCOME", "SAVING");
+    private static final Set<String> VALID_CATEGORY_TYPES = Set.of("EXPENSE", "INCOME", "SAVING", "REVOLVING");
 
     @Autowired
     private CSIService CSIService;

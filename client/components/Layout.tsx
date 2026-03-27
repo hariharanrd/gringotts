@@ -13,7 +13,8 @@ import {
   Landmark,
   Upload,
   Sun,
-  Moon
+  Moon,
+  RefreshCw
 } from 'lucide-react';
 import { useTheme } from './ThemeContext';
 
@@ -29,6 +30,7 @@ const navItems = [
   { id: 'expenses', label: 'Expenses', icon: TrendingDown, path: '/expenses' },
   { id: 'incomes', label: 'Incomes', icon: TrendingUp, path: '/incomes' },
   { id: 'savings', label: 'Savings', icon: PiggyBank, path: '/savings' },
+  { id: 'revolvings', label: 'Revolving', icon: RefreshCw, path: '/revolvings' },
   { id: 'configuration', label: 'Settings', icon: Settings, path: '/configuration' },
 ];
 

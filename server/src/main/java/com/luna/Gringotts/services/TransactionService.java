@@ -4,6 +4,7 @@ import com.luna.Gringotts.records.*;
 import com.luna.Gringotts.repository.ExpenseRepository;
 import com.luna.Gringotts.repository.IncomeRepository;
 import com.luna.Gringotts.repository.SavingRepository;
+import com.luna.Gringotts.repository.RevolvingRepository;
 import com.luna.Gringotts.repository.CategoryRepository;
 import com.luna.Gringotts.repository.TransactionRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,6 +32,9 @@ public class TransactionService {
     SavingRepository savingRepository;
 
     @Autowired
+    RevolvingRepository revolvingRepository;
+
+    @Autowired
     TransactionRepository<Transaction> transactionRepository;
 
     @Autowired
@@ -52,6 +56,10 @@ public class TransactionService {
         return savingRepository.findById(id).orElse(null);
     }
 
+    public Revolving getRevolvingById(Long id){
+        return revolvingRepository.findById(id).orElse(null);
+    }
+
     public void saveExpense(Expense e){
         expenseRepository.save(e);
     }
@@ -62,6 +70,10 @@ public class TransactionService {
 
     public void saveSaving(Saving s){
         savingRepository.save(s);
+    }
+
+    public void saveRevolving(Revolving r){
+        revolvingRepository.save(r);
     }
 
     public void saveTransactions(List<Transaction> transactions) {
@@ -92,6 +104,14 @@ public class TransactionService {
         return savingRepository.findAll(spec, pageable);
     }
 
+    public Page<Revolving> getRevolvings(List<SearchCriteria> filters, Pageable pageable){
+        if (filters == null || filters.isEmpty()) {
+            return revolvingRepository.findAll(pageable);
+        }
+        Specification<Revolving> spec = TransactionSpecification.getSpecification(filters);
+        return revolvingRepository.findAll(spec, pageable);
+    }
+
     public void deleteTransaction(Long id){
         transactionRepository.deleteById(id);
     }
@@ -108,6 +128,10 @@ public class TransactionService {
         savingRepository.deleteById(id);
     }
 
+    public void deleteRevolving(Long id) {
+        revolvingRepository.deleteById(id);
+    }
+
     public void updateExpense(Expense e){
         expenseRepository.save(e);
     }
@@ -121,6 +145,10 @@ public class TransactionService {
         savingRepository.save(s);
     }
 
+    public void updateRevolving(Revolving r){
+        revolvingRepository.save(r);
+    }
+
     public List<Expense> getExpense(Example<Expense> example){
         return expenseRepository.findAll(example);
     }
@@ -131,6 +159,10 @@ public class TransactionService {
 
     public List<Saving> getSaving(Example<Saving> example){
         return savingRepository.findAll(example);
+    }
+
+    public List<Revolving> getRevolving(Example<Revolving> example){
+        return revolvingRepository.findAll(example);
     }
 
     public Map<String, Object> getSummary(int days) {
@@ -158,6 +190,10 @@ public class TransactionService {
         allTransactions.addAll(expenses);
         allTransactions.addAll(incomes);
         allTransactions.addAll(savings);
+        
+        List<Revolving> revolvings = revolvingRepository.findByTransactionTimeAfter(since);
+        allTransactions.addAll(revolvings);
+
         allTransactions.sort(Comparator.comparing(Transaction::getTransactionTime).reversed());
         List<Transaction> recentTransactions = allTransactions.stream().limit(10).collect(Collectors.toList());
 
