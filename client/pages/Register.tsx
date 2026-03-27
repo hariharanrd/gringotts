@@ -37,7 +37,7 @@ export const Register: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-950 relative overflow-hidden">
+    <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950 relative overflow-hidden">
       {/* Background decoration */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute -top-40 -left-40 w-80 h-80 bg-violet-500/10 rounded-full blur-3xl"></div>
@@ -45,14 +45,14 @@ export const Register: React.FC = () => {
       </div>
 
       <div className="relative z-10 w-full max-w-md px-4">
-        <div className="glass rounded-2xl shadow-2xl shadow-black/30 p-8">
+        <div className="glass rounded-2xl shadow-2xl shadow-black/10 dark:shadow-black/30 p-8">
           {/* Logo */}
           <div className="flex flex-col items-center mb-8">
             <div className="bg-gradient-to-br from-violet-500 to-fuchsia-600 p-3 rounded-2xl shadow-lg shadow-violet-500/25 mb-4">
               <Landmark className="text-white w-7 h-7" />
             </div>
-            <h2 className="text-2xl font-bold text-white">{step === 1 ? 'Create Account' : 'Setup 2FA'}</h2>
-            <p className="text-slate-400 text-sm mt-1">
+            <h2 className="text-2xl font-bold text-slate-900 dark:text-white">{step === 1 ? 'Create Account' : 'Setup 2FA'}</h2>
+            <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
               {step === 1 ? 'Register a new vault account' : 'Scan the QR code with your authenticator app'}
             </p>
           </div>
@@ -60,10 +60,10 @@ export const Register: React.FC = () => {
           {step === 1 ? (
             <form onSubmit={handleRegister} className="space-y-5">
               <div className="space-y-1.5">
-                <label className="text-sm font-medium text-slate-300">Username</label>
+                <label className="text-sm font-medium text-slate-600 dark:text-slate-300">Username</label>
                 <input
                   type="text"
-                  className="w-full px-4 py-3 bg-slate-800/60 border border-slate-700/60 rounded-xl focus:ring-2 focus:ring-violet-500/40 focus:border-violet-500/50 outline-none transition-all text-white placeholder:text-slate-500"
+                  className="w-full px-4 py-3 bg-slate-100 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 rounded-xl focus:ring-2 focus:ring-violet-500/40 focus:border-violet-500/50 outline-none transition-all text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500"
                   placeholder="Choose a username"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
@@ -71,10 +71,10 @@ export const Register: React.FC = () => {
                 />
               </div>
               <div className="space-y-1.5">
-                <label className="text-sm font-medium text-slate-300">Password</label>
+                <label className="text-sm font-medium text-slate-600 dark:text-slate-300">Password</label>
                 <input
                   type="password"
-                  className="w-full px-4 py-3 bg-slate-800/60 border border-slate-700/60 rounded-xl focus:ring-2 focus:ring-violet-500/40 focus:border-violet-500/50 outline-none transition-all text-white placeholder:text-slate-500"
+                  className="w-full px-4 py-3 bg-slate-100 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 rounded-xl focus:ring-2 focus:ring-violet-500/40 focus:border-violet-500/50 outline-none transition-all text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500"
                   placeholder="Create a strong password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
@@ -101,9 +101,9 @@ export const Register: React.FC = () => {
               <div className="bg-white rounded-xl p-4 mx-auto w-fit">
                 <img src={qrCodeUrl} alt="2FA QR Code" className="w-48 h-48" />
               </div>
-              <div className="bg-slate-800/60 border border-slate-700/50 rounded-xl p-3">
+              <div className="bg-slate-100 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/50 rounded-xl p-3">
                 <p className="text-[11px] text-slate-400 uppercase tracking-wider mb-1 font-medium">Manual Entry Key</p>
-                <p className="text-sm text-cyan-400 font-mono break-all select-all">{secret}</p>
+                <p className="text-sm text-cyan-600 dark:text-cyan-400 font-mono break-all select-all">{secret}</p>
               </div>
               <button
                 onClick={() => navigate('/login')}

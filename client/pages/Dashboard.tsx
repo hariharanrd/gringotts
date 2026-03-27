@@ -20,6 +20,7 @@ import {
 } from 'recharts';
 import { api } from '../services/api';
 import { TransactionType } from '../types';
+import { useTheme } from '../components/ThemeContext';
 
 const PIE_COLORS = ['#06b6d4', '#10b981', '#8b5cf6', '#f43f5e', '#f59e0b', '#ec4899', '#14b8a6', '#a855f7'];
 
@@ -48,6 +49,7 @@ const Dashboard: React.FC = () => {
   const [summary, setSummary] = useState<SummaryData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { theme } = useTheme();
 
   useEffect(() => {
     const fetchSummary = async () => {
@@ -68,8 +70,8 @@ const Dashboard: React.FC = () => {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 border-4 border-slate-700 border-t-cyan-500 rounded-full animate-spin"></div>
-          <p className="text-slate-400 text-sm font-medium animate-pulse">Loading summary...</p>
+          <div className="w-12 h-12 border-4 border-slate-300 dark:border-slate-700 border-t-cyan-500 rounded-full animate-spin"></div>
+          <p className="text-slate-500 dark:text-slate-400 text-sm font-medium animate-pulse">Loading summary...</p>
         </div>
       </div>
     );
@@ -78,7 +80,7 @@ const Dashboard: React.FC = () => {
   if (error || !summary) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <p className="text-slate-400">{error || 'No data available'}</p>
+        <p className="text-slate-500 dark:text-slate-400">{error || 'No data available'}</p>
       </div>
     );
   }
@@ -90,21 +92,24 @@ const Dashboard: React.FC = () => {
 
   const totalCount = summary.expense_count + summary.income_count + summary.saving_count;
 
-  // Determine transaction type from recent_transactions by checking which table they're from.
-  // The server joins all three types; we detect type by checking inheritance (Expense has payment_mode etc.)
-  // Simplification: check if the transaction "value" context tells us — but server doesn't send type.
-  // We'll infer from the response shape or display neutrally with description.
-
   const fmt = (n: number) => `₹${Math.abs(n).toLocaleString('en-IN')}`;
+
+  const tooltipStyle = {
+    borderRadius: '12px',
+    border: theme === 'dark' ? '1px solid rgba(148,163,184,0.12)' : '1px solid rgba(148,163,184,0.25)',
+    backgroundColor: theme === 'dark' ? 'rgba(15,23,42,0.95)' : 'rgba(255,255,255,0.95)',
+    color: theme === 'dark' ? '#e2e8f0' : '#1e293b',
+    fontSize: 12,
+  };
 
   return (
     <div className="space-y-8">
       {/* Period badge */}
-      <div className="flex items-center gap-2 text-slate-400">
+      <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400">
         <Calendar className="w-4 h-4" />
         <span className="text-sm font-medium">Last {summary.days} days summary</span>
-        <span className="text-xs text-slate-600">•</span>
-        <span className="text-xs text-slate-500">{totalCount} transactions</span>
+        <span className="text-xs text-slate-300 dark:text-slate-600">•</span>
+        <span className="text-xs text-slate-400 dark:text-slate-500">{totalCount} transactions</span>
       </div>
 
       {/* ── Stat Cards ── */}
@@ -143,7 +148,7 @@ const Dashboard: React.FC = () => {
           accentFrom="from-cyan-500"
           accentTo="to-blue-600"
           glow="shadow-cyan-500/15"
-          highlight={summary.net_balance >= 0 ? 'text-emerald-400' : 'text-rose-400'}
+          highlight={summary.net_balance >= 0 ? 'text-emerald-500 dark:text-emerald-400' : 'text-rose-500 dark:text-rose-400'}
         />
       </div>
 
@@ -152,31 +157,25 @@ const Dashboard: React.FC = () => {
 
         {/* Expense Category Bar Chart */}
         <div className="lg:col-span-2 glass-card rounded-2xl p-6">
-          <h3 className="text-base font-semibold text-white mb-6">Expense by Category</h3>
+          <h3 className="text-base font-semibold text-slate-900 dark:text-white mb-6">Expense by Category</h3>
           <div className="h-[280px] w-full">
             {pieData.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={pieData} layout="vertical" barCategoryGap={8}>
-                  <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="rgba(148,163,184,0.06)" />
-                  <XAxis type="number" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 10 }} />
+                  <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke={theme === 'dark' ? 'rgba(148,163,184,0.06)' : 'rgba(148,163,184,0.15)'} />
+                  <XAxis type="number" axisLine={false} tickLine={false} tick={{ fill: theme === 'dark' ? '#64748b' : '#94a3b8', fontSize: 10 }} />
                   <YAxis
                     type="category"
                     dataKey="name"
                     axisLine={false}
                     tickLine={false}
-                    tick={{ fill: '#94a3b8', fontSize: 12 }}
+                    tick={{ fill: theme === 'dark' ? '#94a3b8' : '#475569', fontSize: 12 }}
                     width={120}
                   />
                   <Tooltip
-                    contentStyle={{
-                      borderRadius: '12px',
-                      border: '1px solid rgba(148,163,184,0.12)',
-                      backgroundColor: 'rgba(15,23,42,0.95)',
-                      color: '#e2e8f0',
-                      fontSize: 12,
-                    }}
+                    contentStyle={tooltipStyle}
                     formatter={(value: number) => fmt(value)}
-                    cursor={{ fill: 'rgba(148,163,184,0.04)' }}
+                    cursor={{ fill: theme === 'dark' ? 'rgba(148,163,184,0.04)' : 'rgba(148,163,184,0.1)' }}
                   />
                   <Bar dataKey="value" radius={[0, 4, 4, 0]} maxBarSize={20} name="Amount">
                     {pieData.map((_, i) => (
@@ -186,14 +185,14 @@ const Dashboard: React.FC = () => {
                 </BarChart>
               </ResponsiveContainer>
             ) : (
-              <div className="flex items-center justify-center h-full text-slate-500 text-sm">No expenses in this period</div>
+              <div className="flex items-center justify-center h-full text-slate-400 dark:text-slate-500 text-sm">No expenses in this period</div>
             )}
           </div>
         </div>
 
         {/* Expense Category Pie */}
         <div className="glass-card rounded-2xl p-6">
-          <h3 className="text-base font-semibold text-white mb-4">Spending Split</h3>
+          <h3 className="text-base font-semibold text-slate-900 dark:text-white mb-4">Spending Split</h3>
           {pieData.length > 0 ? (
             <>
               <div className="h-[170px]">
@@ -214,13 +213,7 @@ const Dashboard: React.FC = () => {
                       ))}
                     </Pie>
                     <Tooltip
-                      contentStyle={{
-                        borderRadius: '10px',
-                        border: '1px solid rgba(148,163,184,0.12)',
-                        backgroundColor: 'rgba(15,23,42,0.95)',
-                        color: '#e2e8f0',
-                        fontSize: 12,
-                      }}
+                      contentStyle={tooltipStyle}
                       formatter={(value: number) => fmt(value)}
                     />
                   </PieChart>
@@ -231,43 +224,43 @@ const Dashboard: React.FC = () => {
                   <div key={entry.name} className="flex items-center justify-between text-sm">
                     <div className="flex items-center gap-2 min-w-0">
                       <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }} />
-                      <span className="text-slate-300 truncate">{entry.name}</span>
+                      <span className="text-slate-600 dark:text-slate-300 truncate">{entry.name}</span>
                     </div>
-                    <span className="text-slate-400 font-medium ml-3 flex-shrink-0">{fmt(entry.value)}</span>
+                    <span className="text-slate-500 dark:text-slate-400 font-medium ml-3 flex-shrink-0">{fmt(entry.value)}</span>
                   </div>
                 ))}
               </div>
             </>
           ) : (
-            <div className="flex items-center justify-center h-[170px] text-slate-500 text-sm">No data</div>
+            <div className="flex items-center justify-center h-[170px] text-slate-400 dark:text-slate-500 text-sm">No data</div>
           )}
         </div>
       </div>
 
       {/* ── Recent Transactions ── */}
       <div className="glass-card rounded-2xl p-6">
-        <h3 className="text-base font-semibold text-white mb-5">Recent Transactions</h3>
+        <h3 className="text-base font-semibold text-slate-900 dark:text-white mb-5">Recent Transactions</h3>
         <div className="space-y-2">
           {summary.recent_transactions.map(t => (
-            <div key={t.id} className="flex items-center justify-between p-3 rounded-xl hover:bg-slate-700/25 transition-colors">
+            <div key={t.id} className="flex items-center justify-between p-3 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700/25 transition-colors">
               <div className="flex items-center gap-3 min-w-0">
                 <div className="min-w-0">
-                  <p className="text-sm font-medium text-slate-200 truncate">{t.description}</p>
+                  <p className="text-sm font-medium text-slate-800 dark:text-slate-200 truncate">{t.description}</p>
                   <div className="flex items-center gap-2 mt-0.5">
-                    <p className="text-xs text-slate-500">{new Date(t.transaction_time).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</p>
+                    <p className="text-xs text-slate-400 dark:text-slate-500">{new Date(t.transaction_time).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</p>
                     {t.category && (
-                      <span className="text-[10px] text-slate-500 bg-slate-800/60 px-1.5 py-0.5 rounded">{t.category.name}</span>
+                      <span className="text-[10px] text-slate-500 dark:text-slate-500 bg-slate-100 dark:bg-slate-800/60 px-1.5 py-0.5 rounded">{t.category.name}</span>
                     )}
                   </div>
                 </div>
               </div>
-              <span className="text-sm font-semibold flex-shrink-0 ml-4 text-slate-200">
+              <span className="text-sm font-semibold flex-shrink-0 ml-4 text-slate-800 dark:text-slate-200">
                 {fmt(t.value)}
               </span>
             </div>
           ))}
           {summary.recent_transactions.length === 0 && (
-            <p className="text-slate-500 text-sm text-center py-10">No transactions in the last {summary.days} days</p>
+            <p className="text-slate-400 dark:text-slate-500 text-sm text-center py-10">No transactions in the last {summary.days} days</p>
           )}
         </div>
       </div>
@@ -288,17 +281,17 @@ interface StatCardProps {
 }
 
 const StatCard: React.FC<StatCardProps> = ({ label, value, icon: Icon, accentFrom, accentTo, glow, count, highlight }) => (
-  <div className={`glass-card rounded-2xl p-5 group hover:border-slate-600/30 transition-all duration-300 ${glow}`}>
+  <div className={`glass-card rounded-2xl p-5 group hover:border-slate-300 dark:hover:border-slate-600/30 transition-all duration-300 ${glow}`}>
     <div className="flex items-center justify-between mb-3">
       <div className={`bg-gradient-to-br ${accentFrom} ${accentTo} p-2 rounded-xl shadow-lg ${glow} transition-transform group-hover:scale-110 duration-300`}>
         <Icon className="w-4 h-4 text-white" />
       </div>
       {count !== undefined && (
-        <span className="text-[11px] text-slate-500 font-medium">{count} txn{count !== 1 ? 's' : ''}</span>
+        <span className="text-[11px] text-slate-400 dark:text-slate-500 font-medium">{count} txn{count !== 1 ? 's' : ''}</span>
       )}
     </div>
-    <p className="text-slate-400 text-xs font-medium uppercase tracking-wider">{label}</p>
-    <p className={`text-xl font-bold mt-1 ${highlight || 'text-white'}`}>{value}</p>
+    <p className="text-slate-500 dark:text-slate-400 text-xs font-medium uppercase tracking-wider">{label}</p>
+    <p className={`text-xl font-bold mt-1 ${highlight || 'text-slate-900 dark:text-white'}`}>{value}</p>
   </div>
 );
 

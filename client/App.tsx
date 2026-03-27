@@ -14,14 +14,15 @@ import { Register } from './pages/Register';
 import { api } from './services/api';
 import { Transaction, TransactionType } from './types';
 import { ToastProvider, useToast } from './components/ToastContext';
+import { ThemeProvider } from './components/ThemeContext';
 
 const PrivateRoute: React.FC<{ children: React.ReactNode; isAuthenticated: boolean | null }> = ({ children, isAuthenticated }) => {
   if (isAuthenticated === null) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-slate-950">
+      <div className="flex items-center justify-center min-h-screen bg-slate-100 dark:bg-slate-950">
         <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 border-4 border-slate-700 border-t-cyan-500 rounded-full animate-spin"></div>
-          <p className="text-slate-400 text-sm font-medium animate-pulse">Loading...</p>
+          <div className="w-12 h-12 border-4 border-slate-300 dark:border-slate-700 border-t-cyan-500 rounded-full animate-spin"></div>
+          <p className="text-slate-500 dark:text-slate-400 text-sm font-medium animate-pulse">Loading...</p>
         </div>
       </div>
     );
@@ -33,8 +34,8 @@ const PrivateRoute: React.FC<{ children: React.ReactNode; isAuthenticated: boole
 const PublicRoute: React.FC<{ children: React.ReactNode; isAuthenticated: boolean | null }> = ({ children, isAuthenticated }) => {
   if (isAuthenticated === null) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-slate-950">
-        <div className="w-12 h-12 border-4 border-slate-700 border-t-cyan-500 rounded-full animate-spin"></div>
+      <div className="flex items-center justify-center min-h-screen bg-slate-100 dark:bg-slate-950">
+        <div className="w-12 h-12 border-4 border-slate-300 dark:border-slate-700 border-t-cyan-500 rounded-full animate-spin"></div>
       </div>
     );
   }
@@ -50,8 +51,8 @@ const Logout: React.FC<{ onLogout: () => Promise<void> }> = ({ onLogout }) => {
   return (
     <div className="flex items-center justify-center min-h-[60vh]">
       <div className="flex flex-col items-center gap-4">
-        <div className="w-12 h-12 border-4 border-slate-700 border-t-cyan-500 rounded-full animate-spin"></div>
-        <p className="text-slate-400 text-sm font-medium">Signing out...</p>
+        <div className="w-12 h-12 border-4 border-slate-300 dark:border-slate-700 border-t-cyan-500 rounded-full animate-spin"></div>
+        <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">Signing out...</p>
       </div>
     </div>
   );
@@ -159,8 +160,8 @@ const GringottsApp: React.FC = () => {
               {isLoading ? (
                 <div className="flex items-center justify-center min-h-[60vh]">
                   <div className="flex flex-col items-center gap-4">
-                    <div className="w-12 h-12 border-4 border-slate-700 border-t-cyan-500 rounded-full animate-spin"></div>
-                    <p className="text-slate-400 text-sm font-medium animate-pulse">Loading your data...</p>
+                    <div className="w-12 h-12 border-4 border-slate-300 dark:border-slate-700 border-t-cyan-500 rounded-full animate-spin"></div>
+                    <p className="text-slate-500 dark:text-slate-400 text-sm font-medium animate-pulse">Loading your data...</p>
                   </div>
                 </div>
               ) : (
@@ -173,8 +174,8 @@ const GringottsApp: React.FC = () => {
                   <Route path="/logout" element={<Logout onLogout={handleLogout} />} />
                   <Route path="*" element={
                     <div className="flex flex-col items-center justify-center min-h-[60vh]">
-                      <h1 className="text-8xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-slate-700 to-slate-500">404</h1>
-                      <p className="text-lg text-slate-400 mt-4">Page not found</p>
+                      <h1 className="text-8xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-slate-300 dark:from-slate-700 to-slate-400 dark:to-slate-500">404</h1>
+                      <p className="text-lg text-slate-500 dark:text-slate-400 mt-4">Page not found</p>
                     </div>
                   } />
                 </Routes>
@@ -201,9 +202,11 @@ const GringottsApp: React.FC = () => {
 
 const App: React.FC = () => {
   return (
-    <ToastProvider>
-      <GringottsApp />
-    </ToastProvider>
+    <ThemeProvider>
+      <ToastProvider>
+        <GringottsApp />
+      </ToastProvider>
+    </ThemeProvider>
   );
 }
 
