@@ -1,10 +1,10 @@
 
-import { Transaction, Expense, Income, Saving, Category, SubCategory, Item, TransactionType } from '../types';
+import { Transaction, Expense, Income, Saving, Revolving, Category, SubCategory, Item, TransactionType } from '../types';
 
 const BASE_URL = "/api/v1";
 
 interface ResponseProps {
-  data: Transaction[] | Expense[] | Income[] | Saving[];
+  data: Transaction[] | Expense[] | Income[] | Saving[] | Revolving[];
   page: number;
   total_count: number;
   has_more: boolean;
@@ -60,24 +60,39 @@ export const api = {
     return handleResponse(response);
   },
 
-  getExpenses: async (currentPage: number): Promise<ResponseProps> => {
-    const response = await fetchWithCredentials(`${BASE_URL}/expenses?page=${currentPage}`);
+  getExpenses: async (currentPage: number, filters?: {field: string, condition: string, value: string}[]): Promise<ResponseProps> => {
+    let url = `${BASE_URL}/expenses?page=${currentPage}`;
+    if (filters && filters.length > 0) url += `&filters=${encodeURIComponent(JSON.stringify(filters))}`;
+    const response = await fetchWithCredentials(url);
     const data = await handleResponse(response);
     data.data = data.data.map((expense: any) => ({ ...expense, type: TransactionType.EXPENSE }));
     return data;
   },
 
-  getIncomes: async (currentPage: number): Promise<ResponseProps> => {
-    const response = await fetchWithCredentials(`${BASE_URL}/incomes?page=${currentPage}`);
+  getIncomes: async (currentPage: number, filters?: {field: string, condition: string, value: string}[]): Promise<ResponseProps> => {
+    let url = `${BASE_URL}/incomes?page=${currentPage}`;
+    if (filters && filters.length > 0) url += `&filters=${encodeURIComponent(JSON.stringify(filters))}`;
+    const response = await fetchWithCredentials(url);
     const data = await handleResponse(response);
     data.data = data.data.map((income: any) => ({ ...income, type: TransactionType.INCOME }));
     return data;
   },
 
-  getSavings: async (currentPage: number): Promise<ResponseProps> => {
-    const response = await fetchWithCredentials(`${BASE_URL}/savings?page=${currentPage}`);
+  getSavings: async (currentPage: number, filters?: {field: string, condition: string, value: string}[]): Promise<ResponseProps> => {
+    let url = `${BASE_URL}/savings?page=${currentPage}`;
+    if (filters && filters.length > 0) url += `&filters=${encodeURIComponent(JSON.stringify(filters))}`;
+    const response = await fetchWithCredentials(url);
     const data = await handleResponse(response);
     data.data = data.data.map((saving: any) => ({ ...saving, type: TransactionType.SAVING }));
+    return data;
+  },
+
+  getRevolvings: async (currentPage: number, filters?: {field: string, condition: string, value: string}[]): Promise<ResponseProps> => {
+    let url = `${BASE_URL}/revolvings?page=${currentPage}`;
+    if (filters && filters.length > 0) url += `&filters=${encodeURIComponent(JSON.stringify(filters))}`;
+    const response = await fetchWithCredentials(url);
+    const data = await handleResponse(response);
+    data.data = data.data.map((revolving: any) => ({ ...revolving, type: TransactionType.REVOLVING }));
     return data;
   },
 
@@ -101,6 +116,14 @@ export const api = {
     const response = await fetchWithCredentials(`${BASE_URL}/savings`, {
       method: 'POST',
       body: JSON.stringify({ ...data, type: TransactionType.SAVING }),
+    });
+    return handleResponseAndGetData(response);
+  },
+
+  createRevolving: async (data: Partial<Revolving>) => {
+    const response = await fetchWithCredentials(`${BASE_URL}/revolvings`, {
+      method: 'POST',
+      body: JSON.stringify({ ...data, type: TransactionType.REVOLVING }),
     });
     return handleResponseAndGetData(response);
   },
@@ -144,12 +167,21 @@ export const api = {
     return handleResponseAndGetData(response);
   },
 
+  updateRevolving: async (data: Partial<Revolving>) => {
+    const response = await fetchWithCredentials(`${BASE_URL}/revolvings/${data.id}`, {
+        method: 'PUT',
+        body: JSON.stringify({ ...data, type: TransactionType.REVOLVING }),
+    });
+    return handleResponseAndGetData(response);
+  },
+
   //Transaction API end
 
   // Configuration API start
 
-  getCategories: async (): Promise<Category[]> => {
-    const response = await fetchWithCredentials(`${BASE_URL}/categories`);
+  getCategories: async (type?: string): Promise<Category[]> => {
+    const url = type ? `${BASE_URL}/categories?type=${type}` : `${BASE_URL}/categories`;
+    const response = await fetchWithCredentials(url);
     return handleResponseAndGetData(response);
   },
 

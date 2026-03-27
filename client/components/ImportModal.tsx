@@ -57,20 +57,20 @@ const ImportModal: React.FC<ImportModalProps> = ({ isOpen, onClose, onSuccess })
   };
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-      <div className="bg-slate-900 w-full max-w-md rounded-2xl shadow-2xl shadow-black/40 overflow-hidden border border-slate-700/50">
-        <div className="px-6 py-4 border-b border-slate-700/50 flex items-center justify-between">
-          <h3 className="text-lg font-bold text-white">Import Statement</h3>
-          <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors p-1 hover:bg-slate-700/50 rounded-lg">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/40 dark:bg-black/60 backdrop-blur-sm">
+      <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-2xl shadow-2xl shadow-black/20 dark:shadow-black/40 overflow-hidden border border-slate-200 dark:border-slate-700/50">
+        <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-700/50 flex items-center justify-between">
+          <h3 className="text-lg font-bold text-slate-900 dark:text-white">Import Statement</h3>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-700 dark:hover:text-white transition-colors p-1 hover:bg-slate-100 dark:hover:bg-slate-700/50 rounded-lg">
             <X className="w-5 h-5" />
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-5">
           <div className="space-y-1.5">
-            <label className="text-sm font-medium text-slate-300">Statement Source</label>
+            <label className="text-sm font-medium text-slate-600 dark:text-slate-300">Statement Source</label>
             <select
-              className="w-full px-4 py-2.5 bg-slate-800/60 border border-slate-700/60 rounded-xl focus:ring-2 focus:ring-cyan-500/40 outline-none text-white"
+              className="w-full px-4 py-2.5 bg-slate-100 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 rounded-xl focus:ring-2 focus:ring-cyan-500/40 outline-none text-slate-900 dark:text-white"
               value={type}
               onChange={(e) => setType(e.target.value)}
             >
@@ -81,25 +81,25 @@ const ImportModal: React.FC<ImportModalProps> = ({ isOpen, onClose, onSuccess })
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-sm font-medium text-slate-300">Statement File</label>
-            <div className="relative border-2 border-dashed border-slate-700/60 rounded-xl p-8 text-center hover:bg-slate-800/30 hover:border-cyan-500/30 transition-all group cursor-pointer">
+            <label className="text-sm font-medium text-slate-600 dark:text-slate-300">Statement File</label>
+            <div className="relative border-2 border-dashed border-slate-300 dark:border-slate-700/60 rounded-xl p-8 text-center hover:bg-slate-50 dark:hover:bg-slate-800/30 hover:border-cyan-500/30 transition-all group cursor-pointer">
               <input
                 type="file"
                 accept=".csv, .xlsx, .xls"
                 onChange={handleFileChange}
                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
               />
-              <div className="flex flex-col items-center gap-2 text-slate-500 group-hover:text-slate-300 transition-colors">
+              <div className="flex flex-col items-center gap-2 text-slate-400 dark:text-slate-500 group-hover:text-slate-600 dark:group-hover:text-slate-300 transition-colors">
                 {file ? (
                   <>
-                    <FileSpreadsheet className="w-8 h-8 text-emerald-400" />
-                    <span className="text-sm font-medium text-emerald-400">{file.name}</span>
+                    <FileSpreadsheet className="w-8 h-8 text-emerald-500 dark:text-emerald-400" />
+                    <span className="text-sm font-medium text-emerald-500 dark:text-emerald-400">{file.name}</span>
                   </>
                 ) : (
                   <>
                     <Upload className="w-8 h-8" />
                     <span className="text-sm">Click or drag file here</span>
-                    <span className="text-xs text-slate-600">CSV, XLSX, XLS</span>
+                    <span className="text-xs text-slate-400 dark:text-slate-600">CSV, XLSX, XLS</span>
                   </>
                 )}
               </div>
@@ -110,7 +110,7 @@ const ImportModal: React.FC<ImportModalProps> = ({ isOpen, onClose, onSuccess })
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium rounded-xl transition-colors border border-slate-700/50"
+              className="flex-1 px-4 py-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 font-medium rounded-xl transition-colors border border-slate-200 dark:border-slate-700/50"
             >
               Cancel
             </button>

@@ -8,20 +8,22 @@ import Dashboard from './pages/Dashboard';
 import Expenses from './pages/Expenses';
 import Incomes from './pages/Incomes';
 import Savings from './pages/Savings';
+import Revolvings from './pages/Revolvings';
 import Configuration from './pages/Configuration';
 import { Login } from './pages/Login';
 import { Register } from './pages/Register';
 import { api } from './services/api';
 import { Transaction, TransactionType } from './types';
 import { ToastProvider, useToast } from './components/ToastContext';
+import { ThemeProvider } from './components/ThemeContext';
+import { DashboardSkeleton, FormSkeleton } from './components/Skeleton';
 
 const PrivateRoute: React.FC<{ children: React.ReactNode; isAuthenticated: boolean | null }> = ({ children, isAuthenticated }) => {
   if (isAuthenticated === null) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-slate-950">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 border-4 border-slate-700 border-t-cyan-500 rounded-full animate-spin"></div>
-          <p className="text-slate-400 text-sm font-medium animate-pulse">Loading...</p>
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 p-8">
+        <div className="max-w-[1400px] mx-auto">
+          <DashboardSkeleton />
         </div>
       </div>
     );
@@ -33,8 +35,14 @@ const PrivateRoute: React.FC<{ children: React.ReactNode; isAuthenticated: boole
 const PublicRoute: React.FC<{ children: React.ReactNode; isAuthenticated: boolean | null }> = ({ children, isAuthenticated }) => {
   if (isAuthenticated === null) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-slate-950">
-        <div className="w-12 h-12 border-4 border-slate-700 border-t-cyan-500 rounded-full animate-spin"></div>
+      <div className="flex items-center justify-center min-h-screen bg-slate-50 dark:bg-slate-950 relative overflow-hidden">
+        <div className="absolute inset-0 overflow-hidden">
+          <div className="absolute -top-40 -right-40 w-80 h-80 bg-cyan-500/10 rounded-full blur-3xl"></div>
+          <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-violet-500/10 rounded-full blur-3xl"></div>
+        </div>
+        <div className="relative z-10 w-full px-4 pt-10">
+          <FormSkeleton />
+        </div>
       </div>
     );
   }
@@ -50,8 +58,8 @@ const Logout: React.FC<{ onLogout: () => Promise<void> }> = ({ onLogout }) => {
   return (
     <div className="flex items-center justify-center min-h-[60vh]">
       <div className="flex flex-col items-center gap-4">
-        <div className="w-12 h-12 border-4 border-slate-700 border-t-cyan-500 rounded-full animate-spin"></div>
-        <p className="text-slate-400 text-sm font-medium">Signing out...</p>
+        <div className="w-12 h-12 border-4 border-slate-300 dark:border-slate-700 border-t-cyan-500 rounded-full animate-spin"></div>
+        <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">Signing out...</p>
       </div>
     </div>
   );
@@ -157,24 +165,20 @@ const GringottsApp: React.FC = () => {
               onImport={() => setIsImportModalOpen(true)}
             >
               {isLoading ? (
-                <div className="flex items-center justify-center min-h-[60vh]">
-                  <div className="flex flex-col items-center gap-4">
-                    <div className="w-12 h-12 border-4 border-slate-700 border-t-cyan-500 rounded-full animate-spin"></div>
-                    <p className="text-slate-400 text-sm font-medium animate-pulse">Loading your data...</p>
-                  </div>
-                </div>
+                <DashboardSkeleton />
               ) : (
                 <Routes>
                   <Route path="/dashboard" element={<Dashboard />} />
                   <Route path="/expenses" element={<Expenses onEdit={handleEditTransaction} onAdd={() => handleAddTransaction(TransactionType.EXPENSE)} refreshTrigger={refreshKey} />} />
                   <Route path="/incomes" element={<Incomes onEdit={handleEditTransaction} onAdd={() => handleAddTransaction(TransactionType.INCOME)} refreshTrigger={refreshKey} />} />
                   <Route path="/savings" element={<Savings onEdit={handleEditTransaction} onAdd={() => handleAddTransaction(TransactionType.SAVING)} refreshTrigger={refreshKey} />} />
+                  <Route path="/revolvings" element={<Revolvings onEdit={handleEditTransaction} onAdd={() => handleAddTransaction(TransactionType.REVOLVING)} refreshTrigger={refreshKey} />} />
                   <Route path="/configuration" element={<Configuration />} />
                   <Route path="/logout" element={<Logout onLogout={handleLogout} />} />
                   <Route path="*" element={
                     <div className="flex flex-col items-center justify-center min-h-[60vh]">
-                      <h1 className="text-8xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-slate-700 to-slate-500">404</h1>
-                      <p className="text-lg text-slate-400 mt-4">Page not found</p>
+                      <h1 className="text-8xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-slate-300 dark:from-slate-700 to-slate-400 dark:to-slate-500">404</h1>
+                      <p className="text-lg text-slate-500 dark:text-slate-400 mt-4">Page not found</p>
                     </div>
                   } />
                 </Routes>
@@ -201,9 +205,11 @@ const GringottsApp: React.FC = () => {
 
 const App: React.FC = () => {
   return (
-    <ToastProvider>
-      <GringottsApp />
-    </ToastProvider>
+    <ThemeProvider>
+      <ToastProvider>
+        <GringottsApp />
+      </ToastProvider>
+    </ThemeProvider>
   );
 }
 

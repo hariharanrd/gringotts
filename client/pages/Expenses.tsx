@@ -5,6 +5,10 @@ import { Transaction, Category } from '../types';
 import { ArrowDownRight, PlusCircle, Pencil, Trash2, Tags } from 'lucide-react';
 import { useToast } from '../components/ToastContext';
 import Pagination from '../components/Pagination';
+import { TableSkeleton } from '../components/Skeleton';
+import { SearchBar } from '../components/SearchBar';
+import { FilterMenu, FilterCriteria } from '../components/FilterMenu';
+import ConfirmationDialog from '../components/ConfirmationDialog';
 
 interface ExpensesProps {
   onEdit: (transaction: Transaction) => void;
@@ -22,12 +26,15 @@ const Expenses: React.FC<ExpensesProps> = ({ onEdit, onAdd, refreshTrigger }) =>
   const [categories, setCategories] = useState<Category[]>([]);
   const [bulkCategoryId, setBulkCategoryId] = useState<number | ''>('');
   const [bulkLoading, setBulkLoading] = useState(false);
+  const [filters, setFilters] = useState<FilterCriteria[]>([]);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
   const { showToast } = useToast();
 
-  const fetchExpenses = async (page: number) => {
+  const fetchExpenses = async (page: number, currentFilters: FilterCriteria[] = []) => {
     setIsLoading(true);
     try {
-      const response = await api.getExpenses(page);
+      const response = await api.getExpenses(page, currentFilters);
       setExpenses(response.data);
       setTotalPages(Math.ceil(response.total_count / 10));
       setHasMore(response.has_more);
@@ -40,26 +47,33 @@ const Expenses: React.FC<ExpensesProps> = ({ onEdit, onAdd, refreshTrigger }) =>
   };
 
   useEffect(() => {
-    fetchExpenses(currentPage);
+    fetchExpenses(currentPage, filters);
     setSelectedIds(new Set());
-  }, [currentPage, refreshTrigger]);
+  }, [currentPage, filters, refreshTrigger]);
 
   useEffect(() => {
     if (categories.length === 0) {
-      api.getCategories().then(setCategories).catch(() => {});
+      api.getCategories('EXPENSE').then(setCategories).catch(() => { });
     }
   }, []);
 
-  const handleDelete = async (id: number) => {
-    if (window.confirm('Are you sure you want to delete this expense?')) {
-      try {
-        await api.deleteTransaction(id);
-        showToast('Expense deleted successfully!', 'success');
-        fetchExpenses(currentPage);
-      } catch (error) {
-        console.error('Failed to delete expense:', error);
-        showToast('Failed to delete expense.', 'error');
-      }
+  const handleDelete = (id: number) => {
+    setDeletingId(id);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (deletingId === null) return;
+    try {
+      await api.deleteTransaction(deletingId);
+      showToast('Expense deleted successfully!', 'success');
+      fetchExpenses(currentPage);
+    } catch (error) {
+      console.error('Failed to delete expense:', error);
+      showToast('Failed to delete expense.', 'error');
+    } finally {
+      setIsDeleteDialogOpen(false);
+      setDeletingId(null);
     }
   };
 
@@ -97,41 +111,51 @@ const Expenses: React.FC<ExpensesProps> = ({ onEdit, onAdd, refreshTrigger }) =>
   };
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="w-12 h-12 border-4 border-slate-700 border-t-rose-500 rounded-full animate-spin"></div>
-      </div>
-    );
+    return <div className="space-y-6"><TableSkeleton rows={5} /></div>;
   }
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-white flex items-center gap-3">
+        <h1 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-3">
           <div className="bg-gradient-to-br from-rose-500 to-pink-600 p-2 rounded-xl shadow-lg shadow-rose-500/20">
             <ArrowDownRight className="w-5 h-5 text-white" />
           </div>
           Expenses
         </h1>
-        <button
-          onClick={onAdd}
-          className="flex items-center gap-2 bg-gradient-to-r from-rose-500 to-pink-600 text-white py-2.5 px-5 rounded-xl shadow-lg shadow-rose-500/20 hover:from-rose-400 hover:to-pink-500 transition-all font-medium text-sm"
-        >
-          <PlusCircle className="w-4 h-4" />
-          Add Expense
-        </button>
+        <div className="flex items-center gap-4">
+          <FilterMenu
+            activeFilters={filters}
+            availableFields={[
+              { label: 'Category', value: 'category.name', type: 'string' },
+              { label: 'SubCategory', value: 'subCategory.name', type: 'string' },
+              { label: 'Item', value: 'item.name', type: 'string' },
+              { label: 'Notes', value: 'notes', type: 'string' },
+              { label: 'Description', value: 'description', type: 'string' },
+              { label: 'Value', value: 'value', type: 'number' }
+            ]}
+            onApplyFilters={(f) => { setFilters(f); setCurrentPage(1); }}
+          />
+          <button
+            onClick={onAdd}
+            className="flex items-center gap-2 bg-gradient-to-r from-rose-500 to-pink-600 text-white py-2.5 px-5 rounded-xl shadow-lg shadow-rose-500/20 hover:from-rose-400 hover:to-pink-500 transition-all font-medium text-sm whitespace-nowrap"
+          >
+            <PlusCircle className="w-4 h-4" />
+            Add Expense
+          </button>
+        </div>
       </div>
 
       {/* Bulk Action Bar */}
       {selectedIds.size > 0 && (
         <div className="flex items-center gap-4 p-4 glass-card rounded-xl border border-cyan-500/30 animate-in fade-in slide-in-from-top-2">
-          <span className="text-sm font-medium text-cyan-400">
+          <span className="text-sm font-medium text-cyan-600 dark:text-cyan-400">
             {selectedIds.size} selected
           </span>
           <div className="flex items-center gap-2 flex-1">
             <Tags className="w-4 h-4 text-slate-400" />
             <select
-              className="px-3 py-2 bg-slate-800/80 border border-slate-700/60 rounded-lg text-sm text-white outline-none focus:ring-2 focus:ring-cyan-500/40"
+              className="px-3 py-2 bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60 rounded-lg text-sm text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-cyan-500/40"
               value={bulkCategoryId}
               onChange={(e) => setBulkCategoryId(e.target.value ? Number(e.target.value) : '')}
             >
@@ -148,7 +172,7 @@ const Expenses: React.FC<ExpensesProps> = ({ onEdit, onAdd, refreshTrigger }) =>
           </div>
           <button
             onClick={() => { setSelectedIds(new Set()); setBulkCategoryId(''); }}
-            className="text-xs text-slate-500 hover:text-slate-300 transition-colors"
+            className="text-xs text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 transition-colors"
           >
             Clear
           </button>
@@ -159,53 +183,53 @@ const Expenses: React.FC<ExpensesProps> = ({ onEdit, onAdd, refreshTrigger }) =>
         <div className="overflow-x-auto">
           <table className="min-w-full">
             <thead>
-              <tr className="border-b border-slate-700/50">
+              <tr className="border-b border-slate-200 dark:border-slate-700/50">
                 <th scope="col" className="px-4 py-4 text-left">
                   <input
                     type="checkbox"
                     checked={expenses.length > 0 && selectedIds.size === expenses.length}
                     onChange={toggleSelectAll}
-                    className="w-4 h-4 rounded border-slate-600 bg-slate-800 text-cyan-500 focus:ring-cyan-500/40 cursor-pointer accent-cyan-500"
+                    className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-cyan-500 focus:ring-cyan-500/40 cursor-pointer accent-cyan-500"
                   />
                 </th>
-                <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Date</th>
-                <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Description</th>
-                <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Category</th>
-                <th scope="col" className="px-6 py-4 text-right text-xs font-semibold text-slate-400 uppercase tracking-wider">Amount</th>
-                <th scope="col" className="px-6 py-4 text-right text-xs font-semibold text-slate-400 uppercase tracking-wider">Actions</th>
+                <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Date</th>
+                <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Description</th>
+                <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Category</th>
+                <th scope="col" className="px-6 py-4 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Amount</th>
+                <th scope="col" className="px-6 py-4 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800/50">
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800/50">
               {expenses.map((expense) => (
-                <tr key={expense.id} className={`hover:bg-slate-700/20 transition-colors duration-150 group ${selectedIds.has(expense.id) ? 'bg-cyan-500/5' : ''}`}>
+                <tr key={expense.id} className={`hover:bg-slate-50 dark:hover:bg-slate-700/20 transition-colors duration-150 group ${selectedIds.has(expense.id) ? 'bg-cyan-50 dark:bg-cyan-500/5' : ''}`}>
                   <td className="px-4 py-4">
                     <input
                       type="checkbox"
                       checked={selectedIds.has(expense.id)}
                       onChange={() => toggleSelect(expense.id)}
-                      className="w-4 h-4 rounded border-slate-600 bg-slate-800 text-cyan-500 focus:ring-cyan-500/40 cursor-pointer accent-cyan-500"
+                      className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-cyan-500 focus:ring-cyan-500/40 cursor-pointer accent-cyan-500"
                     />
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-400">{new Date(expense.transaction_time).toLocaleDateString()}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-200">{expense.description}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-400">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 dark:text-slate-400">{new Date(expense.transaction_time).toLocaleDateString()}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-800 dark:text-slate-200">{expense.description}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 dark:text-slate-400">
                     {expense.category?.name && (
-                      <span className="px-2.5 py-1 bg-slate-700/50 rounded-lg text-xs font-medium text-slate-300">{expense.category.name}</span>
+                      <span className="px-2.5 py-1 bg-slate-100 dark:bg-slate-700/50 rounded-lg text-xs font-medium text-slate-600 dark:text-slate-300">{expense.category.name}</span>
                     )}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-semibold text-rose-400">-₹{expense.value.toLocaleString()}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-semibold text-rose-500 dark:text-rose-400">-₹{expense.value.toLocaleString()}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-right">
                     <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                       <button
                         onClick={() => onEdit(expense)}
-                        className="p-2 rounded-lg hover:bg-slate-600/50 text-slate-400 hover:text-cyan-400 transition-colors"
+                        className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-600/50 text-slate-400 hover:text-cyan-500 dark:hover:text-cyan-400 transition-colors"
                         title="Edit"
                       >
                         <Pencil className="w-4 h-4" />
                       </button>
                       <button
                         onClick={() => handleDelete(expense.id)}
-                        className="p-2 rounded-lg hover:bg-rose-500/10 text-slate-400 hover:text-rose-400 transition-colors"
+                        className="p-2 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-500/10 text-slate-400 hover:text-rose-500 dark:hover:text-rose-400 transition-colors"
                         title="Delete"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -216,7 +240,7 @@ const Expenses: React.FC<ExpensesProps> = ({ onEdit, onAdd, refreshTrigger }) =>
               ))}
               {expenses.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-slate-500">No expenses found</td>
+                  <td colSpan={6} className="px-6 py-12 text-center text-slate-400 dark:text-slate-500">No expenses found</td>
                 </tr>
               )}
             </tbody>
@@ -224,6 +248,14 @@ const Expenses: React.FC<ExpensesProps> = ({ onEdit, onAdd, refreshTrigger }) =>
         </div>
       </div>
       <Pagination currentPage={currentPage} totalPages={totalPages} hasMore={hasMore} onPageChange={setCurrentPage} />
+
+      <ConfirmationDialog
+        isOpen={isDeleteDialogOpen}
+        onClose={() => setIsDeleteDialogOpen(false)}
+        onConfirm={confirmDelete}
+        title="Delete Expense"
+        message="Are you sure you want to delete this expense? This action cannot be undone."
+      />
     </div>
   );
 };

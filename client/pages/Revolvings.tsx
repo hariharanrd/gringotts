@@ -1,23 +1,21 @@
-
 import React, { useState, useEffect } from 'react';
 import { api } from '../services/api';
-import { Transaction, Category } from '../types';
-import { ArrowUpRight, PlusCircle, Pencil, Trash2, Tags } from 'lucide-react';
+import { Transaction, Category, Revolving as RevolvingType } from '../types';
+import { RefreshCw, PlusCircle, Pencil, Trash2, Tags } from 'lucide-react';
 import { useToast } from '../components/ToastContext';
 import Pagination from '../components/Pagination';
 import { TableSkeleton } from '../components/Skeleton';
-import { SearchBar } from '../components/SearchBar';
 import { FilterMenu, FilterCriteria } from '../components/FilterMenu';
 import ConfirmationDialog from '../components/ConfirmationDialog';
 
-interface IncomesProps {
+interface RevolvingsProps {
   onEdit: (transaction: Transaction) => void;
   onAdd: () => void;
   refreshTrigger: number;
 }
 
-const Incomes: React.FC<IncomesProps> = ({ onEdit, onAdd, refreshTrigger }) => {
-  const [incomes, setIncomes] = useState<Transaction[]>([]);
+const Revolvings: React.FC<RevolvingsProps> = ({ onEdit, onAdd, refreshTrigger }) => {
+  const [revolvings, setRevolvings] = useState<Transaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -27,33 +25,39 @@ const Incomes: React.FC<IncomesProps> = ({ onEdit, onAdd, refreshTrigger }) => {
   const [bulkCategoryId, setBulkCategoryId] = useState<number | ''>('');
   const [bulkLoading, setBulkLoading] = useState(false);
   const [filters, setFilters] = useState<FilterCriteria[]>([]);
+  const [showClosed, setShowClosed] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const { showToast } = useToast();
 
-  const fetchIncomes = async (page: number, currentFilters: FilterCriteria[] = []) => {
+  const fetchRevolvings = async (page: number, baseFilters: FilterCriteria[] = [], includeClosed: boolean) => {
     setIsLoading(true);
     try {
-      const response = await api.getIncomes(page, currentFilters);
-      setIncomes(response.data);
+      let combinedFilters = [...baseFilters];
+      if (!includeClosed) {
+        combinedFilters.push({ field: 'closed', condition: 'eq', value: 'false' });
+      }
+
+      const response = await api.getRevolvings(page, combinedFilters);
+      setRevolvings(response.data);
       setTotalPages(Math.ceil(response.total_count / 10));
       setHasMore(response.has_more);
     } catch (error) {
-      console.error("Failed to fetch incomes:", error);
-      showToast("Failed to fetch incomes.", 'error');
+      console.error("Failed to fetch revolvings:", error);
+      showToast("Failed to fetch revolving transactions.", 'error');
     } finally {
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchIncomes(currentPage, filters);
+    fetchRevolvings(currentPage, filters, showClosed);
     setSelectedIds(new Set());
-  }, [currentPage, filters, refreshTrigger]);
+  }, [currentPage, filters, refreshTrigger, showClosed]);
 
   useEffect(() => {
     if (categories.length === 0) {
-      api.getCategories('INCOME').then(setCategories).catch(() => {});
+      api.getCategories('REVOLVING').then(setCategories).catch(() => { });
     }
   }, []);
 
@@ -66,11 +70,11 @@ const Incomes: React.FC<IncomesProps> = ({ onEdit, onAdd, refreshTrigger }) => {
     if (deletingId === null) return;
     try {
       await api.deleteTransaction(deletingId);
-      showToast('Income deleted successfully!', 'success');
-      fetchIncomes(currentPage);
+      showToast('Revolving transaction deleted successfully!', 'success');
+      fetchRevolvings(currentPage, filters, showClosed);
     } catch (error) {
-      console.error('Failed to delete income:', error);
-      showToast('Failed to delete income.', 'error');
+      console.error('Failed to delete revolving transaction:', error);
+      showToast('Failed to delete revolving transaction.', 'error');
     } finally {
       setIsDeleteDialogOpen(false);
       setDeletingId(null);
@@ -86,10 +90,10 @@ const Incomes: React.FC<IncomesProps> = ({ onEdit, onAdd, refreshTrigger }) => {
   };
 
   const toggleSelectAll = () => {
-    if (selectedIds.size === incomes.length) {
+    if (selectedIds.size === revolvings.length) {
       setSelectedIds(new Set());
     } else {
-      setSelectedIds(new Set(incomes.map(e => e.id)));
+      setSelectedIds(new Set(revolvings.map(e => e.id)));
     }
   };
 
@@ -98,10 +102,10 @@ const Incomes: React.FC<IncomesProps> = ({ onEdit, onAdd, refreshTrigger }) => {
     setBulkLoading(true);
     try {
       await api.bulkUpdateCategory(Array.from(selectedIds), bulkCategoryId as number);
-      showToast(`Category updated for ${selectedIds.size} income(s)`, 'success');
+      showToast(`Category updated for ${selectedIds.size} transaction(s)`, 'success');
       setSelectedIds(new Set());
       setBulkCategoryId('');
-      fetchIncomes(currentPage);
+      fetchRevolvings(currentPage, filters, showClosed);
     } catch (error) {
       console.error('Bulk update failed:', error);
       showToast('Failed to bulk update category.', 'error');
@@ -118,13 +122,22 @@ const Incomes: React.FC<IncomesProps> = ({ onEdit, onAdd, refreshTrigger }) => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-3">
-          <div className="bg-gradient-to-br from-emerald-500 to-teal-600 p-2 rounded-xl shadow-lg shadow-emerald-500/20">
-            <ArrowUpRight className="w-5 h-5 text-white" />
+          <div className="bg-gradient-to-br from-blue-500 to-cyan-600 p-2 rounded-xl shadow-lg shadow-blue-500/20">
+            <RefreshCw className="w-5 h-5 text-white" />
           </div>
-          Incomes
+          Revolving
         </h1>
         <div className="flex items-center gap-4">
-          <FilterMenu 
+          <label className="flex items-center gap-2 text-sm font-medium text-slate-600 dark:text-slate-300 cursor-pointer">
+            <input 
+              type="checkbox" 
+              className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-cyan-500 focus:ring-cyan-500/40"
+              checked={showClosed}
+              onChange={(e) => { setShowClosed(e.target.checked); setCurrentPage(1); }}
+            />
+            Show Closed
+          </label>
+          <FilterMenu
             activeFilters={filters}
             availableFields={[
               { label: 'Category', value: 'category.name', type: 'string' },
@@ -138,10 +151,10 @@ const Incomes: React.FC<IncomesProps> = ({ onEdit, onAdd, refreshTrigger }) => {
           />
           <button
             onClick={onAdd}
-            className="flex items-center gap-2 bg-gradient-to-r from-emerald-500 to-teal-600 text-white py-2.5 px-5 rounded-xl shadow-lg shadow-emerald-500/20 hover:from-emerald-400 hover:to-teal-500 transition-all font-medium text-sm whitespace-nowrap"
+            className="flex items-center gap-2 bg-gradient-to-r from-blue-500 to-cyan-600 text-white py-2.5 px-5 rounded-xl shadow-lg shadow-blue-500/20 hover:from-blue-400 hover:to-cyan-500 transition-all font-medium text-sm whitespace-nowrap"
           >
             <PlusCircle className="w-4 h-4" />
-            Add Income
+            Add Revolving
           </button>
         </div>
       </div>
@@ -187,7 +200,7 @@ const Incomes: React.FC<IncomesProps> = ({ onEdit, onAdd, refreshTrigger }) => {
                 <th scope="col" className="px-4 py-4 text-left">
                   <input
                     type="checkbox"
-                    checked={incomes.length > 0 && selectedIds.size === incomes.length}
+                    checked={revolvings.length > 0 && selectedIds.size === revolvings.length}
                     onChange={toggleSelectAll}
                     className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-cyan-500 focus:ring-cyan-500/40 cursor-pointer accent-cyan-500"
                   />
@@ -195,40 +208,56 @@ const Incomes: React.FC<IncomesProps> = ({ onEdit, onAdd, refreshTrigger }) => {
                 <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Date</th>
                 <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Description</th>
                 <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Category</th>
+                <th scope="col" className="px-6 py-4 text-center text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Type</th>
+                <th scope="col" className="px-6 py-4 text-center text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Status</th>
                 <th scope="col" className="px-6 py-4 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Amount</th>
                 <th scope="col" className="px-6 py-4 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800/50">
-              {incomes.map((income) => (
-                <tr key={income.id} className={`hover:bg-slate-50 dark:hover:bg-slate-700/20 transition-colors duration-150 group ${selectedIds.has(income.id) ? 'bg-cyan-50 dark:bg-cyan-500/5' : ''}`}>
+              {revolvings.map((revolving) => (
+                <tr key={revolving.id} className={`hover:bg-slate-50 dark:hover:bg-slate-700/20 transition-colors duration-150 group ${selectedIds.has(revolving.id) ? 'bg-cyan-50 dark:bg-cyan-500/5' : ''}`}>
                   <td className="px-4 py-4">
                     <input
                       type="checkbox"
-                      checked={selectedIds.has(income.id)}
-                      onChange={() => toggleSelect(income.id)}
+                      checked={selectedIds.has(revolving.id)}
+                      onChange={() => toggleSelect(revolving.id)}
                       className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-cyan-500 focus:ring-cyan-500/40 cursor-pointer accent-cyan-500"
                     />
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 dark:text-slate-400">{new Date(income.transaction_time).toLocaleDateString()}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-800 dark:text-slate-200">{income.description}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 dark:text-slate-400">{new Date(revolving.transaction_time).toLocaleDateString()}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-800 dark:text-slate-200">{revolving.description}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 dark:text-slate-400">
-                    {income.category?.name && (
-                      <span className="px-2.5 py-1 bg-slate-100 dark:bg-slate-700/50 rounded-lg text-xs font-medium text-slate-600 dark:text-slate-300">{income.category.name}</span>
+                    {revolving.category?.name && (
+                      <span className="px-2.5 py-1 bg-slate-100 dark:bg-slate-700/50 rounded-lg text-xs font-medium text-slate-600 dark:text-slate-300">{revolving.category.name}</span>
                     )}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-semibold text-emerald-500 dark:text-emerald-400">+₹{income.value.toLocaleString()}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-center">
+                    <span className={`px-2.5 py-1 rounded-lg text-xs font-bold tracking-wider ${
+                      (revolving as RevolvingType).is_give !== false ? 'bg-blue-100 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400' : 'bg-orange-100 text-orange-600 dark:bg-orange-500/10 dark:text-orange-400'
+                    }`}>
+                      {(revolving as RevolvingType).is_give !== false ? 'GIVE' : 'RECEIVE'}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-center">
+                    <span className={`px-2.5 py-1 rounded-lg text-xs font-bold tracking-wider ${
+                      (revolving as RevolvingType).closed ? 'bg-slate-100 text-slate-600 dark:bg-slate-500/10 dark:text-slate-400' : 'bg-cyan-100 text-cyan-600 dark:bg-cyan-500/10 dark:text-cyan-400'
+                    }`}>
+                      {(revolving as RevolvingType).closed ? 'CLOSED' : 'OPEN'}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-semibold text-blue-500 dark:text-blue-400">₹{revolving.value.toLocaleString()}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-right">
                     <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                       <button
-                        onClick={() => onEdit(income)}
+                        onClick={() => onEdit(revolving)}
                         className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-600/50 text-slate-400 hover:text-cyan-500 dark:hover:text-cyan-400 transition-colors"
                         title="Edit"
                       >
                         <Pencil className="w-4 h-4" />
                       </button>
                       <button
-                        onClick={() => handleDelete(income.id)}
+                        onClick={() => handleDelete(revolving.id)}
                         className="p-2 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-500/10 text-slate-400 hover:text-rose-500 dark:hover:text-rose-400 transition-colors"
                         title="Delete"
                       >
@@ -238,9 +267,9 @@ const Incomes: React.FC<IncomesProps> = ({ onEdit, onAdd, refreshTrigger }) => {
                   </td>
                 </tr>
               ))}
-              {incomes.length === 0 && (
+              {revolvings.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-slate-400 dark:text-slate-500">No incomes found</td>
+                  <td colSpan={8} className="px-6 py-12 text-center text-slate-400 dark:text-slate-500">No revolving transactions found</td>
                 </tr>
               )}
             </tbody>
@@ -248,16 +277,16 @@ const Incomes: React.FC<IncomesProps> = ({ onEdit, onAdd, refreshTrigger }) => {
         </div>
       </div>
       <Pagination currentPage={currentPage} totalPages={totalPages} hasMore={hasMore} onPageChange={setCurrentPage} />
-      
+
       <ConfirmationDialog
         isOpen={isDeleteDialogOpen}
         onClose={() => setIsDeleteDialogOpen(false)}
         onConfirm={confirmDelete}
-        title="Delete Income"
-        message="Are you sure you want to delete this income? This action cannot be undone."
+        title="Delete Revolving Transaction"
+        message="Are you sure you want to delete this transaction? This action cannot be undone."
       />
     </div>
   );
 };
 
-export default Incomes;
+export default Revolvings;

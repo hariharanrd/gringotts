@@ -38,7 +38,7 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-950 relative overflow-hidden">
+    <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950 relative overflow-hidden">
       {/* Background decoration */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-cyan-500/10 rounded-full blur-3xl"></div>
@@ -47,31 +47,31 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
       </div>
 
       <div className="relative z-10 w-full max-w-md px-4">
-        <div className="glass rounded-2xl shadow-2xl shadow-black/30 p-8">
+        <div className="glass rounded-2xl shadow-2xl shadow-black/10 dark:shadow-black/30 p-8">
           {/* Logo */}
           <div className="flex flex-col items-center mb-8">
             <div className="bg-gradient-to-br from-cyan-500 to-blue-600 p-3 rounded-2xl shadow-lg shadow-cyan-500/25 mb-4">
               <Landmark className="text-white w-7 h-7" />
             </div>
-            <h2 className="text-2xl font-bold text-white">Welcome back</h2>
-            <p className="text-slate-400 text-sm mt-1">Sign in to your vault</p>
+            <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Welcome back</h2>
+            <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Sign in to your vault</p>
           </div>
 
           {error && (
-            <div className="mb-6 p-3 bg-rose-500/10 border border-rose-500/20 rounded-xl text-rose-400 text-sm text-center font-medium">
+            <div className="mb-6 p-3 bg-rose-500/10 border border-rose-500/20 rounded-xl text-rose-500 dark:text-rose-400 text-sm text-center font-medium">
               {error}
             </div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-slate-300" htmlFor="username">Username</label>
+              <label className="text-sm font-medium text-slate-600 dark:text-slate-300" htmlFor="username">Username</label>
               <input
                 id="username"
                 name="username"
                 type="text"
                 autoComplete="username"
-                className="w-full px-4 py-3 bg-slate-800/60 border border-slate-700/60 rounded-xl focus:ring-2 focus:ring-cyan-500/40 focus:border-cyan-500/50 outline-none transition-all text-white placeholder:text-slate-500"
+                className="w-full px-4 py-3 bg-slate-100 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 rounded-xl focus:ring-2 focus:ring-cyan-500/40 focus:border-cyan-500/50 outline-none transition-all text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500"
                 placeholder="Enter your username"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
@@ -80,14 +80,14 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-slate-300" htmlFor="password">Password</label>
+              <label className="text-sm font-medium text-slate-600 dark:text-slate-300" htmlFor="password">Password</label>
               <div className="relative">
                 <input
                   id="password"
                   name="password"
                   type={showPassword ? 'text' : 'password'}
                   autoComplete="current-password"
-                  className="w-full px-4 py-3 pr-12 bg-slate-800/60 border border-slate-700/60 rounded-xl focus:ring-2 focus:ring-cyan-500/40 focus:border-cyan-500/50 outline-none transition-all text-white placeholder:text-slate-500"
+                  className="w-full px-4 py-3 pr-12 bg-slate-100 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 rounded-xl focus:ring-2 focus:ring-cyan-500/40 focus:border-cyan-500/50 outline-none transition-all text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500"
                   placeholder="Enter your password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
@@ -96,7 +96,7 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
                 >
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
@@ -104,14 +104,14 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-slate-300" htmlFor="totp">2FA Code</label>
+              <label className="text-sm font-medium text-slate-600 dark:text-slate-300" htmlFor="totp">2FA Code</label>
               <input
                 id="totp"
                 name="totp"
                 type="text"
                 inputMode="numeric"
                 autoComplete="one-time-code"
-                className="w-full px-4 py-3 bg-slate-800/60 border border-slate-700/60 rounded-xl focus:ring-2 focus:ring-cyan-500/40 focus:border-cyan-500/50 outline-none transition-all text-white placeholder:text-slate-500 tracking-[0.3em] text-center font-mono"
+                className="w-full px-4 py-3 bg-slate-100 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 rounded-xl focus:ring-2 focus:ring-cyan-500/40 focus:border-cyan-500/50 outline-none transition-all text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 tracking-[0.3em] text-center font-mono [color-scheme:light] dark:[color-scheme:dark]"
                 placeholder="000000"
                 value={code}
                 onChange={(e) => setCode(e.target.value)}
