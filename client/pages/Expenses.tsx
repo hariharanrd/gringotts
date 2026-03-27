@@ -8,6 +8,7 @@ import Pagination from '../components/Pagination';
 import { TableSkeleton } from '../components/Skeleton';
 import { SearchBar } from '../components/SearchBar';
 import { FilterMenu, FilterCriteria } from '../components/FilterMenu';
+import ConfirmationDialog from '../components/ConfirmationDialog';
 
 interface ExpensesProps {
   onEdit: (transaction: Transaction) => void;
@@ -26,6 +27,8 @@ const Expenses: React.FC<ExpensesProps> = ({ onEdit, onAdd, refreshTrigger }) =>
   const [bulkCategoryId, setBulkCategoryId] = useState<number | ''>('');
   const [bulkLoading, setBulkLoading] = useState(false);
   const [filters, setFilters] = useState<FilterCriteria[]>([]);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
   const { showToast } = useToast();
 
   const fetchExpenses = async (page: number, currentFilters: FilterCriteria[] = []) => {
@@ -50,20 +53,27 @@ const Expenses: React.FC<ExpensesProps> = ({ onEdit, onAdd, refreshTrigger }) =>
 
   useEffect(() => {
     if (categories.length === 0) {
-      api.getCategories('EXPENSE').then(setCategories).catch(() => {});
+      api.getCategories('EXPENSE').then(setCategories).catch(() => { });
     }
   }, []);
 
-  const handleDelete = async (id: number) => {
-    if (window.confirm('Are you sure you want to delete this expense?')) {
-      try {
-        await api.deleteTransaction(id);
-        showToast('Expense deleted successfully!', 'success');
-        fetchExpenses(currentPage);
-      } catch (error) {
-        console.error('Failed to delete expense:', error);
-        showToast('Failed to delete expense.', 'error');
-      }
+  const handleDelete = (id: number) => {
+    setDeletingId(id);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (deletingId === null) return;
+    try {
+      await api.deleteTransaction(deletingId);
+      showToast('Expense deleted successfully!', 'success');
+      fetchExpenses(currentPage);
+    } catch (error) {
+      console.error('Failed to delete expense:', error);
+      showToast('Failed to delete expense.', 'error');
+    } finally {
+      setIsDeleteDialogOpen(false);
+      setDeletingId(null);
     }
   };
 
@@ -114,7 +124,7 @@ const Expenses: React.FC<ExpensesProps> = ({ onEdit, onAdd, refreshTrigger }) =>
           Expenses
         </h1>
         <div className="flex items-center gap-4">
-          <FilterMenu 
+          <FilterMenu
             activeFilters={filters}
             availableFields={[
               { label: 'Category', value: 'category.name', type: 'string' },
@@ -238,6 +248,14 @@ const Expenses: React.FC<ExpensesProps> = ({ onEdit, onAdd, refreshTrigger }) =>
         </div>
       </div>
       <Pagination currentPage={currentPage} totalPages={totalPages} hasMore={hasMore} onPageChange={setCurrentPage} />
+
+      <ConfirmationDialog
+        isOpen={isDeleteDialogOpen}
+        onClose={() => setIsDeleteDialogOpen(false)}
+        onConfirm={confirmDelete}
+        title="Delete Expense"
+        message="Are you sure you want to delete this expense? This action cannot be undone."
+      />
     </div>
   );
 };

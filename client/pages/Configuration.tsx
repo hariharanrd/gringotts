@@ -13,7 +13,7 @@ import {
 import { api } from '../services/api';
 import { Category, SubCategory, Item } from '../types';
 import ConfigurationModal, { ConfigType, EditData } from '../components/ConfigurationModal';
-import ConfirmationDialog from '../components/ConfirmationDialogue';
+import ConfirmationDialog from '../components/ConfirmationDialog';
 import { useToast } from '../components/ToastContext';
 
 const Configuration: React.FC = () => {

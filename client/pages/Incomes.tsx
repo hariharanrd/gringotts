@@ -8,6 +8,7 @@ import Pagination from '../components/Pagination';
 import { TableSkeleton } from '../components/Skeleton';
 import { SearchBar } from '../components/SearchBar';
 import { FilterMenu, FilterCriteria } from '../components/FilterMenu';
+import ConfirmationDialog from '../components/ConfirmationDialog';
 
 interface IncomesProps {
   onEdit: (transaction: Transaction) => void;
@@ -26,6 +27,8 @@ const Incomes: React.FC<IncomesProps> = ({ onEdit, onAdd, refreshTrigger }) => {
   const [bulkCategoryId, setBulkCategoryId] = useState<number | ''>('');
   const [bulkLoading, setBulkLoading] = useState(false);
   const [filters, setFilters] = useState<FilterCriteria[]>([]);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
   const { showToast } = useToast();
 
   const fetchIncomes = async (page: number, currentFilters: FilterCriteria[] = []) => {
@@ -54,16 +57,23 @@ const Incomes: React.FC<IncomesProps> = ({ onEdit, onAdd, refreshTrigger }) => {
     }
   }, []);
 
-  const handleDelete = async (id: number) => {
-    if (window.confirm('Are you sure you want to delete this income?')) {
-      try {
-        await api.deleteTransaction(id);
-        showToast('Income deleted successfully!', 'success');
-        fetchIncomes(currentPage);
-      } catch (error) {
-        console.error('Failed to delete income:', error);
-        showToast('Failed to delete income.', 'error');
-      }
+  const handleDelete = (id: number) => {
+    setDeletingId(id);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (deletingId === null) return;
+    try {
+      await api.deleteTransaction(deletingId);
+      showToast('Income deleted successfully!', 'success');
+      fetchIncomes(currentPage);
+    } catch (error) {
+      console.error('Failed to delete income:', error);
+      showToast('Failed to delete income.', 'error');
+    } finally {
+      setIsDeleteDialogOpen(false);
+      setDeletingId(null);
     }
   };
 
@@ -238,6 +248,14 @@ const Incomes: React.FC<IncomesProps> = ({ onEdit, onAdd, refreshTrigger }) => {
         </div>
       </div>
       <Pagination currentPage={currentPage} totalPages={totalPages} hasMore={hasMore} onPageChange={setCurrentPage} />
+      
+      <ConfirmationDialog
+        isOpen={isDeleteDialogOpen}
+        onClose={() => setIsDeleteDialogOpen(false)}
+        onConfirm={confirmDelete}
+        title="Delete Income"
+        message="Are you sure you want to delete this income? This action cannot be undone."
+      />
     </div>
   );
 };
