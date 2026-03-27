@@ -13,7 +13,7 @@ import org.springframework.data.annotation.ReadOnlyProperty;
 @Inheritance(strategy = InheritanceType.JOINED)
 public class Transaction {
 
-    public Transaction(){
+    public Transaction() {
 
     }
 
@@ -35,7 +35,7 @@ public class Transaction {
     @Column(nullable = false)
     String description;
 
-    @Column(name="reference_number")
+    @Column(name = "reference_number")
     String referenceNo;
 
     @Column(name = "transaction_time", nullable = false)
@@ -47,16 +47,16 @@ public class Transaction {
     @ReadOnlyProperty
     LocalDateTime createdAt = LocalDateTime.now();
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category")
     Category category;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "subcategory")
     @JsonProperty("subcategory")
     SubCategory subCategory;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "item")
     Item item;
 
@@ -73,7 +73,6 @@ public class Transaction {
     public void setId(Long id) {
         this.id = id;
     }
-
 
     public Double getValue() {
         return value;
