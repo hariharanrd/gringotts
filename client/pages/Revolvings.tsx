@@ -120,15 +120,15 @@ const Revolvings: React.FC<RevolvingsProps> = ({ onEdit, onAdd, refreshTrigger }
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <h1 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-3">
           <div className="bg-gradient-to-br from-blue-500 to-cyan-600 p-2 rounded-xl shadow-lg shadow-blue-500/20">
             <RefreshCw className="w-5 h-5 text-white" />
           </div>
           Revolving
         </h1>
-        <div className="flex items-center gap-4">
-          <label className="flex items-center gap-2 text-sm font-medium text-slate-600 dark:text-slate-300 cursor-pointer">
+        <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
+          <label className="flex items-center gap-2 text-sm font-medium text-slate-600 dark:text-slate-300 cursor-pointer mr-2">
             <input 
               type="checkbox" 
               className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-cyan-500 focus:ring-cyan-500/40"
@@ -154,21 +154,21 @@ const Revolvings: React.FC<RevolvingsProps> = ({ onEdit, onAdd, refreshTrigger }
             className="flex items-center gap-2 bg-gradient-to-r from-blue-500 to-cyan-600 text-white py-2.5 px-5 rounded-xl shadow-lg shadow-blue-500/20 hover:from-blue-400 hover:to-cyan-500 transition-all font-medium text-sm whitespace-nowrap"
           >
             <PlusCircle className="w-4 h-4" />
-            Add Revolving
+            <span className="hidden sm:inline">Add Revolving</span>
           </button>
         </div>
       </div>
 
       {/* Bulk Action Bar */}
       {selectedIds.size > 0 && (
-        <div className="flex items-center gap-4 p-4 glass-card rounded-xl border border-cyan-500/30 animate-in fade-in slide-in-from-top-2">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 p-4 glass-card rounded-xl border border-cyan-500/30 animate-in fade-in slide-in-from-top-2">
           <span className="text-sm font-medium text-cyan-600 dark:text-cyan-400">
             {selectedIds.size} selected
           </span>
-          <div className="flex items-center gap-2 flex-1">
+          <div className="flex items-center gap-2 flex-1 w-full">
             <Tags className="w-4 h-4 text-slate-400" />
             <select
-              className="px-3 py-2 bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60 rounded-lg text-sm text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-cyan-500/40"
+              className="w-full sm:w-auto px-3 py-2 bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60 rounded-lg text-sm text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-cyan-500/40"
               value={bulkCategoryId}
               onChange={(e) => setBulkCategoryId(e.target.value ? Number(e.target.value) : '')}
             >
@@ -193,7 +193,8 @@ const Revolvings: React.FC<RevolvingsProps> = ({ onEdit, onAdd, refreshTrigger }
       )}
 
       <div className="glass-card rounded-2xl overflow-hidden">
-        <div className="overflow-x-auto">
+        {/* Desktop Table */}
+        <div className="overflow-x-auto hidden md:block">
           <table className="min-w-full">
             <thead>
               <tr className="border-b border-slate-200 dark:border-slate-700/50">
@@ -274,6 +275,63 @@ const Revolvings: React.FC<RevolvingsProps> = ({ onEdit, onAdd, refreshTrigger }
               )}
             </tbody>
           </table>
+        </div>
+
+        {/* Mobile Cards */}
+        <div className="md:hidden divide-y divide-slate-100 dark:divide-slate-800/50">
+          {revolvings.map(revolving => (
+            <div key={revolving.id} className={`p-4 ${selectedIds.has(revolving.id) ? 'bg-cyan-50 dark:bg-cyan-500/5' : ''}`}>
+              <div className="flex items-start gap-4">
+                <input
+                  type="checkbox"
+                  checked={selectedIds.has(revolving.id)}
+                  onChange={() => toggleSelect(revolving.id)}
+                  className="mt-1.5 w-4 h-4 rounded border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-cyan-500 focus:ring-cyan-500/40 cursor-pointer accent-cyan-500"
+                />
+                <div className="flex-1">
+                  <div className="flex justify-between items-start">
+                    <span className="text-sm font-medium text-slate-800 dark:text-slate-200">{revolving.description}</span>
+                    <span className="text-sm font-semibold text-blue-500 dark:text-blue-400 whitespace-nowrap">₹{revolving.value.toLocaleString()}</span>
+                  </div>
+                  <div className="text-sm text-slate-500 dark:text-slate-400 mt-1">{new Date(revolving.transaction_time).toLocaleDateString()}</div>
+                  <div className="flex items-center gap-2 mt-2 flex-wrap">
+                    {revolving.category?.name && (
+                      <span className="px-2.5 py-1 bg-slate-100 dark:bg-slate-700/50 rounded-lg text-xs font-medium text-slate-600 dark:text-slate-300">{revolving.category.name}</span>
+                    )}
+                    <span className={`px-2.5 py-1 rounded-lg text-xs font-bold tracking-wider ${
+                      (revolving as RevolvingType).is_give !== false ? 'bg-blue-100 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400' : 'bg-orange-100 text-orange-600 dark:bg-orange-500/10 dark:text-orange-400'
+                    }`}>
+                      {(revolving as RevolvingType).is_give !== false ? 'GIVE' : 'RECEIVE'}
+                    </span>
+                    <span className={`px-2.5 py-1 rounded-lg text-xs font-bold tracking-wider ${
+                      (revolving as RevolvingType).closed ? 'bg-slate-100 text-slate-600 dark:bg-slate-500/10 dark:text-slate-400' : 'bg-cyan-100 text-cyan-600 dark:bg-cyan-500/10 dark:text-cyan-400'
+                    }`}>
+                      {(revolving as RevolvingType).closed ? 'CLOSED' : 'OPEN'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center justify-end gap-1 mt-2">
+                <button
+                  onClick={() => onEdit(revolving)}
+                  className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-600/50 text-slate-400 hover:text-cyan-500 dark:hover:text-cyan-400 transition-colors"
+                  title="Edit"
+                >
+                  <Pencil className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => handleDelete(revolving.id)}
+                  className="p-2 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-500/10 text-slate-400 hover:text-rose-500 dark:hover:text-rose-400 transition-colors"
+                  title="Delete"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          ))}
+          {revolvings.length === 0 && (
+            <div className="px-6 py-12 text-center text-slate-400 dark:text-slate-500">No revolving transactions found</div>
+          )}
         </div>
       </div>
       <Pagination currentPage={currentPage} totalPages={totalPages} hasMore={hasMore} onPageChange={setCurrentPage} />
