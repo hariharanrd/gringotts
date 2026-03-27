@@ -18,6 +18,10 @@ public class Category {
         this.description = description;
     }
 
+    public void setType(String type) {
+        this.type = type;
+    }
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     Long id;
@@ -26,18 +30,23 @@ public class Category {
 
     String description;
 
-    public Long getId(){
+    @Column(nullable = false)
+    String type;
+
+    public Long getId() {
         return id;
     }
 
-    public String getName(){
+    public String getName() {
         return name;
     }
 
-    public String getDescription(){
+    public String getDescription() {
         return description;
     }
 
-
+    public String getType() {
+        return type;
+    }
 
 }

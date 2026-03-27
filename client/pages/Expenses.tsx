@@ -46,7 +46,7 @@ const Expenses: React.FC<ExpensesProps> = ({ onEdit, onAdd, refreshTrigger }) =>
 
   useEffect(() => {
     if (categories.length === 0) {
-      api.getCategories().then(setCategories).catch(() => {});
+      api.getCategories('EXPENSE').then(setCategories).catch(() => {});
     }
   }, []);
 

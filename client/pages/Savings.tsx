@@ -47,7 +47,7 @@ const Savings: React.FC<SavingsProps> = ({ onEdit, onAdd, refreshTrigger }) => {
 
   useEffect(() => {
     if (categories.length === 0) {
-      api.getCategories().then(setCategories).catch(() => {});
+      api.getCategories('SAVING').then(setCategories).catch(() => {});
     }
   }, []);
 

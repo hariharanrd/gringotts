@@ -70,11 +70,9 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, on
   useEffect(() => {
     const fetchDropdownData = async () => {
       if (isOpen) {
-        
-        if (categories.length === 0) {
-          const cats = await api.getCategories();
-          setCategories(cats);
-        }
+        const typeToUse = transaction ? transaction.type : (defaultType || type);
+        const cats = await api.getCategories(typeToUse);
+        setCategories(cats);
 
         if (transaction) {
           setType(transaction.type);
@@ -198,7 +196,16 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, on
               <button
                 key={t}
                 type="button"
-                onClick={() => setType(t)}
+                onClick={() => {
+                  setType(t);
+                  // Re-fetch categories for new type and clear selections
+                  api.getCategories(t).then(cats => {
+                    setCategories(cats);
+                    setSubCategories([]);
+                    setItems([]);
+                    setFormData(prev => ({ ...prev, category: undefined, subcategory: undefined, item: undefined }));
+                  });
+                }}
                 className={`py-2.5 text-sm font-semibold rounded-lg transition-all ${
                   type === t ? `bg-gradient-to-r ${typeColors[t]} text-white shadow-lg` : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700/50'
                 }`}

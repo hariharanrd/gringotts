@@ -46,7 +46,7 @@ const Incomes: React.FC<IncomesProps> = ({ onEdit, onAdd, refreshTrigger }) => {
 
   useEffect(() => {
     if (categories.length === 0) {
-      api.getCategories().then(setCategories).catch(() => {});
+      api.getCategories('INCOME').then(setCategories).catch(() => {});
     }
   }, []);
 

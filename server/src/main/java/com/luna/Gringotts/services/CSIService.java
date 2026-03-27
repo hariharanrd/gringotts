@@ -74,6 +74,10 @@ public class CSIService {
         return categoryRepository.findAll(pageable);
     }
 
+    public Page<Category> getCategoriesByType(String type, Pageable pageable){
+        return categoryRepository.findByType(type, pageable);
+    }
+
     public Page<SubCategory> getSubCategories(Long categoryId, Pageable pageable){
         return subCategoryRepository.findByCategoryId(categoryId,pageable);
     }

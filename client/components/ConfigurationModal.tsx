@@ -9,6 +9,7 @@ export interface EditData {
   id: number;
   name: string;
   description: string;
+  type?: string;
 }
 
 interface ConfigurationModalProps {
@@ -20,17 +21,18 @@ interface ConfigurationModalProps {
   editData?: EditData | null;
 }
 
-const ConfigurationModal: React.FC<ConfigurationModalProps> = ({ 
-  isOpen, 
-  onClose, 
-  onSuccess, 
-  type, 
+const ConfigurationModal: React.FC<ConfigurationModalProps> = ({
+  isOpen,
+  onClose,
+  onSuccess,
+  type,
   parentId,
-  editData 
+  editData
 }) => {
   const { showToast } = useToast();
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+  const [categoryType, setCategoryType] = useState('EXPENSE');
   const [loading, setLoading] = useState(false);
 
   const isEditing = !!editData;
@@ -40,9 +42,11 @@ const ConfigurationModal: React.FC<ConfigurationModalProps> = ({
       if (editData) {
         setName(editData.name);
         setDescription(editData.description || '');
+        setCategoryType(editData.type || 'EXPENSE');
       } else {
         setName('');
         setDescription('');
+        setCategoryType('EXPENSE');
       }
     }
   }, [isOpen, editData]);
@@ -53,7 +57,7 @@ const ConfigurationModal: React.FC<ConfigurationModalProps> = ({
     try {
       if (isEditing) {
         if (type === 'CATEGORY') {
-          await api.updateCategory({ id: editData!.id, name, description });
+          await api.updateCategory({ id: editData!.id, name, description, type: categoryType });
           showToast('Category updated successfully', 'success');
         } else if (type === 'SUBCATEGORY') {
           await api.updateSubCategory({ id: editData!.id, name, description });
@@ -64,7 +68,7 @@ const ConfigurationModal: React.FC<ConfigurationModalProps> = ({
         }
       } else {
         if (type === 'CATEGORY') {
-          await api.addCategory({ name, description });
+          await api.addCategory({ name, description, type: categoryType });
           showToast('Category saved successfully', 'success');
         } else if (type === 'SUBCATEGORY' && parentId) {
           await api.addSubCategory({ name, description, categoryId: parentId });
@@ -119,6 +123,29 @@ const ConfigurationModal: React.FC<ConfigurationModalProps> = ({
               placeholder={`Enter ${type.toLowerCase()} name`}
             />
           </div>
+
+          {type === 'CATEGORY' && (
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-slate-300">Type</label>
+              <div className="grid grid-cols-3 gap-1 p-1 bg-slate-800/60 rounded-xl border border-slate-700/50">
+                {['EXPENSE', 'INCOME', 'SAVING'].map((t) => (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => setCategoryType(t)}
+                    className={`py-2 text-xs font-semibold rounded-lg transition-all ${categoryType === t
+                        ? t === 'EXPENSE' ? 'bg-gradient-to-r from-rose-500 to-pink-600 text-white shadow-lg'
+                          : t === 'INCOME' ? 'bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-lg'
+                            : 'bg-gradient-to-r from-violet-500 to-purple-600 text-white shadow-lg'
+                        : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700/50'
+                      }`}
+                  >
+                    {t}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="space-y-1.5">
             <label className="text-sm font-medium text-slate-300">Description</label>

@@ -196,13 +196,22 @@ const Configuration: React.FC = () => {
                     <Tag className="w-4 h-4 text-cyan-400" />
                   </div>
                   <div>
-                    <h3 className="font-medium text-slate-200">{category.name}</h3>
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-medium text-slate-200">{category.name}</h3>
+                      {category.type && (
+                        <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full uppercase tracking-wider ${
+                          category.type === 'EXPENSE' ? 'bg-rose-500/15 text-rose-400' :
+                          category.type === 'INCOME' ? 'bg-emerald-500/15 text-emerald-400' :
+                          'bg-violet-500/15 text-violet-400'
+                        }`}>{category.type}</span>
+                      )}
+                    </div>
                     {category.description && <p className="text-xs text-slate-500">{category.description}</p>}
                   </div>
                 </div>
                 <div className="flex items-center gap-1">
                   <button 
-                    onClick={(e) => { e.stopPropagation(); openEditModal('CATEGORY', { id: category.id, name: category.name, description: category.description }); }}
+                    onClick={(e) => { e.stopPropagation(); openEditModal('CATEGORY', { id: category.id, name: category.name, description: category.description, type: category.type }); }}
                     className="p-2 text-slate-600 hover:text-cyan-400 hover:bg-cyan-500/10 rounded-lg transition-colors"
                     title="Edit Category"
                   >

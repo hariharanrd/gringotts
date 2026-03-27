@@ -13,19 +13,26 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 @Controller
 @RequestMapping("/api/v1")
 public class CSIController {
 
+    private static final Set<String> VALID_CATEGORY_TYPES = Set.of("EXPENSE", "INCOME", "SAVING");
 
     @Autowired
     private CSIService CSIService;
 
     @GetMapping("/categories")
-    public ResponseEntity<Map<String,Object>> getCategories(){
+    public ResponseEntity<Map<String,Object>> getCategories(@RequestParam(required = false) String type){
         Pageable pageable = Pageable.ofSize(100);
-        Page<Category> categories = CSIService.getCategories(pageable);
+        Page<Category> categories;
+        if (type != null && !type.isEmpty()) {
+            categories = CSIService.getCategoriesByType(type, pageable);
+        } else {
+            categories = CSIService.getCategories(pageable);
+        }
         HashMap<String,Object> response = new HashMap<>();
         response.put("data",categories.getContent());
         response.put("total_count",categories.getTotalElements());
@@ -99,6 +106,9 @@ public class CSIController {
 
     @PostMapping("/categories")
     public ResponseEntity<Map<String,Object>> addCategory(@RequestBody Category category){
+        if (category.getType() == null || !VALID_CATEGORY_TYPES.contains(category.getType())) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Category type must be one of: EXPENSE, INCOME, SAVING", "status", "error"));
+        }
         Category added = CSIService.addCategory(category);
         return ResponseEntity.ok(Map.of("category",added,"status","success"));
     }
@@ -117,6 +127,9 @@ public class CSIController {
 
     @PutMapping("/categories/{id}")
     public ResponseEntity<Map<String,Object>> updateCategory(@RequestBody Category category, @PathVariable Long id){
+        if (category.getType() == null || !VALID_CATEGORY_TYPES.contains(category.getType())) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Category type must be one of: EXPENSE, INCOME, SAVING", "status", "error"));
+        }
         category.setId(id);
         Category updated = CSIService.updateCategory(category);
         return ResponseEntity.ok(Map.of("category", updated, "status","success"));

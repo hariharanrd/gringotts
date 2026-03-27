@@ -148,8 +148,9 @@ export const api = {
 
   // Configuration API start
 
-  getCategories: async (): Promise<Category[]> => {
-    const response = await fetchWithCredentials(`${BASE_URL}/categories`);
+  getCategories: async (type?: string): Promise<Category[]> => {
+    const url = type ? `${BASE_URL}/categories?type=${type}` : `${BASE_URL}/categories`;
+    const response = await fetchWithCredentials(url);
     return handleResponseAndGetData(response);
   },
 
