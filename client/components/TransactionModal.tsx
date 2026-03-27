@@ -17,8 +17,7 @@ type TransactionFormState = Omit<Partial<Transaction>, 'value' > & {
   value: string | number;
   payment_mode?: string;
   source?: string;
-  active?: boolean;
-  withdrawn_amount?: string | number;
+  is_in?: boolean;
   category?: Category;
   subcategory?: SubCategory;
   item?: Item;
@@ -42,8 +41,7 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, on
     transaction_time: new Date().toISOString().slice(0, 16),
     payment_mode: 'CASH',
     source: '',
-    active: true,
-    withdrawn_amount: 0,
+    is_in: true,
     notes: ''
   });
 
@@ -156,7 +154,7 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, on
       } else if (type === TransactionType.INCOME) {
         await apiCall({ ...commonPayload, source: formData.source, type: TransactionType.INCOME } as any);
       } else if (type === TransactionType.SAVING) {
-        await apiCall({ ...commonPayload, active: formData.active, withdrawn_amount: Number(formData.withdrawn_amount), type: TransactionType.SAVING } as any);
+        await apiCall({ ...commonPayload, is_in: formData.is_in, type: TransactionType.SAVING } as any);
       }
       
       showToast('Transaction saved successfully', 'success');
@@ -324,30 +322,27 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, on
 
             {type === TransactionType.SAVING && (
               <div className="space-y-4">
-                <div className="flex items-center justify-between p-3 bg-slate-100 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 rounded-xl">
-                  <label className="text-sm font-medium text-slate-600 dark:text-slate-300">Active</label>
-                  <button
-                    type="button"
-                    onClick={() => setFormData(prev => ({ ...prev, active: !prev.active }))}
-                    className={`relative w-11 h-6 rounded-full transition-colors duration-200 ${
-                      formData.active ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-600'
-                    }`}
-                  >
-                    <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200 ${
-                      formData.active ? 'translate-x-5' : 'translate-x-0'
-                    }`} />
-                  </button>
-                </div>
                 <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-slate-600 dark:text-slate-300">Withdrawn Amount</label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500">₹</span>
-                    <input
-                      type="number"
-                      className="w-full pl-7 pr-4 py-2.5 bg-slate-100 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 rounded-xl focus:ring-2 focus:ring-cyan-500/40 focus:border-cyan-500/50 outline-none transition-all text-slate-900 dark:text-white"
-                      value={formData.withdrawn_amount}
-                      onChange={(e) => setFormData(prev => ({ ...prev, withdrawn_amount: e.target.value }))}
-                    />
+                  <label className="text-sm font-medium text-slate-600 dark:text-slate-300">Transaction Type</label>
+                  <div className="grid grid-cols-2 gap-2 p-1 bg-slate-100 dark:bg-slate-800/60 rounded-xl border border-slate-200 dark:border-slate-700/60">
+                    <button
+                      type="button"
+                      onClick={() => setFormData(prev => ({ ...prev, is_in: true }))}
+                      className={`py-2 text-sm font-semibold rounded-lg transition-all ${
+                        formData.is_in ? 'bg-white dark:bg-slate-700 text-violet-600 dark:text-violet-400 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
+                      }`}
+                    >
+                      IN (Deposit)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setFormData(prev => ({ ...prev, is_in: false }))}
+                      className={`py-2 text-sm font-semibold rounded-lg transition-all ${
+                        !formData.is_in ? 'bg-white dark:bg-slate-700 text-rose-600 dark:text-rose-400 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
+                      }`}
+                    >
+                      OUT (Withdrawal)
+                    </button>
                   </div>
                 </div>
               </div>

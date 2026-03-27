@@ -50,8 +50,7 @@ export interface Income extends Transaction {
 }
 
 export interface Saving extends Transaction {
-  active? : boolean
-  withdrawn_amount: number
+  is_in: boolean
   type: TransactionType.SAVING
 }
 

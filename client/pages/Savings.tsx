@@ -196,6 +196,7 @@ const Savings: React.FC<SavingsProps> = ({ onEdit, onAdd, refreshTrigger }) => {
                 <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Date</th>
                 <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Description</th>
                 <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Category</th>
+                <th scope="col" className="px-6 py-4 text-center text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Type</th>
                 <th scope="col" className="px-6 py-4 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Amount</th>
                 <th scope="col" className="px-6 py-4 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Actions</th>
               </tr>
@@ -217,6 +218,13 @@ const Savings: React.FC<SavingsProps> = ({ onEdit, onAdd, refreshTrigger }) => {
                     {saving.category?.name && (
                       <span className="px-2.5 py-1 bg-slate-100 dark:bg-slate-700/50 rounded-lg text-xs font-medium text-slate-600 dark:text-slate-300">{saving.category.name}</span>
                     )}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-center">
+                    <span className={`px-2.5 py-1 rounded-lg text-xs font-bold tracking-wider ${
+                      (saving as any).is_in !== false ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400' : 'bg-rose-100 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400'
+                    }`}>
+                      {(saving as any).is_in !== false ? 'IN' : 'OUT'}
+                    </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-semibold text-violet-500 dark:text-violet-400">₹{saving.value.toLocaleString()}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-right">
@@ -241,7 +249,7 @@ const Savings: React.FC<SavingsProps> = ({ onEdit, onAdd, refreshTrigger }) => {
               ))}
               {savings.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-slate-400 dark:text-slate-500">No savings found</td>
+                  <td colSpan={7} className="px-6 py-12 text-center text-slate-400 dark:text-slate-500">No savings found</td>
                 </tr>
               )}
             </tbody>
@@ -249,7 +257,7 @@ const Savings: React.FC<SavingsProps> = ({ onEdit, onAdd, refreshTrigger }) => {
         </div>
       </div>
       <Pagination currentPage={currentPage} totalPages={totalPages} hasMore={hasMore} onPageChange={setCurrentPage} />
-      
+
       <ConfirmationDialog
         isOpen={isDeleteDialogOpen}
         onClose={() => setIsDeleteDialogOpen(false)}

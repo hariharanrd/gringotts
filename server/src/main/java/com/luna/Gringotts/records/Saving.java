@@ -16,19 +16,23 @@ import java.time.LocalDateTime;
 @OnDelete(action = OnDeleteAction.CASCADE)
 public class Saving extends Transaction {
 
-    public Saving(){
+    public Saving() {
 
     }
 
-    public Saving(String refNo, LocalDateTime date, String description, Double value){
-        super(refNo,date,description,value);
+    public Saving(String refNo, LocalDateTime date, String description, Double value) {
+        super(refNo, date, description, value);
     }
 
-    @Column(name = "active", nullable = false)
-    @JsonProperty("active")
-    Boolean active=true;
+    @Column(name = "is_in", nullable = false)
+    @JsonProperty("is_in")
+    Boolean isIn = true;
 
-    @Column(name = "withdrawn_amount")
-    @JsonProperty("withdrawn_amount")
-    Double withdrawnAmount;
+    public Boolean getIsIn() {
+        return isIn;
+    }
+
+    public void setIsIn(Boolean isIn) {
+        this.isIn = isIn;
+    }
 }

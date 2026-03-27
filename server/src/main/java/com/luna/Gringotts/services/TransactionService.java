@@ -142,7 +142,9 @@ public class TransactionService {
 
         double totalExpenses = expenses.stream().mapToDouble(Transaction::getValue).sum();
         double totalIncomes = incomes.stream().mapToDouble(Transaction::getValue).sum();
-        double totalSavings = savings.stream().mapToDouble(Transaction::getValue).sum();
+        double totalSavings = savings.stream()
+                .mapToDouble(s -> (s.getIsIn() != null && s.getIsIn()) ? s.getValue() : -s.getValue())
+                .sum();
 
         // Category breakdown for expenses
         Map<String, Double> categoryBreakdown = expenses.stream()
