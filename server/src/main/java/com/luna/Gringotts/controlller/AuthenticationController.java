@@ -48,7 +48,7 @@ public class AuthenticationController {
             HttpServletResponse response
     ) {
         String token = service.authenticate(request.getUsername(), request.getPassword(), request.getCode());
-        ResponseCookie cookie = ResponseCookie.from("gtauth", token)
+        ResponseCookie cookie = ResponseCookie.from("__session", token)
                 .httpOnly(true)
                 .secure(Boolean.parseBoolean(production))
                 .path("/")
@@ -63,7 +63,7 @@ public class AuthenticationController {
 
     @PostMapping("/logout")
     public ResponseEntity<Void> logout(HttpServletResponse response) {
-        ResponseCookie cookie = ResponseCookie.from("gtauth", "")
+        ResponseCookie cookie = ResponseCookie.from("__session", "")
                 .httpOnly(true)
                 .secure(false)
                 .path("/")

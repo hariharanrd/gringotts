@@ -14,8 +14,5 @@ COPY --from=build /app/target/Gringotts-0.0.1-SNAPSHOT.jar app.jar
 # Expose the port the application runs on
 EXPOSE 8080
 
-# Set environment variables (can be overridden at runtime)
-ENV SERVER_PORT=8080
-
-# Run the application
-ENTRYPOINT ["java", "-jar", "app.jar"]
+# Run the application, passing the PORT environment variable from GCP Cloud Run
+ENTRYPOINT ["sh", "-c", "java -Dserver.port=${PORT:-8080} -jar app.jar"]
