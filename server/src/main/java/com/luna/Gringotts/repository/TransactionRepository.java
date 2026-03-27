@@ -11,8 +11,11 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
 
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+
 @Repository
-public interface TransactionRepository<T extends Transaction> extends JpaRepository<T, Long> {
+public interface TransactionRepository<T extends Transaction> extends JpaRepository<T, Long>, JpaSpecificationExecutor<T> {
 
     T findByDescriptionAndTransactionTime(String description, LocalDateTime transactionTime);
 
@@ -24,4 +27,7 @@ public interface TransactionRepository<T extends Transaction> extends JpaReposit
     @Override
     @EntityGraph(attributePaths = {"category", "subCategory", "item"})
     Page<T> findAll(Pageable pageable);
+
+    @EntityGraph(attributePaths = {"category", "subCategory", "item"})
+    Page<T> findAll(Specification<T> spec, Pageable pageable);
 }

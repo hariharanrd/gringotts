@@ -6,6 +6,8 @@ import { ArrowDownRight, PlusCircle, Pencil, Trash2, Tags } from 'lucide-react';
 import { useToast } from '../components/ToastContext';
 import Pagination from '../components/Pagination';
 import { TableSkeleton } from '../components/Skeleton';
+import { SearchBar } from '../components/SearchBar';
+import { FilterMenu, FilterCriteria } from '../components/FilterMenu';
 
 interface ExpensesProps {
   onEdit: (transaction: Transaction) => void;
@@ -23,12 +25,13 @@ const Expenses: React.FC<ExpensesProps> = ({ onEdit, onAdd, refreshTrigger }) =>
   const [categories, setCategories] = useState<Category[]>([]);
   const [bulkCategoryId, setBulkCategoryId] = useState<number | ''>('');
   const [bulkLoading, setBulkLoading] = useState(false);
+  const [filters, setFilters] = useState<FilterCriteria[]>([]);
   const { showToast } = useToast();
 
-  const fetchExpenses = async (page: number) => {
+  const fetchExpenses = async (page: number, currentFilters: FilterCriteria[] = []) => {
     setIsLoading(true);
     try {
-      const response = await api.getExpenses(page);
+      const response = await api.getExpenses(page, currentFilters);
       setExpenses(response.data);
       setTotalPages(Math.ceil(response.total_count / 10));
       setHasMore(response.has_more);
@@ -41,9 +44,9 @@ const Expenses: React.FC<ExpensesProps> = ({ onEdit, onAdd, refreshTrigger }) =>
   };
 
   useEffect(() => {
-    fetchExpenses(currentPage);
+    fetchExpenses(currentPage, filters);
     setSelectedIds(new Set());
-  }, [currentPage, refreshTrigger]);
+  }, [currentPage, filters, refreshTrigger]);
 
   useEffect(() => {
     if (categories.length === 0) {
@@ -110,13 +113,27 @@ const Expenses: React.FC<ExpensesProps> = ({ onEdit, onAdd, refreshTrigger }) =>
           </div>
           Expenses
         </h1>
-        <button
-          onClick={onAdd}
-          className="flex items-center gap-2 bg-gradient-to-r from-rose-500 to-pink-600 text-white py-2.5 px-5 rounded-xl shadow-lg shadow-rose-500/20 hover:from-rose-400 hover:to-pink-500 transition-all font-medium text-sm"
-        >
-          <PlusCircle className="w-4 h-4" />
-          Add Expense
-        </button>
+        <div className="flex items-center gap-4">
+          <FilterMenu 
+            activeFilters={filters}
+            availableFields={[
+              { label: 'Category', value: 'category.name', type: 'string' },
+              { label: 'SubCategory', value: 'subCategory.name', type: 'string' },
+              { label: 'Item', value: 'item.name', type: 'string' },
+              { label: 'Notes', value: 'notes', type: 'string' },
+              { label: 'Description', value: 'description', type: 'string' },
+              { label: 'Value', value: 'value', type: 'number' }
+            ]}
+            onApplyFilters={(f) => { setFilters(f); setCurrentPage(1); }}
+          />
+          <button
+            onClick={onAdd}
+            className="flex items-center gap-2 bg-gradient-to-r from-rose-500 to-pink-600 text-white py-2.5 px-5 rounded-xl shadow-lg shadow-rose-500/20 hover:from-rose-400 hover:to-pink-500 transition-all font-medium text-sm whitespace-nowrap"
+          >
+            <PlusCircle className="w-4 h-4" />
+            Add Expense
+          </button>
+        </div>
       </div>
 
       {/* Bulk Action Bar */}

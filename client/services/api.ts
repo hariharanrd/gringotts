@@ -60,22 +60,28 @@ export const api = {
     return handleResponse(response);
   },
 
-  getExpenses: async (currentPage: number): Promise<ResponseProps> => {
-    const response = await fetchWithCredentials(`${BASE_URL}/expenses?page=${currentPage}`);
+  getExpenses: async (currentPage: number, filters?: {field: string, condition: string, value: string}[]): Promise<ResponseProps> => {
+    let url = `${BASE_URL}/expenses?page=${currentPage}`;
+    if (filters && filters.length > 0) url += `&filters=${encodeURIComponent(JSON.stringify(filters))}`;
+    const response = await fetchWithCredentials(url);
     const data = await handleResponse(response);
     data.data = data.data.map((expense: any) => ({ ...expense, type: TransactionType.EXPENSE }));
     return data;
   },
 
-  getIncomes: async (currentPage: number): Promise<ResponseProps> => {
-    const response = await fetchWithCredentials(`${BASE_URL}/incomes?page=${currentPage}`);
+  getIncomes: async (currentPage: number, filters?: {field: string, condition: string, value: string}[]): Promise<ResponseProps> => {
+    let url = `${BASE_URL}/incomes?page=${currentPage}`;
+    if (filters && filters.length > 0) url += `&filters=${encodeURIComponent(JSON.stringify(filters))}`;
+    const response = await fetchWithCredentials(url);
     const data = await handleResponse(response);
     data.data = data.data.map((income: any) => ({ ...income, type: TransactionType.INCOME }));
     return data;
   },
 
-  getSavings: async (currentPage: number): Promise<ResponseProps> => {
-    const response = await fetchWithCredentials(`${BASE_URL}/savings?page=${currentPage}`);
+  getSavings: async (currentPage: number, filters?: {field: string, condition: string, value: string}[]): Promise<ResponseProps> => {
+    let url = `${BASE_URL}/savings?page=${currentPage}`;
+    if (filters && filters.length > 0) url += `&filters=${encodeURIComponent(JSON.stringify(filters))}`;
+    const response = await fetchWithCredentials(url);
     const data = await handleResponse(response);
     data.data = data.data.map((saving: any) => ({ ...saving, type: TransactionType.SAVING }));
     return data;

@@ -11,6 +11,8 @@ import org.springframework.data.domain.Example;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.data.jpa.domain.Specification;
+import com.luna.Gringotts.repository.TransactionSpecification;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -66,16 +68,28 @@ public class TransactionService {
         transactionRepository.saveAll(transactions);
     }
 
-    public Page<Expense> getExpenses(Pageable pageable){
-        return expenseRepository.findAll(pageable);
+    public Page<Expense> getExpenses(List<SearchCriteria> filters, Pageable pageable){
+        if (filters == null || filters.isEmpty()) {
+            return expenseRepository.findAll(pageable);
+        }
+        Specification<Expense> spec = TransactionSpecification.getSpecification(filters);
+        return expenseRepository.findAll(spec, pageable);
     }
 
-    public Page<Income> getIncomes(Pageable pageable){
-        return incomeRepository.findAll(pageable);
+    public Page<Income> getIncomes(List<SearchCriteria> filters, Pageable pageable){
+        if (filters == null || filters.isEmpty()) {
+            return incomeRepository.findAll(pageable);
+        }
+        Specification<Income> spec = TransactionSpecification.getSpecification(filters);
+        return incomeRepository.findAll(spec, pageable);
     }
 
-    public Page<Saving> getSavings(Pageable pageable){
-        return savingRepository.findAll(pageable);
+    public Page<Saving> getSavings(List<SearchCriteria> filters, Pageable pageable){
+        if (filters == null || filters.isEmpty()) {
+            return savingRepository.findAll(pageable);
+        }
+        Specification<Saving> spec = TransactionSpecification.getSpecification(filters);
+        return savingRepository.findAll(spec, pageable);
     }
 
     public void deleteTransaction(Long id){

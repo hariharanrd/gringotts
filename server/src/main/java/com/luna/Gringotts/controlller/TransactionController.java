@@ -24,6 +24,9 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.ArrayList;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -36,6 +39,20 @@ public class TransactionController {
     @Autowired
     private TransactionService transactionService;
 
+    private final ObjectMapper objectMapper = new ObjectMapper();
+
+    private List<com.luna.Gringotts.records.SearchCriteria> parseFilters(String filtersJson) {
+        if (filtersJson == null || filtersJson.trim().isEmpty()) {
+            return new ArrayList<>();
+        }
+        try {
+            return objectMapper.readValue(filtersJson, new TypeReference<List<com.luna.Gringotts.records.SearchCriteria>>() {});
+        } catch (Exception e) {
+            LOGGER.log(Level.WARNING, "Failed to parse filters: " + filtersJson, e);
+            return new ArrayList<>();
+        }
+    }
+
     @GetMapping("/summary")
     public ResponseEntity<Map<String, Object>> getSummary(@RequestParam(value = "days", defaultValue = "30") int days) {
         Map<String, Object> summary = transactionService.getSummary(days);
@@ -43,9 +60,12 @@ public class TransactionController {
     }
 
     @GetMapping("/expenses")
-    public ResponseEntity<Map<String, Object>> getExpenses(@RequestParam("page") int page){
+    public ResponseEntity<Map<String, Object>> getExpenses(
+            @RequestParam("page") int page,
+            @RequestParam(value = "filters", required = false) String filtersJson){
         Pageable pageable = PageRequest.of(page - 1, 10, Sort.by(Sort.Direction.DESC, "transactionTime"));
-        Page<Expense> result = transactionService.getExpenses(pageable);
+        List<com.luna.Gringotts.records.SearchCriteria> filters = parseFilters(filtersJson);
+        Page<Expense> result = transactionService.getExpenses(filters, pageable);
         HashMap<String,Object> map = new HashMap<>();
         map.put("data",result.getContent());
         map.put("total_count",result.getTotalElements());
@@ -101,9 +121,12 @@ public class TransactionController {
     }
 
     @GetMapping("/incomes")
-    public ResponseEntity<Map<String, Object>> getIncomes(@RequestParam("page") int page) {
+    public ResponseEntity<Map<String, Object>> getIncomes(
+            @RequestParam("page") int page,
+            @RequestParam(value = "filters", required = false) String filtersJson) {
         Pageable pageable = PageRequest.of(page-1, 10, Sort.by(Sort.Direction.DESC, "transactionTime"));
-        Page<Income> result = transactionService.getIncomes(pageable);
+        List<com.luna.Gringotts.records.SearchCriteria> filters = parseFilters(filtersJson);
+        Page<Income> result = transactionService.getIncomes(filters, pageable);
         HashMap<String, Object> map = new HashMap<>();
         map.put("data", result.getContent());
         map.put("total_count", result.getTotalElements());
@@ -132,9 +155,12 @@ public class TransactionController {
     }
 
     @GetMapping("/savings")
-    public ResponseEntity<Map<String, Object>> getSavings(@RequestParam("page") int page) {
+    public ResponseEntity<Map<String, Object>> getSavings(
+            @RequestParam("page") int page,
+            @RequestParam(value = "filters", required = false) String filtersJson) {
         Pageable pageable = PageRequest.of(page-1, 10, Sort.by(Sort.Direction.DESC, "transactionTime"));
-        Page<Saving> result = transactionService.getSavings(pageable);
+        List<com.luna.Gringotts.records.SearchCriteria> filters = parseFilters(filtersJson);
+        Page<Saving> result = transactionService.getSavings(filters, pageable);
         HashMap<String, Object> map = new HashMap<>();
         map.put("data", result.getContent());
         map.put("total_count", result.getTotalElements());

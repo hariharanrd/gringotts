@@ -7,6 +7,8 @@ import { TrendingUp, PlusCircle, Pencil, Trash2, Tags } from 'lucide-react';
 import { useToast } from '../components/ToastContext';
 import Pagination from '../components/Pagination';
 import { TableSkeleton } from '../components/Skeleton';
+import { SearchBar } from '../components/SearchBar';
+import { FilterMenu, FilterCriteria } from '../components/FilterMenu';
 
 interface SavingsProps {
   onEdit: (transaction: Transaction) => void;
@@ -24,12 +26,13 @@ const Savings: React.FC<SavingsProps> = ({ onEdit, onAdd, refreshTrigger }) => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [bulkCategoryId, setBulkCategoryId] = useState<number | ''>('');
   const [bulkLoading, setBulkLoading] = useState(false);
+  const [filters, setFilters] = useState<FilterCriteria[]>([]);
   const { showToast } = useToast();
 
-  const fetchSavings = async (page: number) => {
+  const fetchSavings = async (page: number, currentFilters: FilterCriteria[] = []) => {
     setIsLoading(true);
     try {
-      const response = await api.getSavings(page);
+      const response = await api.getSavings(page, currentFilters);
       setSavings(response.data);
       setTotalPages(Math.ceil(response.total_count / 10));
       setHasMore(response.has_more);
@@ -42,13 +45,13 @@ const Savings: React.FC<SavingsProps> = ({ onEdit, onAdd, refreshTrigger }) => {
   };
 
   useEffect(() => {
-    fetchSavings(currentPage);
+    fetchSavings(currentPage, filters);
     setSelectedIds(new Set());
-  }, [currentPage, refreshTrigger]);
+  }, [currentPage, filters, refreshTrigger]);
 
   useEffect(() => {
     if (categories.length === 0) {
-      api.getCategories('SAVING').then(setCategories).catch(() => {});
+      api.getCategories('SAVING').then(setCategories).catch(() => { });
     }
   }, []);
 
@@ -111,13 +114,27 @@ const Savings: React.FC<SavingsProps> = ({ onEdit, onAdd, refreshTrigger }) => {
           </div>
           Savings
         </h1>
-        <button
-          onClick={onAdd}
-          className="flex items-center gap-2 bg-gradient-to-r from-violet-500 to-purple-600 text-white py-2.5 px-5 rounded-xl shadow-lg shadow-violet-500/20 hover:from-violet-400 hover:to-purple-500 transition-all font-medium text-sm"
-        >
-          <PlusCircle className="w-4 h-4" />
-          Add Saving
-        </button>
+        <div className="flex items-center gap-4">
+          <FilterMenu
+            activeFilters={filters}
+            availableFields={[
+              { label: 'Category', value: 'category.name', type: 'string' },
+              { label: 'SubCategory', value: 'subCategory.name', type: 'string' },
+              { label: 'Item', value: 'item.name', type: 'string' },
+              { label: 'Notes', value: 'notes', type: 'string' },
+              { label: 'Description', value: 'description', type: 'string' },
+              { label: 'Value', value: 'value', type: 'number' }
+            ]}
+            onApplyFilters={(f) => { setFilters(f); setCurrentPage(1); }}
+          />
+          <button
+            onClick={onAdd}
+            className="flex items-center gap-2 bg-gradient-to-r from-violet-500 to-purple-600 text-white py-2.5 px-5 rounded-xl shadow-lg shadow-violet-500/20 hover:from-violet-400 hover:to-purple-500 transition-all font-medium text-sm whitespace-nowrap"
+          >
+            <PlusCircle className="w-4 h-4" />
+            Add Saving
+          </button>
+        </div>
       </div>
 
       {/* Bulk Action Bar */}
