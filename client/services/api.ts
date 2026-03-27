@@ -55,6 +55,11 @@ export const api = {
 
   // Transaction API Start
 
+  getSummary: async (days: number = 30): Promise<any> => {
+    const response = await fetchWithCredentials(`${BASE_URL}/summary?days=${days}`);
+    return handleResponse(response);
+  },
+
   getExpenses: async (currentPage: number): Promise<ResponseProps> => {
     const response = await fetchWithCredentials(`${BASE_URL}/expenses?page=${currentPage}`);
     const data = await handleResponse(response);
@@ -105,6 +110,14 @@ export const api = {
       method: 'DELETE',
     });
     if (!response.ok) throw new Error('Failed to delete transaction');
+  },
+
+  bulkUpdateCategory: async (transactionIds: number[], categoryId: number) => {
+    const response = await fetchWithCredentials(`${BASE_URL}/transactions/bulk-update-category`, {
+      method: 'PUT',
+      body: JSON.stringify({ transaction_ids: transactionIds, category_id: categoryId }),
+    });
+    return handleResponse(response);
   },
 
   updateExpense: async (data: Partial<Expense>) => {

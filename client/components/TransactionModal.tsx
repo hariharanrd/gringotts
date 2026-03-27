@@ -18,6 +18,7 @@ type TransactionFormState = Omit<Partial<Transaction>, 'value' > & {
   payment_mode?: string;
   source?: string;
   active?: boolean;
+  withdrawn_amount?: string | number;
   category?: Category;
   subcategory?: SubCategory;
   item?: Item;
@@ -42,6 +43,7 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, on
     payment_mode: 'CASH',
     source: '',
     active: true,
+    withdrawn_amount: 0,
     notes: ''
   });
 
@@ -156,7 +158,7 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, on
       } else if (type === TransactionType.INCOME) {
         await apiCall({ ...commonPayload, source: formData.source, type: TransactionType.INCOME } as any);
       } else if (type === TransactionType.SAVING) {
-        await apiCall({ ...commonPayload, active: formData.active, type: TransactionType.SAVING } as any);
+        await apiCall({ ...commonPayload, active: formData.active, withdrawn_amount: Number(formData.withdrawn_amount), type: TransactionType.SAVING } as any);
       }
       
       showToast('Transaction saved successfully', 'success');
@@ -310,6 +312,37 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, on
                   value={formData.source}
                   onChange={(e) => setFormData(prev => ({ ...prev, source: e.target.value }))}
                 />
+              </div>
+            )}
+
+            {type === TransactionType.SAVING && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between p-3 bg-slate-800/60 border border-slate-700/60 rounded-xl">
+                  <label className="text-sm font-medium text-slate-300">Active</label>
+                  <button
+                    type="button"
+                    onClick={() => setFormData(prev => ({ ...prev, active: !prev.active }))}
+                    className={`relative w-11 h-6 rounded-full transition-colors duration-200 ${
+                      formData.active ? 'bg-emerald-500' : 'bg-slate-600'
+                    }`}
+                  >
+                    <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200 ${
+                      formData.active ? 'translate-x-5' : 'translate-x-0'
+                    }`} />
+                  </button>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-slate-300">Withdrawn Amount</label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">₹</span>
+                    <input
+                      type="number"
+                      className="w-full pl-7 pr-4 py-2.5 bg-slate-800/60 border border-slate-700/60 rounded-xl focus:ring-2 focus:ring-cyan-500/40 focus:border-cyan-500/50 outline-none transition-all text-white"
+                      value={formData.withdrawn_amount}
+                      onChange={(e) => setFormData(prev => ({ ...prev, withdrawn_amount: e.target.value }))}
+                    />
+                  </div>
+                </div>
               </div>
             )}
 

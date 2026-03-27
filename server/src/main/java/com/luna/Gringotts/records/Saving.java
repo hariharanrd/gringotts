@@ -1,5 +1,6 @@
 package com.luna.Gringotts.records;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.PrimaryKeyJoinColumn;
@@ -24,8 +25,10 @@ public class Saving extends Transaction {
     }
 
     @Column(name = "active", nullable = false)
+    @JsonProperty("active")
     Boolean active=true;
 
     @Column(name = "withdrawn_amount")
+    @JsonProperty("withdrawn_amount")
     Double withdrawnAmount;
 }

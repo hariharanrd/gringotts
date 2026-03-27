@@ -13,4 +13,6 @@ public interface TransactionRepository<T extends Transaction> extends JpaReposit
     T findByDescriptionAndTransactionTime(String description, LocalDateTime transactionTime);
 
     List<T> findByDescription(String description);
+
+    List<T> findByTransactionTimeAfter(LocalDateTime after);
 }
