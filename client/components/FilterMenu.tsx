@@ -133,7 +133,7 @@ export const FilterMenu: React.FC<FilterMenuProps> = ({ activeFilters, onApplyFi
         </button>
 
         {isOpen && (
-          <div className="absolute right-0 top-full mt-2 w-80 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/80 rounded-xl shadow-xl z-50 p-4 animate-in fade-in zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out data-[state=closed]:zoom-out-95">
+          <div className="absolute right-0 top-full w-96 mt-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/80 rounded-xl shadow-xl z-50 p-4 animate-in fade-in zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out data-[state=closed]:zoom-out-95">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">Filters</h3>
               <button onClick={() => setIsOpen(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors">
