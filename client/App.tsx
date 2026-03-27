@@ -15,14 +15,14 @@ import { api } from './services/api';
 import { Transaction, TransactionType } from './types';
 import { ToastProvider, useToast } from './components/ToastContext';
 import { ThemeProvider } from './components/ThemeContext';
+import { DashboardSkeleton, FormSkeleton } from './components/Skeleton';
 
 const PrivateRoute: React.FC<{ children: React.ReactNode; isAuthenticated: boolean | null }> = ({ children, isAuthenticated }) => {
   if (isAuthenticated === null) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-slate-100 dark:bg-slate-950">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 border-4 border-slate-300 dark:border-slate-700 border-t-cyan-500 rounded-full animate-spin"></div>
-          <p className="text-slate-500 dark:text-slate-400 text-sm font-medium animate-pulse">Loading...</p>
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 p-8">
+        <div className="max-w-[1400px] mx-auto">
+          <DashboardSkeleton />
         </div>
       </div>
     );
@@ -34,8 +34,14 @@ const PrivateRoute: React.FC<{ children: React.ReactNode; isAuthenticated: boole
 const PublicRoute: React.FC<{ children: React.ReactNode; isAuthenticated: boolean | null }> = ({ children, isAuthenticated }) => {
   if (isAuthenticated === null) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-slate-100 dark:bg-slate-950">
-        <div className="w-12 h-12 border-4 border-slate-300 dark:border-slate-700 border-t-cyan-500 rounded-full animate-spin"></div>
+      <div className="flex items-center justify-center min-h-screen bg-slate-50 dark:bg-slate-950 relative overflow-hidden">
+        <div className="absolute inset-0 overflow-hidden">
+          <div className="absolute -top-40 -right-40 w-80 h-80 bg-cyan-500/10 rounded-full blur-3xl"></div>
+          <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-violet-500/10 rounded-full blur-3xl"></div>
+        </div>
+        <div className="relative z-10 w-full px-4 pt-10">
+          <FormSkeleton />
+        </div>
       </div>
     );
   }
@@ -158,12 +164,7 @@ const GringottsApp: React.FC = () => {
               onImport={() => setIsImportModalOpen(true)}
             >
               {isLoading ? (
-                <div className="flex items-center justify-center min-h-[60vh]">
-                  <div className="flex flex-col items-center gap-4">
-                    <div className="w-12 h-12 border-4 border-slate-300 dark:border-slate-700 border-t-cyan-500 rounded-full animate-spin"></div>
-                    <p className="text-slate-500 dark:text-slate-400 text-sm font-medium animate-pulse">Loading your data...</p>
-                  </div>
-                </div>
+                <DashboardSkeleton />
               ) : (
                 <Routes>
                   <Route path="/dashboard" element={<Dashboard />} />

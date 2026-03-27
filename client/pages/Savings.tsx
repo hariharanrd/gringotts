@@ -6,6 +6,7 @@ import { Transaction, Category } from '../types';
 import { TrendingUp, PlusCircle, Pencil, Trash2, Tags } from 'lucide-react';
 import { useToast } from '../components/ToastContext';
 import Pagination from '../components/Pagination';
+import { TableSkeleton } from '../components/Skeleton';
 
 interface SavingsProps {
   onEdit: (transaction: Transaction) => void;
@@ -98,11 +99,7 @@ const Savings: React.FC<SavingsProps> = ({ onEdit, onAdd, refreshTrigger }) => {
   };
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="w-12 h-12 border-4 border-slate-300 dark:border-slate-700 border-t-violet-500 rounded-full animate-spin"></div>
-      </div>
-    );
+    return <div className="space-y-6"><TableSkeleton rows={5} /></div>;
   }
 
   return (

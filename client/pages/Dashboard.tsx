@@ -21,6 +21,7 @@ import {
 import { api } from '../services/api';
 import { TransactionType } from '../types';
 import { useTheme } from '../components/ThemeContext';
+import { DashboardSkeleton } from '../components/Skeleton';
 
 const PIE_COLORS = ['#06b6d4', '#10b981', '#8b5cf6', '#f43f5e', '#f59e0b', '#ec4899', '#14b8a6', '#a855f7'];
 
@@ -67,14 +68,7 @@ const Dashboard: React.FC = () => {
   }, []);
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 border-4 border-slate-300 dark:border-slate-700 border-t-cyan-500 rounded-full animate-spin"></div>
-          <p className="text-slate-500 dark:text-slate-400 text-sm font-medium animate-pulse">Loading summary...</p>
-        </div>
-      </div>
-    );
+    return <DashboardSkeleton />;
   }
 
   if (error || !summary) {
