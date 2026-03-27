@@ -5,13 +5,14 @@ import {
   ChevronDown, 
   Plus, 
   Trash2, 
+  Pencil,
   Tag, 
   Layers, 
   Package 
 } from 'lucide-react';
 import { api } from '../services/api';
 import { Category, SubCategory, Item } from '../types';
-import ConfigurationModal, { ConfigType } from '../components/ConfigurationModal';
+import ConfigurationModal, { ConfigType, EditData } from '../components/ConfigurationModal';
 import ConfirmationDialog from '../components/ConfirmationDialogue';
 import { useToast } from '../components/ToastContext';
 
@@ -28,6 +29,7 @@ const Configuration: React.FC = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [modalType, setModalType] = useState<ConfigType>('CATEGORY');
   const [modalParentId, setModalParentId] = useState<number | undefined>(undefined);
+  const [editData, setEditData] = useState<EditData | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ type: ConfigType, id: number, parentId?: number } | null>(null);
 
   useEffect(() => {
@@ -128,6 +130,14 @@ const Configuration: React.FC = () => {
   const openModal = (type: ConfigType, parentId?: number) => {
     setModalType(type);
     setModalParentId(parentId);
+    setEditData(null);
+    setModalOpen(true);
+  };
+
+  const openEditModal = (type: ConfigType, data: EditData, parentId?: number) => {
+    setModalType(type);
+    setModalParentId(parentId);
+    setEditData(data);
     setModalOpen(true);
   };
 
@@ -190,13 +200,22 @@ const Configuration: React.FC = () => {
                     {category.description && <p className="text-xs text-slate-500">{category.description}</p>}
                   </div>
                 </div>
-                <button 
-                  onClick={(e) => { e.stopPropagation(); handleDeleteCategory(category.id); }}
-                  className="p-2 text-slate-600 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors"
-                  title="Delete Category"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
+                <div className="flex items-center gap-1">
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); openEditModal('CATEGORY', { id: category.id, name: category.name, description: category.description }); }}
+                    className="p-2 text-slate-600 hover:text-cyan-400 hover:bg-cyan-500/10 rounded-lg transition-colors"
+                    title="Edit Category"
+                  >
+                    <Pencil className="w-4 h-4" />
+                  </button>
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); handleDeleteCategory(category.id); }}
+                    className="p-2 text-slate-600 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors"
+                    title="Delete Category"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
 
               {expandedCategories.has(category.id) && (
@@ -220,13 +239,22 @@ const Configuration: React.FC = () => {
                               <Layers className="w-4 h-4 text-violet-400" />
                               <span className="text-sm font-medium text-slate-300">{sub.name}</span>
                             </div>
-                            <button 
-                              onClick={(e) => { e.stopPropagation(); handleDeleteSubCategory(sub.id, category.id); }}
-                              className="p-1.5 text-slate-600 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors"
-                              title="Delete Sub-Category"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
+                            <div className="flex items-center gap-1">
+                              <button 
+                                onClick={(e) => { e.stopPropagation(); openEditModal('SUBCATEGORY', { id: sub.id, name: sub.name, description: sub.description }, category.id); }}
+                                className="p-1.5 text-slate-600 hover:text-cyan-400 hover:bg-cyan-500/10 rounded-lg transition-colors"
+                                title="Edit Sub-Category"
+                              >
+                                <Pencil className="w-3.5 h-3.5" />
+                              </button>
+                              <button 
+                                onClick={(e) => { e.stopPropagation(); handleDeleteSubCategory(sub.id, category.id); }}
+                                className="p-1.5 text-slate-600 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors"
+                                title="Delete Sub-Category"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
                           </div>
 
                           {expandedSubCategories.has(sub.id) && (
@@ -241,13 +269,22 @@ const Configuration: React.FC = () => {
                                         <Package className="w-3.5 h-3.5 text-emerald-400" />
                                         <span className="text-sm text-slate-300">{item.name}</span>
                                       </div>
-                                      <button 
-                                        onClick={() => handleDeleteItem(item.id, sub.id)}
-                                        className="opacity-0 group-hover:opacity-100 p-1 text-slate-600 hover:text-rose-400 hover:bg-rose-500/10 rounded transition-all"
-                                        title="Delete Item"
-                                      >
-                                        <Trash2 className="w-3 h-3" />
-                                      </button>
+                                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                                        <button 
+                                          onClick={() => openEditModal('ITEM', { id: item.id, name: item.name, description: item.description }, sub.id)}
+                                          className="p-1 text-slate-600 hover:text-cyan-400 hover:bg-cyan-500/10 rounded transition-all"
+                                          title="Edit Item"
+                                        >
+                                          <Pencil className="w-3 h-3" />
+                                        </button>
+                                        <button 
+                                          onClick={() => handleDeleteItem(item.id, sub.id)}
+                                          className="p-1 text-slate-600 hover:text-rose-400 hover:bg-rose-500/10 rounded transition-all"
+                                          title="Delete Item"
+                                        >
+                                          <Trash2 className="w-3 h-3" />
+                                        </button>
+                                      </div>
                                     </div>
                                   ))}
                                   <button 
@@ -294,10 +331,11 @@ const Configuration: React.FC = () => {
 
       <ConfigurationModal 
         isOpen={modalOpen}
-        onClose={() => setModalOpen(false)}
+        onClose={() => { setModalOpen(false); setEditData(null); }}
         onSuccess={handleModalSuccess}
         type={modalType}
         parentId={modalParentId}
+        editData={editData}
       />
 
       <ConfirmationDialog 

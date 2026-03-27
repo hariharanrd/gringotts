@@ -5,12 +5,19 @@ import { useToast } from '../components/ToastContext';
 
 export type ConfigType = 'CATEGORY' | 'SUBCATEGORY' | 'ITEM';
 
+export interface EditData {
+  id: number;
+  name: string;
+  description: string;
+}
+
 interface ConfigurationModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
   type: ConfigType;
   parentId?: number;
+  editData?: EditData | null;
 }
 
 const ConfigurationModal: React.FC<ConfigurationModalProps> = ({ 
@@ -18,39 +25,61 @@ const ConfigurationModal: React.FC<ConfigurationModalProps> = ({
   onClose, 
   onSuccess, 
   type, 
-  parentId 
+  parentId,
+  editData 
 }) => {
   const { showToast } = useToast();
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [loading, setLoading] = useState(false);
 
+  const isEditing = !!editData;
+
   useEffect(() => {
     if (isOpen) {
-      setName('');
-      setDescription('');
+      if (editData) {
+        setName(editData.name);
+        setDescription(editData.description || '');
+      } else {
+        setName('');
+        setDescription('');
+      }
     }
-  }, [isOpen]);
+  }, [isOpen, editData]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     try {
-      if (type === 'CATEGORY') {
-        await api.addCategory({ name, description });
-        showToast(`Category saved successfully`, 'success');
-      } else if (type === 'SUBCATEGORY' && parentId) {
-        await api.addSubCategory({ name, description, categoryId: parentId });
-        showToast(`Sub-category saved successfully`, 'success');
-      } else if (type === 'ITEM' && parentId) {
-        await api.addItem({ name, description, subCategoryId: parentId });
-        showToast(`Item saved successfully`, 'success');
+      if (isEditing) {
+        if (type === 'CATEGORY') {
+          await api.updateCategory({ id: editData!.id, name, description });
+          showToast('Category updated successfully', 'success');
+        } else if (type === 'SUBCATEGORY') {
+          await api.updateSubCategory({ id: editData!.id, name, description });
+          showToast('Sub-category updated successfully', 'success');
+        } else if (type === 'ITEM') {
+          await api.updateItem({ id: editData!.id, name, description });
+          showToast('Item updated successfully', 'success');
+        }
+      } else {
+        if (type === 'CATEGORY') {
+          await api.addCategory({ name, description });
+          showToast('Category saved successfully', 'success');
+        } else if (type === 'SUBCATEGORY' && parentId) {
+          await api.addSubCategory({ name, description, categoryId: parentId });
+          showToast('Sub-category saved successfully', 'success');
+        } else if (type === 'ITEM' && parentId) {
+          await api.addItem({ name, description, subCategoryId: parentId });
+          showToast('Item saved successfully', 'success');
+        }
       }
       onSuccess();
       onClose();
     } catch (error) {
       console.error(error);
-      showToast(`Failed to save ${type.toLowerCase()}`, 'error');
+      const action = isEditing ? 'update' : 'save';
+      showToast(`Failed to ${action} ${type.toLowerCase()}`, 'error');
     } finally {
       setLoading(false);
     }
@@ -59,10 +88,11 @@ const ConfigurationModal: React.FC<ConfigurationModalProps> = ({
   if (!isOpen) return null;
 
   const getTitle = () => {
+    const prefix = isEditing ? 'Edit' : 'New';
     switch (type) {
-      case 'CATEGORY': return 'New Category';
-      case 'SUBCATEGORY': return 'New Sub-Category';
-      case 'ITEM': return 'New Item';
+      case 'CATEGORY': return `${prefix} Category`;
+      case 'SUBCATEGORY': return `${prefix} Sub-Category`;
+      case 'ITEM': return `${prefix} Item`;
     }
   };
 
@@ -119,7 +149,7 @@ const ConfigurationModal: React.FC<ConfigurationModalProps> = ({
               ) : (
                 <>
                   <Save className="w-4 h-4" />
-                  Save
+                  {isEditing ? 'Update' : 'Save'}
                 </>
               )}
             </button>

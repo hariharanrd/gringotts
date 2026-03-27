@@ -119,19 +119,29 @@ public class CSIController {
     public ResponseEntity<Map<String,Object>> updateCategory(@RequestBody Category category, @PathVariable Long id){
         category.setId(id);
         Category updated = CSIService.updateCategory(category);
-        return ResponseEntity.ok(Map.of("sub_category", updated, "status","success"));
+        return ResponseEntity.ok(Map.of("category", updated, "status","success"));
     }
 
     @PutMapping("/subcategories/{id}")
     public ResponseEntity<Map<String,Object>> updateSubCategory(@RequestBody SubCategory subCategory, @PathVariable Long id){
+        SubCategory existing = CSIService.getSubCategoryById(id);
+        if (existing == null) {
+            return ResponseEntity.notFound().build();
+        }
         subCategory.setId(id);
+        subCategory.setCategory(existing.getCategory());
         SubCategory updated = CSIService.updateSubCategory(subCategory);
         return ResponseEntity.ok(Map.of("sub_category", updated, "status","success"));
     }
 
     @PutMapping("/items/{id}")
     public ResponseEntity<Map<String,Object>> updateItem(@RequestBody Item item, @PathVariable Long id){
+        Item existing = CSIService.getItemById(id);
+        if (existing == null) {
+            return ResponseEntity.notFound().build();
+        }
         item.setId(id);
+        item.setSubCategory(existing.getSubCategory());
         Item updated = CSIService.updateItem(item);
         return ResponseEntity.ok(Map.of("item", updated, "status","success"));
     }

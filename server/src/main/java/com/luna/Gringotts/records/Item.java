@@ -51,4 +51,8 @@ public class Item {
         return description;
     }
 
+    public SubCategory getSubCategory(){
+        return subCategory;
+    }
+
 }
