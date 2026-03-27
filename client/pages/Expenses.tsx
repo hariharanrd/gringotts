@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { api } from '../services/api';
 import { Transaction, Category } from '../types';
@@ -6,7 +5,6 @@ import { ArrowDownRight, PlusCircle, Pencil, Trash2, Tags } from 'lucide-react';
 import { useToast } from '../components/ToastContext';
 import Pagination from '../components/Pagination';
 import { TableSkeleton } from '../components/Skeleton';
-import { SearchBar } from '../components/SearchBar';
 import { FilterMenu, FilterCriteria } from '../components/FilterMenu';
 import ConfirmationDialog from '../components/ConfirmationDialog';
 
@@ -116,14 +114,14 @@ const Expenses: React.FC<ExpensesProps> = ({ onEdit, onAdd, refreshTrigger }) =>
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <h1 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-3">
           <div className="bg-gradient-to-br from-rose-500 to-pink-600 p-2 rounded-xl shadow-lg shadow-rose-500/20">
             <ArrowDownRight className="w-5 h-5 text-white" />
           </div>
           Expenses
         </h1>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 w-full md:w-auto">
           <FilterMenu
             activeFilters={filters}
             availableFields={[
@@ -141,21 +139,21 @@ const Expenses: React.FC<ExpensesProps> = ({ onEdit, onAdd, refreshTrigger }) =>
             className="flex items-center gap-2 bg-gradient-to-r from-rose-500 to-pink-600 text-white py-2.5 px-5 rounded-xl shadow-lg shadow-rose-500/20 hover:from-rose-400 hover:to-pink-500 transition-all font-medium text-sm whitespace-nowrap"
           >
             <PlusCircle className="w-4 h-4" />
-            Add Expense
+            <span className="hidden sm:inline">Add Expense</span>
           </button>
         </div>
       </div>
 
       {/* Bulk Action Bar */}
       {selectedIds.size > 0 && (
-        <div className="flex items-center gap-4 p-4 glass-card rounded-xl border border-cyan-500/30 animate-in fade-in slide-in-from-top-2">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 p-4 glass-card rounded-xl border border-cyan-500/30 animate-in fade-in slide-in-from-top-2">
           <span className="text-sm font-medium text-cyan-600 dark:text-cyan-400">
             {selectedIds.size} selected
           </span>
-          <div className="flex items-center gap-2 flex-1">
+          <div className="flex items-center gap-2 flex-1 w-full">
             <Tags className="w-4 h-4 text-slate-400" />
             <select
-              className="px-3 py-2 bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60 rounded-lg text-sm text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-cyan-500/40"
+              className="w-full sm:w-auto px-3 py-2 bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60 rounded-lg text-sm text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-cyan-500/40"
               value={bulkCategoryId}
               onChange={(e) => setBulkCategoryId(e.target.value ? Number(e.target.value) : '')}
             >
@@ -180,7 +178,8 @@ const Expenses: React.FC<ExpensesProps> = ({ onEdit, onAdd, refreshTrigger }) =>
       )}
 
       <div className="glass-card rounded-2xl overflow-hidden">
-        <div className="overflow-x-auto">
+        {/* Desktop Table */}
+        <div className="overflow-x-auto hidden md:block">
           <table className="min-w-full">
             <thead>
               <tr className="border-b border-slate-200 dark:border-slate-700/50">
@@ -245,6 +244,53 @@ const Expenses: React.FC<ExpensesProps> = ({ onEdit, onAdd, refreshTrigger }) =>
               )}
             </tbody>
           </table>
+        </div>
+
+        {/* Mobile Cards */}
+        <div className="md:hidden divide-y divide-slate-100 dark:divide-slate-800/50">
+          {expenses.map(expense => (
+            <div key={expense.id} className={`p-4 ${selectedIds.has(expense.id) ? 'bg-cyan-50 dark:bg-cyan-500/5' : ''}`}>
+              <div className="flex items-start gap-4">
+                <input
+                  type="checkbox"
+                  checked={selectedIds.has(expense.id)}
+                  onChange={() => toggleSelect(expense.id)}
+                  className="mt-1.5 w-4 h-4 rounded border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-cyan-500 focus:ring-cyan-500/40 cursor-pointer accent-cyan-500"
+                />
+                <div className="flex-1">
+                  <div className="flex justify-between items-start">
+                    <span className="text-sm font-medium text-slate-800 dark:text-slate-200 mr-2">{expense.description}</span>
+                    <span className="text-sm font-semibold text-rose-500 dark:text-rose-400 whitespace-nowrap">-₹{expense.value.toLocaleString()}</span>
+                  </div>
+                  <div className="text-sm text-slate-500 dark:text-slate-400 mt-1">{new Date(expense.transaction_time).toLocaleDateString()}</div>
+                  {expense.category?.name && (
+                    <div className="mt-2">
+                      <span className="px-2.5 py-1 bg-slate-100 dark:bg-slate-700/50 rounded-lg text-xs font-medium text-slate-600 dark:text-slate-300">{expense.category.name}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div className="flex items-center justify-end gap-1 mt-2">
+                <button
+                  onClick={() => onEdit(expense)}
+                  className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-600/50 text-slate-400 hover:text-cyan-500 dark:hover:text-cyan-400 transition-colors"
+                  title="Edit"
+                >
+                  <Pencil className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => handleDelete(expense.id)}
+                  className="p-2 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-500/10 text-slate-400 hover:text-rose-500 dark:hover:text-rose-400 transition-colors"
+                  title="Delete"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          ))}
+          {expenses.length === 0 && (
+            <div className="px-6 py-12 text-center text-slate-400 dark:text-slate-500">No expenses found</div>
+          )}
         </div>
       </div>
       <Pagination currentPage={currentPage} totalPages={totalPages} hasMore={hasMore} onPageChange={setCurrentPage} />
