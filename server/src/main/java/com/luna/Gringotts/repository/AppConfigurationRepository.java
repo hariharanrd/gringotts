@@ -7,5 +7,5 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface AppConfigurationRepository extends JpaRepository<AppConfiguration, Long> {
 
-    public String findByCategoryAndParameter(String category, String parameter);
+    public AppConfiguration findByCategoryAndParameter(String category, String parameter);
 }
