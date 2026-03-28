@@ -34,7 +34,7 @@ public class AuthenticationController {
     @PostMapping("/register")
     public ResponseEntity<Map<String, String>> register(@RequestBody RegisterRequest request) {
         boolean registrationAllowed = Boolean.parseBoolean(appConfigurationService.getValue("IAM","USER_REGISTRATION","false"));
-        if(!registrationAllowed) {
+        if(registrationAllowed) {
             return ResponseEntity.ok(service.register(request.getUsername(), request.getPassword()));
         } else {
             return ResponseEntity.status(403).build();
