@@ -4,6 +4,7 @@ import com.luna.Gringotts.records.User;
 import com.luna.Gringotts.repository.UserRepository;
 import com.warrenstrange.googleauth.GoogleAuthenticator;
 import com.warrenstrange.googleauth.GoogleAuthenticatorKey;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -33,6 +34,7 @@ public class AuthenticationService {
         this.gAuth = new GoogleAuthenticator();
     }
 
+    @CacheEvict(value = "users", allEntries = true)
     public Map<String, String> register(String username, String password) {
         if (userRepository.findByUsername(username).isPresent()) {
             throw new RuntimeException("User already exists");
