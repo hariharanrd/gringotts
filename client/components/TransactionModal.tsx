@@ -183,12 +183,14 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, on
     [TransactionType.REVOLVING]: 'from-blue-500 to-cyan-600',
   };
 
+  const typeName = type.charAt(0).toUpperCase() + type.slice(1).toLowerCase();
+
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/40 dark:bg-black/60 backdrop-blur-sm">
       <div className="bg-white dark:bg-slate-900 w-full max-w-lg rounded-2xl shadow-2xl shadow-black/20 dark:shadow-black/40 overflow-hidden border border-slate-200 dark:border-slate-700/50">
         {/* Header */}
         <div className={`px-6 py-4 flex items-center justify-between bg-gradient-to-r ${typeColors[type]} bg-opacity-10`}>
-          <h3 className="text-lg font-bold text-white">{isEditing ? 'Edit Transaction' : 'New Transaction'}</h3>
+          <h3 className="text-lg font-bold text-white">{isEditing ? `Edit ${typeName}` : `Add ${typeName}`}</h3>
           <button onClick={onClose} className="text-white/70 hover:text-white transition-colors p-1 hover:bg-white/10 rounded-lg">
             <X className="w-5 h-5" />
           </button>
@@ -226,7 +228,7 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, on
                 <Icon className="w-5 h-5 md:hidden" />
                 <span className="hidden md:inline">{t}</span>
               </button>
-            ))}
+            )})}
           </div>
 
           <div className="space-y-4">
