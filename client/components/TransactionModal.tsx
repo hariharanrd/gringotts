@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Save } from 'lucide-react';
+import { X, Save, TrendingDown, TrendingUp, PiggyBank, RefreshCw } from 'lucide-react';
 import { api } from '../services/api';
 import { Category, SubCategory, Item, TransactionType, Expense, Income, Saving, Revolving, Transaction} from '../types';
 import { useToast } from '../components/ToastContext';
@@ -197,7 +197,15 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, on
         <form onSubmit={handleSubmit} className="p-6 space-y-5 max-h-[75vh] overflow-y-auto">
           {/* Type Selector */}
           <div className="grid grid-cols-4 gap-1 p-1 bg-slate-100 dark:bg-slate-800/60 rounded-xl border border-slate-200 dark:border-slate-700/50">
-            {Object.values(TransactionType).map((t) => (
+            {Object.values(TransactionType).map((t) => {
+              const Icon = {
+                [TransactionType.EXPENSE]: TrendingDown,
+                [TransactionType.INCOME]: TrendingUp,
+                [TransactionType.SAVING]: PiggyBank,
+                [TransactionType.REVOLVING]: RefreshCw,
+              }[t];
+
+              return (
               <button
                 key={t}
                 type="button"
@@ -211,11 +219,12 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, on
                     setFormData(prev => ({ ...prev, category: undefined, subcategory: undefined, item: undefined }));
                   });
                 }}
-                className={`py-2.5 text-sm font-semibold rounded-lg transition-all ${
+                className={`py-2.5 flex items-center justify-center text-sm font-semibold rounded-lg transition-all ${
                   type === t ? `bg-gradient-to-r ${typeColors[t]} text-white shadow-lg` : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700/50'
                 }`}
               >
-                {t}
+                <Icon className="w-5 h-5 md:hidden" />
+                <span className="hidden md:inline">{t}</span>
               </button>
             ))}
           </div>
