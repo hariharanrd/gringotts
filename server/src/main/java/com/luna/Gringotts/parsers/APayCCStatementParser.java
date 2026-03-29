@@ -63,7 +63,7 @@ public class APayCCStatementParser extends StatementParser {
     }
 
     @Override
-    protected String getDateFormat() {
+    protected String getDateFormat(String date) {
         return DATE_FORMAT;
     }
 }
