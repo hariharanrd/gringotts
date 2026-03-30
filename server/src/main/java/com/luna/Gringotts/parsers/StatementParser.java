@@ -1,6 +1,7 @@
 package com.luna.Gringotts.parsers;
 
 import com.luna.Gringotts.records.Transaction;
+import org.apache.commons.lang3.math.NumberUtils;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -30,14 +31,17 @@ public abstract class StatementParser {
 
     protected boolean isValidDate(String date){
         try {
-            new SimpleDateFormat(getDateFormat()).parse(date);
+            if(!date.isEmpty() && !NumberUtils.isDigits(date.charAt(0) + "")){
+                return false;
+            }
+            new SimpleDateFormat(getDateFormat(date)).parse(date);
             return true;
         } catch (ParseException pe){
             return false;
         }
     }
 
-    protected abstract String getDateFormat();
+    protected abstract String getDateFormat(String date);
 
     public final List<Transaction> getTransactions() throws Exception {
         if(!parsed){
