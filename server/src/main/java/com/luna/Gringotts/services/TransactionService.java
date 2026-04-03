@@ -7,12 +7,15 @@ import com.luna.Gringotts.repository.SavingRepository;
 import com.luna.Gringotts.repository.RevolvingRepository;
 import com.luna.Gringotts.repository.CategoryRepository;
 import com.luna.Gringotts.repository.TransactionRepository;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Example;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.transaction.annotation.Transactional;
 import com.luna.Gringotts.repository.TransactionSpecification;
 
 import java.time.LocalDateTime;
@@ -21,6 +24,9 @@ import java.util.stream.Collectors;
 
 @Service
 public class TransactionService {
+
+    @PersistenceContext
+    private EntityManager entityManager;
 
     @Autowired
     ExpenseRepository expenseRepository;
@@ -140,13 +146,133 @@ public class TransactionService {
         incomeRepository.save(i);
     }
 
-
     public void updateSaving(Saving s){
         savingRepository.save(s);
     }
 
     public void updateRevolving(Revolving r){
         revolvingRepository.save(r);
+    }
+
+    // ── Helpers ──────────────────────────────────────────────────────────────
+
+    /** Copy common base-table fields from source onto target. */
+    private void applyBaseFields(Transaction target, Transaction source) {
+        target.setValue(source.getValue());
+        target.setDescription(source.getDescription());
+        target.setNotes(source.getNotes());
+        target.setTransactionTime(source.getTransactionTime());
+        target.setCategory(source.getCategory());
+        target.setSubCategory(source.getSubCategory());
+        target.setItem(source.getItem());
+    }
+
+    /** Returns the child-table name for a given entity type. */
+    private String childTableOf(Transaction t) {
+        if (t instanceof Expense)   return "expense";
+        if (t instanceof Income)    return "income";
+        if (t instanceof Saving)    return "saving";
+        if (t instanceof Revolving) return "revolving";
+        throw new IllegalStateException("Unknown transaction type: " + t.getClass().getSimpleName());
+    }
+
+    /**
+     * Deletes only the old child-table row and inserts a new one of the requested
+     * type, retaining the base transaction row (and therefore its ID).
+     */
+    private void swapChildTable(Long id, String oldTable, String newInsertSQL,
+                                Object... params) {
+        entityManager.createNativeQuery(
+                "DELETE FROM public." + oldTable + " WHERE id = :id")
+                .setParameter("id", id).executeUpdate();
+        jakarta.persistence.Query q =
+                entityManager.createNativeQuery(newInsertSQL);
+        q.setParameter("id", id);
+        // bind name=param pairs passed in as (name, value) pairs
+        for (int i = 0; i < params.length; i += 2) {
+            q.setParameter((String) params[i], params[i + 1]);
+        }
+        q.executeUpdate();
+    }
+
+    // ── Cross-type-safe update methods ───────────────────────────────────────
+
+    @Transactional
+    public Expense updateToExpense(Long id, Expense incoming) {
+        Transaction existing = transactionRepository.findById(id).orElseThrow();
+        if (existing instanceof Expense current) {
+            applyBaseFields(current, incoming);
+            current.setPaymentMode(incoming.getPaymentMode());
+            return expenseRepository.save(current);
+        }
+        applyBaseFields(existing, incoming);
+        transactionRepository.save(existing);
+        entityManager.flush();
+        swapChildTable(id, childTableOf(existing),
+                "INSERT INTO public.expense (id, payment_mode) VALUES (:id, :mode)",
+                "mode", incoming.getPaymentMode());
+        entityManager.flush();
+        entityManager.clear();
+        return expenseRepository.findById(id).orElseThrow();
+    }
+
+    @Transactional
+    public Income updateToIncome(Long id, Income incoming) {
+        Transaction existing = transactionRepository.findById(id).orElseThrow();
+        if (existing instanceof Income current) {
+            applyBaseFields(current, incoming);
+            current.setSource(incoming.getSource());
+            return incomeRepository.save(current);
+        }
+        applyBaseFields(existing, incoming);
+        transactionRepository.save(existing);
+        entityManager.flush();
+        swapChildTable(id, childTableOf(existing),
+                "INSERT INTO public.income (id, source) VALUES (:id, :source)",
+                "source", incoming.getSource());
+        entityManager.flush();
+        entityManager.clear();
+        return incomeRepository.findById(id).orElseThrow();
+    }
+
+    @Transactional
+    public Saving updateToSaving(Long id, Saving incoming) {
+        Transaction existing = transactionRepository.findById(id).orElseThrow();
+        if (existing instanceof Saving current) {
+            applyBaseFields(current, incoming);
+            current.setIsIn(incoming.getIsIn());
+            return savingRepository.save(current);
+        }
+        applyBaseFields(existing, incoming);
+        transactionRepository.save(existing);
+        entityManager.flush();
+        swapChildTable(id, childTableOf(existing),
+                "INSERT INTO public.saving (id, is_in) VALUES (:id, :isIn)",
+                "isIn", incoming.getIsIn() != null ? incoming.getIsIn() : Boolean.TRUE);
+        entityManager.flush();
+        entityManager.clear();
+        return savingRepository.findById(id).orElseThrow();
+    }
+
+    @Transactional
+    public Revolving updateToRevolving(Long id, Revolving incoming) {
+        Transaction existing = transactionRepository.findById(id).orElseThrow();
+        if (existing instanceof Revolving current) {
+            applyBaseFields(current, incoming);
+            current.setIsGive(incoming.getIsGive());
+            current.setClosed(incoming.getClosed());
+            return revolvingRepository.save(current);
+        }
+        applyBaseFields(existing, incoming);
+        transactionRepository.save(existing);
+        entityManager.flush();
+        swapChildTable(id, childTableOf(existing),
+                "INSERT INTO public.revolving (id, is_give, closed) VALUES (:id, :isGive, :closed)",
+                "isGive",  incoming.getIsGive()  != null ? incoming.getIsGive()  : Boolean.TRUE,
+                "closed",  incoming.getClosed()   != null ? incoming.getClosed()  : Boolean.FALSE);
+        entityManager.flush();
+        entityManager.clear();
+        return revolvingRepository.findById(id).orElseThrow();
     }
 
     public List<Expense> getExpense(Example<Expense> example){
