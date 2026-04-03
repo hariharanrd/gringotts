@@ -17,6 +17,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -109,6 +110,7 @@ public class TransactionController {
     }
 
     @PutMapping("/expenses/{id}")
+    @Transactional
     public ResponseEntity<Map<String,String>> updateExpense(@PathVariable Long id, @RequestBody Expense expense) {
         Transaction existing = transactionService.getTransactionById(id);
         if (existing != null && !(existing instanceof Expense)) {
@@ -143,6 +145,7 @@ public class TransactionController {
     }
 
     @PutMapping("/incomes/{id}")
+    @Transactional
     public ResponseEntity<Map<String,String>> updateIncome(@PathVariable Long id, @RequestBody Income income) {
         Transaction existing = transactionService.getTransactionById(id);
         if (existing != null && !(existing instanceof Income)) {
@@ -177,6 +180,7 @@ public class TransactionController {
     }
 
     @PutMapping("/savings/{id}")
+    @Transactional
     public ResponseEntity<Saving> updateSaving(@PathVariable Long id, @RequestBody Saving saving) {
         Transaction existing = transactionService.getTransactionById(id);
         if (existing != null && !(existing instanceof Saving)) {
@@ -220,6 +224,7 @@ public class TransactionController {
     }
 
     @PutMapping("/revolvings/{id}")
+    @Transactional
     public ResponseEntity<Revolving> updateRevolving(@PathVariable Long id, @RequestBody Revolving revolving) {
         Transaction existing = transactionService.getTransactionById(id);
         if (existing != null && !(existing instanceof Revolving)) {
