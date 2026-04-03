@@ -51,6 +51,25 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, on
 
   const [loading, setLoading] = useState(false);
 
+  const resetForm = () => {
+    setFormData({
+      value: 0,
+      description: '',
+      category: undefined,
+      subcategory: undefined,
+      item: undefined,
+      transaction_time: new Date().toISOString().slice(0, 16),
+      payment_mode: 'CASH',
+      source: '',
+      is_in: true,
+      is_give: true,
+      closed: false,
+      notes: ''
+    });
+    setSubCategories([]);
+    setItems([]);
+  };
+
   const getSubCategories = async (categoryId: number) => {
     if (subCategoryCache.current[categoryId]) {
       return subCategoryCache.current[categoryId];
@@ -164,6 +183,7 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, on
       }
       
       showToast('Transaction saved successfully', 'success');
+      resetForm();
       onSuccess();
       onClose();
     } catch (err) {
@@ -420,7 +440,7 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, on
           <div className="pt-4 flex gap-3">
             <button
               type="button"
-              onClick={onClose}
+              onClick={() => { resetForm(); onClose(); }}
               className="flex-1 px-4 py-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 font-medium rounded-xl transition-colors border border-slate-200 dark:border-slate-700/50"
             >
               Cancel
