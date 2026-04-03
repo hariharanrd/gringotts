@@ -96,6 +96,26 @@ export const api = {
     return data;
   },
 
+  getExpenseById: async (id: number): Promise<Expense> => {
+    const response = await fetchWithCredentials(`${BASE_URL}/expenses/${id}`);
+    return handleResponse(response);
+  },
+
+  getIncomeById: async (id: number): Promise<Income> => {
+    const response = await fetchWithCredentials(`${BASE_URL}/incomes/${id}`);
+    return handleResponse(response);
+  },
+
+  getSavingById: async (id: number): Promise<Saving> => {
+    const response = await fetchWithCredentials(`${BASE_URL}/savings/${id}`);
+    return handleResponse(response);
+  },
+
+  getRevolvingById: async (id: number): Promise<Revolving> => {
+    const response = await fetchWithCredentials(`${BASE_URL}/revolvings/${id}`);
+    return handleResponse(response);
+  },
+
   createExpense: async (data: Partial<Expense>) => {
     const response = await fetchWithCredentials(`${BASE_URL}/expenses`, {
       method: 'POST',

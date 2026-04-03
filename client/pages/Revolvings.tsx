@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
 import { Transaction, Category, Revolving as RevolvingType } from '../types';
 import { RefreshCw, PlusCircle, Pencil, Trash2, Tags } from 'lucide-react';
@@ -15,6 +16,7 @@ interface RevolvingsProps {
 }
 
 const Revolvings: React.FC<RevolvingsProps> = ({ onEdit, onAdd, refreshTrigger }) => {
+  const navigate = useNavigate();
   const [revolvings, setRevolvings] = useState<Transaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
@@ -112,6 +114,11 @@ const Revolvings: React.FC<RevolvingsProps> = ({ onEdit, onAdd, refreshTrigger }
     } finally {
       setBulkLoading(false);
     }
+  };
+
+  const handleRowClick = (e: React.MouseEvent, id: number) => {
+    if ((e.target as HTMLElement).closest('button') || (e.target as HTMLElement).closest('input')) return;
+    navigate(`/transaction/${id}?type=REVOLVING`);
   };
 
   if (isLoading) {
@@ -217,7 +224,7 @@ const Revolvings: React.FC<RevolvingsProps> = ({ onEdit, onAdd, refreshTrigger }
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800/50">
               {revolvings.map((revolving) => (
-                <tr key={revolving.id} className={`hover:bg-slate-50 dark:hover:bg-slate-700/20 transition-colors duration-150 group ${selectedIds.has(revolving.id) ? 'bg-cyan-50 dark:bg-cyan-500/5' : ''}`}>
+                <tr key={revolving.id} onClick={(e) => handleRowClick(e, revolving.id)} className={`hover:bg-slate-50 dark:hover:bg-slate-700/20 transition-colors duration-150 group cursor-pointer ${selectedIds.has(revolving.id) ? 'bg-cyan-50 dark:bg-cyan-500/5' : ''}`}>
                   <td className="px-4 py-4">
                     <input
                       type="checkbox"
@@ -280,7 +287,7 @@ const Revolvings: React.FC<RevolvingsProps> = ({ onEdit, onAdd, refreshTrigger }
         {/* Mobile Cards */}
         <div className="md:hidden divide-y divide-slate-100 dark:divide-slate-800/50">
           {revolvings.map(revolving => (
-            <div key={revolving.id} className={`p-4 ${selectedIds.has(revolving.id) ? 'bg-cyan-50 dark:bg-cyan-500/5' : ''}`}>
+            <div key={revolving.id} onClick={(e) => handleRowClick(e, revolving.id)} className={`p-4 cursor-pointer ${selectedIds.has(revolving.id) ? 'bg-cyan-50 dark:bg-cyan-500/5' : ''}`}>
               <div className="flex items-start gap-4">
                 <input
                   type="checkbox"

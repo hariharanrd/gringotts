@@ -16,17 +16,17 @@ import java.time.LocalDateTime;
 @OnDelete(action = OnDeleteAction.CASCADE)
 public class Expense extends Transaction {
 
-    public Expense(){
+    public Expense() {
 
     }
 
-    @Column(name="payment_mode")
+    @Column(name = "payment_mode")
     @JsonProperty("payment_mode")
     String paymentMode;
 
     public Expense(String refNo, LocalDateTime date, String description, Double value, ExpenseMode mode) {
-        super(refNo,date,description,value);
-        if(mode!=null) {
+        super(refNo, date, description, value);
+        if (mode != null) {
             this.paymentMode = mode.toString();
         }
     }
@@ -35,7 +35,11 @@ public class Expense extends Transaction {
         this.paymentMode = paymentMode;
     }
 
+    public String getPaymentMode() {
+        return paymentMode;
+    }
+
     public enum ExpenseMode {
-        UPI,DEBIT_CARD,ATM,CREDIT_CARD,NET_BANKING,WALLET,EMANDATE,OTHERS;
+        UPI, DEBIT_CARD, ATM, CREDIT_CARD, NET_BANKING, WALLET, EMANDATE, OTHERS;
     }
 }

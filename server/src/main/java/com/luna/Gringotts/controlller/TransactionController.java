@@ -17,6 +17,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -93,7 +94,7 @@ public class TransactionController {
         return ResponseEntity.ok(income);
     }
 
-    @GetMapping
+    @GetMapping("/savings/{id}")
     public ResponseEntity<Saving> getSavingById(@PathVariable Long id) {
         Saving saving = transactionService.getSavingById(id);
         if (saving == null) {
@@ -103,22 +104,16 @@ public class TransactionController {
     }
 
     @PostMapping("/expenses")
-    public ResponseEntity<Map<String,String>> addExpense(@RequestBody Expense expense) {
+    public ResponseEntity<Map<String,Object>> addExpense(@RequestBody Expense expense) {
         transactionService.saveExpense(expense);
-        return ResponseEntity.ok(Map.of("status","success"));
+        return ResponseEntity.ok(Map.of("data", expense));
     }
 
     @PutMapping("/expenses/{id}")
-    public ResponseEntity<Map<String,String>> updateExpense(@PathVariable Long id, @RequestBody Expense expense) {
-        Transaction existing = transactionService.getTransactionById(id);
-        if (existing != null && !(existing instanceof Expense)) {
-            transactionService.deleteTransaction(id);
-            expense.setId(null);
-        } else {
-            expense.setId(id);
-        }
-        transactionService.saveExpense(expense);
-        return ResponseEntity.ok(Map.of("status","success"));
+    @Transactional
+    public ResponseEntity<Map<String,Object>> updateExpense(@PathVariable Long id, @RequestBody Expense expense) {
+        Expense saved = transactionService.updateToExpense(id, expense);
+        return ResponseEntity.ok(Map.of("data", saved));
     }
 
     @GetMapping("/incomes")
@@ -137,22 +132,16 @@ public class TransactionController {
     }
 
     @PostMapping("/incomes")
-    public ResponseEntity<Map<String,String>> addIncome(@RequestBody Income income) {
+    public ResponseEntity<Map<String,Object>> addIncome(@RequestBody Income income) {
         transactionService.saveIncome(income);
-        return ResponseEntity.ok(Map.of("status","success"));
+        return ResponseEntity.ok(Map.of("data", income));
     }
 
     @PutMapping("/incomes/{id}")
-    public ResponseEntity<Map<String,String>> updateIncome(@PathVariable Long id, @RequestBody Income income) {
-        Transaction existing = transactionService.getTransactionById(id);
-        if (existing != null && !(existing instanceof Income)) {
-            transactionService.deleteTransaction(id);
-            income.setId(null);
-        } else {
-            income.setId(id);
-        }
-        transactionService.saveIncome(income);
-        return ResponseEntity.ok(Map.of("status","success"));
+    @Transactional
+    public ResponseEntity<Map<String,Object>> updateIncome(@PathVariable Long id, @RequestBody Income income) {
+        Income saved = transactionService.updateToIncome(id, income);
+        return ResponseEntity.ok(Map.of("data", saved));
     }
 
     @GetMapping("/savings")
@@ -171,22 +160,16 @@ public class TransactionController {
     }
 
     @PostMapping("/savings")
-    public ResponseEntity<Saving> addSaving(@RequestBody Saving saving) {
+    public ResponseEntity<Map<String,Object>> addSaving(@RequestBody Saving saving) {
         transactionService.saveSaving(saving);
-        return ResponseEntity.ok(saving);
+        return ResponseEntity.ok(Map.of("data", saving));
     }
 
     @PutMapping("/savings/{id}")
-    public ResponseEntity<Saving> updateSaving(@PathVariable Long id, @RequestBody Saving saving) {
-        Transaction existing = transactionService.getTransactionById(id);
-        if (existing != null && !(existing instanceof Saving)) {
-            transactionService.deleteTransaction(id);
-            saving.setId(null);
-        } else {
-            saving.setId(id);
-        }
-        transactionService.saveSaving(saving);
-        return ResponseEntity.ok(saving);
+    @Transactional
+    public ResponseEntity<Map<String,Object>> updateSaving(@PathVariable Long id, @RequestBody Saving saving) {
+        Saving saved = transactionService.updateToSaving(id, saving);
+        return ResponseEntity.ok(Map.of("data", saved));
     }
 
     @GetMapping("/revolvings")
@@ -214,22 +197,16 @@ public class TransactionController {
     }
 
     @PostMapping("/revolvings")
-    public ResponseEntity<Revolving> addRevolving(@RequestBody Revolving revolving) {
+    public ResponseEntity<Map<String,Object>> addRevolving(@RequestBody Revolving revolving) {
         transactionService.saveRevolving(revolving);
-        return ResponseEntity.ok(revolving);
+        return ResponseEntity.ok(Map.of("data", revolving));
     }
 
     @PutMapping("/revolvings/{id}")
-    public ResponseEntity<Revolving> updateRevolving(@PathVariable Long id, @RequestBody Revolving revolving) {
-        Transaction existing = transactionService.getTransactionById(id);
-        if (existing != null && !(existing instanceof Revolving)) {
-            transactionService.deleteTransaction(id);
-            revolving.setId(null);
-        } else {
-            revolving.setId(id);
-        }
-        transactionService.saveRevolving(revolving);
-        return ResponseEntity.ok(revolving);
+    @Transactional
+    public ResponseEntity<Map<String,Object>> updateRevolving(@PathVariable Long id, @RequestBody Revolving revolving) {
+        Revolving saved = transactionService.updateToRevolving(id, revolving);
+        return ResponseEntity.ok(Map.of("data", saved));
     }
 
 

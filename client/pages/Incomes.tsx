@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
 import { Transaction, Category } from '../types';
 import { ArrowUpRight, PlusCircle, Pencil, Trash2, Tags } from 'lucide-react';
@@ -17,6 +18,7 @@ interface IncomesProps {
 }
 
 const Incomes: React.FC<IncomesProps> = ({ onEdit, onAdd, refreshTrigger }) => {
+  const navigate = useNavigate();
   const [incomes, setIncomes] = useState<Transaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
@@ -108,6 +110,11 @@ const Incomes: React.FC<IncomesProps> = ({ onEdit, onAdd, refreshTrigger }) => {
     } finally {
       setBulkLoading(false);
     }
+  };
+
+  const handleRowClick = (e: React.MouseEvent, id: number) => {
+    if ((e.target as HTMLElement).closest('button') || (e.target as HTMLElement).closest('input')) return;
+    navigate(`/transaction/${id}?type=INCOME`);
   };
 
   if (isLoading) {
@@ -202,7 +209,7 @@ const Incomes: React.FC<IncomesProps> = ({ onEdit, onAdd, refreshTrigger }) => {
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800/50">
               {incomes.map((income) => (
-                <tr key={income.id} className={`hover:bg-slate-50 dark:hover:bg-slate-700/20 transition-colors duration-150 group ${selectedIds.has(income.id) ? 'bg-cyan-50 dark:bg-cyan-500/5' : ''}`}>
+                <tr key={income.id} onClick={(e) => handleRowClick(e, income.id)} className={`hover:bg-slate-50 dark:hover:bg-slate-700/20 transition-colors duration-150 group cursor-pointer ${selectedIds.has(income.id) ? 'bg-cyan-50 dark:bg-cyan-500/5' : ''}`}>
                   <td className="px-4 py-4">
                     <input
                       type="checkbox"
@@ -251,7 +258,7 @@ const Incomes: React.FC<IncomesProps> = ({ onEdit, onAdd, refreshTrigger }) => {
         {/* Mobile Cards */}
         <div className="md:hidden divide-y divide-slate-100 dark:divide-slate-800/50">
           {incomes.map(income => (
-            <div key={income.id} className={`p-4 ${selectedIds.has(income.id) ? 'bg-cyan-50 dark:bg-cyan-500/5' : ''}`}>
+            <div key={income.id} onClick={(e) => handleRowClick(e, income.id)} className={`p-4 cursor-pointer ${selectedIds.has(income.id) ? 'bg-cyan-50 dark:bg-cyan-500/5' : ''}`}>
               <div className="flex items-start gap-4">
                 <input
                   type="checkbox"
