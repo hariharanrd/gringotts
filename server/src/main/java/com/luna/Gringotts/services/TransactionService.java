@@ -6,6 +6,8 @@ import com.luna.Gringotts.repository.IncomeRepository;
 import com.luna.Gringotts.repository.SavingRepository;
 import com.luna.Gringotts.repository.RevolvingRepository;
 import com.luna.Gringotts.repository.CategoryRepository;
+import com.luna.Gringotts.repository.SubCategoryRepository;
+import com.luna.Gringotts.repository.ItemRepository;
 import com.luna.Gringotts.repository.TransactionRepository;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -45,6 +47,12 @@ public class TransactionService {
 
     @Autowired
     CategoryRepository categoryRepository;
+
+    @Autowired
+    SubCategoryRepository subCategoryRepository;
+
+    @Autowired
+    ItemRepository itemRepository;
 
     public Transaction getTransactionById(Long id) {
         return transactionRepository.findById(id).orElse(null);
@@ -344,6 +352,80 @@ public class TransactionService {
         List<Transaction> transactions = transactionRepository.findAllById(transactionIds);
         transactions.forEach(t -> t.setCategory(category));
         transactionRepository.saveAll(transactions);
+    }
+
+    @Transactional
+    public void bulkUpdateFields(List<Long> transactionIds, Map<String, Object> fields) {
+        List<Transaction> transactions = transactionRepository.findAllById(transactionIds);
+
+        // Pre-fetch relational entities if referenced
+        Category category = null;
+        SubCategory subCategory = null;
+        Item item = null;
+
+        if (fields.containsKey("category_id")) {
+            Long id = toLong(fields.get("category_id"));
+            category = categoryRepository.findById(id)
+                    .orElseThrow(() -> new IllegalArgumentException("Category not found: " + id));
+        }
+        if (fields.containsKey("subcategory_id")) {
+            Long id = toLong(fields.get("subcategory_id"));
+            subCategory = subCategoryRepository.findById(id)
+                    .orElseThrow(() -> new IllegalArgumentException("SubCategory not found: " + id));
+            category = subCategory.getCategory();
+        }
+        if (fields.containsKey("item_id")) {
+            Long id = toLong(fields.get("item_id"));
+            item = itemRepository.findById(id)
+                    .orElseThrow(() -> new IllegalArgumentException("Item not found: " + id));
+            subCategory = item.getSubCategory();
+            category = subCategory.getCategory();
+        }
+
+        final Category finalCategory = category;
+        final SubCategory finalSubCategory = subCategory;
+        final Item finalItem = item;
+
+        for (Transaction t : transactions) {
+            if (finalCategory != null)
+                t.setCategory(finalCategory);
+            if (finalSubCategory != null)
+                t.setSubCategory(finalSubCategory);
+            if (finalItem != null)
+                t.setItem(finalItem);
+            if (fields.containsKey("notes"))
+                t.setNotes((String) fields.get("notes"));
+
+            // Type-specific fields
+            if (t instanceof Expense e && fields.containsKey("payment_mode")) {
+                e.setPaymentMode((String) fields.get("payment_mode"));
+            }
+            if (t instanceof Income i && fields.containsKey("source")) {
+                i.setSource((String) fields.get("source"));
+            }
+            if (t instanceof Saving s && fields.containsKey("is_in")) {
+                s.setIsIn(toBoolean(fields.get("is_in")));
+            }
+            if (t instanceof Revolving r) {
+                if (fields.containsKey("is_give"))
+                    r.setIsGive(toBoolean(fields.get("is_give")));
+                if (fields.containsKey("closed"))
+                    r.setClosed(toBoolean(fields.get("closed")));
+            }
+        }
+        transactionRepository.saveAll(transactions);
+    }
+
+    private Long toLong(Object val) {
+        if (val instanceof Number n)
+            return n.longValue();
+        return Long.parseLong(val.toString());
+    }
+
+    private Boolean toBoolean(Object val) {
+        if (val instanceof Boolean b)
+            return b;
+        return Boolean.parseBoolean(val.toString());
     }
 
 }

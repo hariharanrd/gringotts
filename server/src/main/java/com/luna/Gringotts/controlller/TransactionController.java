@@ -220,6 +220,17 @@ public class TransactionController {
         return ResponseEntity.ok(Map.of("status", "success"));
     }
 
+    @PutMapping("/transactions/bulk-update")
+    public ResponseEntity<Map<String, String>> bulkUpdate(@RequestBody Map<String, Object> request) {
+        @SuppressWarnings("unchecked")
+        List<Integer> rawIds = (List<Integer>) request.get("transaction_ids");
+        List<Long> transactionIds = rawIds.stream().map(Integer::longValue).toList();
+        @SuppressWarnings("unchecked")
+        Map<String, Object> fields = (Map<String, Object>) request.get("fields");
+        transactionService.bulkUpdateFields(transactionIds, fields);
+        return ResponseEntity.ok(Map.of("status", "success"));
+    }
+
     @DeleteMapping("/transactions/{id}")
     public ResponseEntity<Void> deleteTransaction(@PathVariable Long id) {
         transactionService.deleteTransaction(id);

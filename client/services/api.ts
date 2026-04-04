@@ -163,6 +163,14 @@ export const api = {
     return handleResponse(response);
   },
 
+  bulkUpdate: async (transactionIds: number[], fields: Record<string, unknown>) => {
+    const response = await fetchWithCredentials(`${BASE_URL}/transactions/bulk-update`, {
+      method: 'PUT',
+      body: JSON.stringify({ transaction_ids: transactionIds, fields }),
+    });
+    return handleResponse(response);
+  },
+
   updateExpense: async (data: Partial<Expense>) => {
     const response = await fetchWithCredentials(`${BASE_URL}/expenses/${data.id}`, {
         method: 'PUT',

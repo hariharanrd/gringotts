@@ -343,7 +343,10 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, on
                   <option value="CASH">Cash</option>
                   <option value="CREDIT_CARD">Credit Card</option>
                   <option value="DEBIT_CARD">Debit Card</option>
-                  <option value="UPI">UPI / Online</option>
+                  <option value="UPI">UPI</option>
+                    <option value="EMANDATE">E-Mandate</option>
+                    <option value="BANK_TRANSFER">Bank Transfer</option>
+                    <option value="WALLET">Wallet</option>
                 </select>
               </div>
             )}
