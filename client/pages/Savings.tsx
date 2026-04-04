@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
-import { Transaction, Category } from '../types';
-import { TrendingUp, PlusCircle, Pencil, Trash2, Tags } from 'lucide-react';
+import { Transaction, Category, SubCategory, Item } from '../types';
+import { TrendingUp, PlusCircle, Pencil, Trash2 } from 'lucide-react';
 import { useToast } from '../components/ToastContext';
 import Pagination from '../components/Pagination';
 import { TableSkeleton } from '../components/Skeleton';
@@ -15,6 +15,18 @@ interface SavingsProps {
   refreshTrigger: number;
 }
 
+type BulkField = 'category' | 'subcategory' | 'item' | 'notes' | 'is_in';
+
+const BULK_FIELDS: { value: BulkField; label: string }[] = [
+  { value: 'category',    label: 'Category' },
+  { value: 'subcategory', label: 'Sub Category' },
+  { value: 'item',        label: 'Item' },
+  { value: 'notes',       label: 'Notes' },
+  { value: 'is_in',       label: 'Direction (IN/OUT)' },
+];
+
+const selectClass = "w-full sm:w-auto px-3 py-2 bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60 rounded-lg text-sm text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-cyan-500/40";
+
 const Savings: React.FC<SavingsProps> = ({ onEdit, onAdd, refreshTrigger }) => {
   const navigate = useNavigate();
   const [savings, setSavings] = useState<Transaction[]>([]);
@@ -23,13 +35,22 @@ const Savings: React.FC<SavingsProps> = ({ onEdit, onAdd, refreshTrigger }) => {
   const [totalPages, setTotalPages] = useState(1);
   const [hasMore, setHasMore] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [bulkCategoryId, setBulkCategoryId] = useState<number | ''>('');
-  const [bulkLoading, setBulkLoading] = useState(false);
   const [filters, setFilters] = useState<FilterCriteria[]>([]);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const { showToast } = useToast();
+
+  // Bulk update state
+  const [bulkField, setBulkField] = useState<BulkField | ''>('');
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [subCategories, setSubCategories] = useState<SubCategory[]>([]);
+  const [items, setItems] = useState<Item[]>([]);
+  const [bulkCategoryId, setBulkCategoryId] = useState<number | ''>('');
+  const [bulkSubCategoryId, setBulkSubCategoryId] = useState<number | ''>('');
+  const [bulkItemId, setBulkItemId] = useState<number | ''>('');
+  const [bulkNotes, setBulkNotes] = useState('');
+  const [bulkIsIn, setBulkIsIn] = useState<boolean | null>(null);
+  const [bulkLoading, setBulkLoading] = useState(false);
 
   const fetchSavings = async (page: number, currentFilters: FilterCriteria[] = []) => {
     setIsLoading(true);
@@ -53,14 +74,75 @@ const Savings: React.FC<SavingsProps> = ({ onEdit, onAdd, refreshTrigger }) => {
 
   useEffect(() => {
     if (categories.length === 0) {
-      api.getCategories('SAVING').then(setCategories).catch(() => { });
+      api.getCategories('SAVING').then(setCategories).catch(() => {});
     }
   }, []);
 
-  const handleDelete = (id: number) => {
-    setDeletingId(id);
-    setIsDeleteDialogOpen(true);
+  useEffect(() => {
+    setSubCategories([]);
+    setBulkSubCategoryId('');
+    setItems([]);
+    setBulkItemId('');
+    if (bulkCategoryId !== '') {
+      api.getSubCategories(bulkCategoryId as number).then(setSubCategories).catch(() => {});
+    }
+  }, [bulkCategoryId]);
+
+  useEffect(() => {
+    setItems([]);
+    setBulkItemId('');
+    if (bulkSubCategoryId !== '') {
+      api.getItems(bulkSubCategoryId as number).then(setItems).catch(() => {});
+    }
+  }, [bulkSubCategoryId]);
+
+  const resetBulkValues = () => {
+    setBulkCategoryId(''); setBulkSubCategoryId(''); setBulkItemId('');
+    setBulkNotes(''); setBulkIsIn(null);
+    setSubCategories([]); setItems([]);
   };
+
+  const handleBulkFieldChange = (f: BulkField | '') => {
+    setBulkField(f);
+    resetBulkValues();
+  };
+
+  const isBulkApplyDisabled = () => {
+    if (selectedIds.size === 0 || bulkField === '') return true;
+    if (bulkField === 'category'    && bulkCategoryId === '') return true;
+    if (bulkField === 'subcategory' && bulkSubCategoryId === '') return true;
+    if (bulkField === 'item'        && bulkItemId === '') return true;
+    if (bulkField === 'notes'       && bulkNotes.trim() === '') return true;
+    if (bulkField === 'is_in'       && bulkIsIn === null) return true;
+    return false;
+  };
+
+  const handleBulkUpdate = async () => {
+    if (isBulkApplyDisabled()) return;
+    setBulkLoading(true);
+    try {
+      const fields: Record<string, unknown> = {};
+      if (bulkField === 'category')    fields['category_id']    = bulkCategoryId;
+      if (bulkField === 'subcategory') fields['subcategory_id'] = bulkSubCategoryId;
+      if (bulkField === 'item')        fields['item_id']        = bulkItemId;
+      if (bulkField === 'notes')       fields['notes']          = bulkNotes;
+      if (bulkField === 'is_in')       fields['is_in']          = bulkIsIn;
+
+      await api.bulkUpdate(Array.from(selectedIds), fields);
+      showToast(`Updated ${bulkField} for ${selectedIds.size} saving(s)`, 'success');
+      setSelectedIds(new Set());
+      setBulkField('');
+      resetBulkValues();
+      fetchSavings(currentPage, filters);
+    } catch (error) {
+      console.error('Bulk update failed:', error);
+      showToast('Failed to bulk update.', 'error');
+    } finally {
+      setBulkLoading(false);
+    }
+  };
+
+  const handleDelete = (id: number) => { setDeletingId(id); setIsDeleteDialogOpen(true); };
 
   const confirmDelete = async () => {
     if (deletingId === null) return;
@@ -78,36 +160,12 @@ const Savings: React.FC<SavingsProps> = ({ onEdit, onAdd, refreshTrigger }) => {
   };
 
   const toggleSelect = (id: number) => {
-    setSelectedIds(prev => {
-      const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
-      return next;
-    });
+    setSelectedIds(prev => { const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next; });
   };
 
   const toggleSelectAll = () => {
-    if (selectedIds.size === savings.length) {
-      setSelectedIds(new Set());
-    } else {
-      setSelectedIds(new Set(savings.map(e => e.id)));
-    }
-  };
-
-  const handleBulkUpdate = async () => {
-    if (bulkCategoryId === '' || selectedIds.size === 0) return;
-    setBulkLoading(true);
-    try {
-      await api.bulkUpdateCategory(Array.from(selectedIds), bulkCategoryId as number);
-      showToast(`Category updated for ${selectedIds.size} saving(s)`, 'success');
-      setSelectedIds(new Set());
-      setBulkCategoryId('');
-      fetchSavings(currentPage);
-    } catch (error) {
-      console.error('Bulk update failed:', error);
-      showToast('Failed to bulk update category.', 'error');
-    } finally {
-      setBulkLoading(false);
-    }
+    if (selectedIds.size === savings.length) setSelectedIds(new Set());
+    else setSelectedIds(new Set(savings.map(e => e.id)));
   };
 
   const handleRowClick = (e: React.MouseEvent, id: number) => {
@@ -115,20 +173,112 @@ const Savings: React.FC<SavingsProps> = ({ onEdit, onAdd, refreshTrigger }) => {
     navigate(`/transaction/${id}?type=SAVING`);
   };
 
-  if (isLoading) {
-    return <div className="space-y-6"><TableSkeleton rows={5} /></div>;
-  }
+  if (isLoading) return <div className="space-y-6"><TableSkeleton rows={5} /></div>;
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-        <h1 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-3">
+      <div className="flex flex-col md:flex-row items-start md:items-center gap-3">
+        <h1 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-3 shrink-0">
           <div className="bg-gradient-to-br from-violet-500 to-purple-600 p-2 rounded-xl shadow-lg shadow-violet-500/20">
             <TrendingUp className="w-5 h-5 text-white" />
           </div>
           Savings
         </h1>
-        <div className="flex items-center gap-2 w-full md:w-auto">
+
+        {selectedIds.size > 0 && (
+          <div className="flex flex-wrap items-center gap-2 flex-1">
+            <span className="text-sm font-medium text-cyan-600 dark:text-cyan-400 whitespace-nowrap">{selectedIds.size} selected</span>
+
+            <select
+              className={selectClass}
+              value={bulkField}
+              onChange={e => handleBulkFieldChange(e.target.value as BulkField | '')}
+            >
+              <option value="">Select field…</option>
+              {BULK_FIELDS.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
+            </select>
+
+            {bulkField === 'category' && (
+              <select className={selectClass} value={bulkCategoryId} onChange={e => setBulkCategoryId(e.target.value ? Number(e.target.value) : '')}>
+                <option value="">Select category…</option>
+                {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+            )}
+
+            {bulkField === 'subcategory' && (
+              <>
+                <select className={selectClass} value={bulkCategoryId} onChange={e => setBulkCategoryId(e.target.value ? Number(e.target.value) : '')}>
+                  <option value="">1. Select category…</option>
+                  {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+                <select className={selectClass} value={bulkSubCategoryId} onChange={e => setBulkSubCategoryId(e.target.value ? Number(e.target.value) : '')} disabled={bulkCategoryId === ''}>
+                  <option value="">2. Select sub category…</option>
+                  {subCategories.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                </select>
+              </>
+            )}
+
+            {bulkField === 'item' && (
+              <>
+                <select className={selectClass} value={bulkCategoryId} onChange={e => setBulkCategoryId(e.target.value ? Number(e.target.value) : '')}>
+                  <option value="">1. Select category…</option>
+                  {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+                <select className={selectClass} value={bulkSubCategoryId} onChange={e => setBulkSubCategoryId(e.target.value ? Number(e.target.value) : '')} disabled={bulkCategoryId === ''}>
+                  <option value="">2. Select sub category…</option>
+                  {subCategories.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                </select>
+                <select className={selectClass} value={bulkItemId} onChange={e => setBulkItemId(e.target.value ? Number(e.target.value) : '')} disabled={bulkSubCategoryId === ''}>
+                  <option value="">3. Select item…</option>
+                  {items.map(i => <option key={i.id} value={i.id}>{i.name}</option>)}
+                </select>
+              </>
+            )}
+
+            {bulkField === 'notes' && (
+              <input
+                type="text"
+                className={selectClass}
+                placeholder="Enter notes…"
+                value={bulkNotes}
+                onChange={e => setBulkNotes(e.target.value)}
+              />
+            )}
+
+            {bulkField === 'is_in' && (
+              <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60 rounded-lg p-1">
+                <button
+                  onClick={() => setBulkIsIn(true)}
+                  className={`px-4 py-1.5 rounded-md text-sm font-semibold transition-all ${bulkIsIn === true ? 'bg-emerald-500 text-white shadow' : 'text-slate-500 dark:text-slate-400 hover:text-emerald-600'}`}
+                >
+                  IN
+                </button>
+                <button
+                  onClick={() => setBulkIsIn(false)}
+                  className={`px-4 py-1.5 rounded-md text-sm font-semibold transition-all ${bulkIsIn === false ? 'bg-rose-500 text-white shadow' : 'text-slate-500 dark:text-slate-400 hover:text-rose-600'}`}
+                >
+                  OUT
+                </button>
+              </div>
+            )}
+
+            <button
+              onClick={handleBulkUpdate}
+              disabled={isBulkApplyDisabled() || bulkLoading}
+              className="px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 text-white text-sm font-medium rounded-lg shadow-lg disabled:opacity-40 transition-all hover:from-cyan-400 hover:to-blue-500"
+            >
+              {bulkLoading ? 'Applying…' : 'Apply'}
+            </button>
+            <button
+              onClick={() => { setSelectedIds(new Set()); setBulkField(''); resetBulkValues(); }}
+              className="text-xs text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 transition-colors"
+            >
+              Clear
+            </button>
+          </div>
+        )}
+
+        <div className="flex items-center gap-2 md:ml-auto">
           <FilterMenu
             activeFilters={filters}
             availableFields={[
@@ -150,39 +300,6 @@ const Savings: React.FC<SavingsProps> = ({ onEdit, onAdd, refreshTrigger }) => {
           </button>
         </div>
       </div>
-
-      {/* Bulk Action Bar */}
-      {selectedIds.size > 0 && (
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 p-4 glass-card rounded-xl border border-cyan-500/30 animate-in fade-in slide-in-from-top-2">
-          <span className="text-sm font-medium text-cyan-600 dark:text-cyan-400">
-            {selectedIds.size} selected
-          </span>
-          <div className="flex items-center gap-2 flex-1 w-full">
-            <Tags className="w-4 h-4 text-slate-400" />
-            <select
-              className="w-full sm:w-auto px-3 py-2 bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60 rounded-lg text-sm text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-cyan-500/40"
-              value={bulkCategoryId}
-              onChange={(e) => setBulkCategoryId(e.target.value ? Number(e.target.value) : '')}
-            >
-              <option value="">Select Category</option>
-              {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </select>
-            <button
-              onClick={handleBulkUpdate}
-              disabled={bulkCategoryId === '' || bulkLoading}
-              className="px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 text-white text-sm font-medium rounded-lg shadow-lg disabled:opacity-40 transition-all hover:from-cyan-400 hover:to-blue-500"
-            >
-              {bulkLoading ? 'Applying...' : 'Apply'}
-            </button>
-          </div>
-          <button
-            onClick={() => { setSelectedIds(new Set()); setBulkCategoryId(''); }}
-            className="text-xs text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 transition-colors"
-          >
-            Clear
-          </button>
-        </div>
-      )}
 
       <div className="glass-card rounded-2xl overflow-hidden">
         {/* Desktop Table */}
@@ -291,18 +408,10 @@ const Savings: React.FC<SavingsProps> = ({ onEdit, onAdd, refreshTrigger }) => {
                 </div>
               </div>
               <div className="flex items-center justify-end gap-1 mt-2">
-                <button
-                  onClick={() => onEdit(saving)}
-                  className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-600/50 text-slate-400 hover:text-cyan-500 dark:hover:text-cyan-400 transition-colors"
-                  title="Edit"
-                >
+                <button onClick={() => onEdit(saving)} className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-600/50 text-slate-400 hover:text-cyan-500 dark:hover:text-cyan-400 transition-colors" title="Edit">
                   <Pencil className="w-4 h-4" />
                 </button>
-                <button
-                  onClick={() => handleDelete(saving.id)}
-                  className="p-2 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-500/10 text-slate-400 hover:text-rose-500 dark:hover:text-rose-400 transition-colors"
-                  title="Delete"
-                >
+                <button onClick={() => handleDelete(saving.id)} className="p-2 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-500/10 text-slate-400 hover:text-rose-500 dark:hover:text-rose-400 transition-colors" title="Delete">
                   <Trash2 className="w-4 h-4" />
                 </button>
               </div>
