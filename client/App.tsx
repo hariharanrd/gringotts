@@ -10,6 +10,7 @@ import Incomes from './pages/Incomes';
 import Savings from './pages/Savings';
 import Revolvings from './pages/Revolvings';
 import Configuration from './pages/Configuration';
+import Budget from './pages/Budget';
 import TransactionDetails from './pages/TransactionDetails';
 import { Login } from './pages/Login';
 import { Register } from './pages/Register';
@@ -176,6 +177,7 @@ const GringottsApp: React.FC = () => {
                   <Route path="/revolvings" element={<Revolvings onEdit={handleEditTransaction} onAdd={() => handleAddTransaction(TransactionType.REVOLVING)} refreshTrigger={refreshKey} />} />
                   <Route path="/transaction/:id" element={<TransactionDetails />} />
                   <Route path="/configuration" element={<Configuration />} />
+                  <Route path="/budget" element={<Budget />} />
                   <Route path="/logout" element={<Logout onLogout={handleLogout} />} />
                   <Route path="*" element={
                     <div className="flex flex-col items-center justify-center min-h-[60vh]">

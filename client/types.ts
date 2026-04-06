@@ -68,3 +68,38 @@ export interface DashboardStats {
   monthlyTrend: { date: string; income: number; expense: number }[];
   categoryDistribution: { name: string; value: number }[];
 }
+
+export interface BudgetCategoryAllocation {
+  id?: number;
+  category: Category;
+  allocated_amount: number;
+}
+
+export interface Budget {
+  id?: number;
+  name: string;
+  month?: number;
+  year?: number;
+  is_master: boolean;
+  total_amount: number;
+  estimated_savings: number;
+  notes?: string;
+  created_at?: string;
+  allocations: BudgetCategoryAllocation[];
+}
+
+export interface CategoryUtilization {
+  category: Category;
+  allocated: number;
+  spent: number;
+  remaining: number;
+  percent_used: number;
+}
+
+export interface BudgetUtilization {
+  budget: Budget;
+  overall: { allocated: number; spent: number; remaining: number; percent_used: number };
+  categories: CategoryUtilization[];
+  period_month: number;
+  period_year: number;
+}
