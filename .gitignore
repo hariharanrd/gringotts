@@ -9,3 +9,4 @@ target/*
 client/.vite/*
 client/dist/assets/index-BDAbBSKe.js
 AGENT.md
+/AI_AGENT_README.txt

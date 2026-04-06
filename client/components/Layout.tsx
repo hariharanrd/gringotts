@@ -14,8 +14,10 @@ import {
   Upload,
   Sun,
   Moon,
-  RefreshCw
+  RefreshCw,
+  Target
 } from 'lucide-react';
+
 import { useTheme } from './ThemeContext';
 
 interface LayoutProps {
@@ -31,8 +33,10 @@ const navItems = [
   { id: 'incomes', label: 'Incomes', icon: TrendingUp, path: '/incomes' },
   { id: 'savings', label: 'Savings', icon: PiggyBank, path: '/savings' },
   { id: 'revolvings', label: 'Revolving', icon: RefreshCw, path: '/revolvings' },
+  { id: 'budget', label: 'Budget', icon: Target, path: '/budget' },
   { id: 'configuration', label: 'Settings', icon: Settings, path: '/configuration' },
 ];
+
 
 const Layout: React.FC<LayoutProps> = ({ userName, children, onImport }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);

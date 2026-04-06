@@ -24,6 +24,9 @@ public interface TransactionRepository<T extends Transaction> extends JpaReposit
     @EntityGraph(attributePaths = {"category", "subCategory", "item"})
     List<T> findByTransactionTimeAfter(LocalDateTime after);
 
+    @EntityGraph(attributePaths = {"category", "subCategory", "item"})
+    List<T> findByTransactionTimeBetween(LocalDateTime start, LocalDateTime end);
+
     @Override
     @EntityGraph(attributePaths = {"category", "subCategory", "item"})
     Page<T> findAll(Pageable pageable);
