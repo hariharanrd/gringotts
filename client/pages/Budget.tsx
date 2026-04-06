@@ -15,6 +15,7 @@ import {
 import { api } from '../services/api';
 import { Budget, BudgetCategoryAllocation, Category, BudgetUtilization } from '../types';
 import { useToast } from '../components/ToastContext';
+import ConfirmationDialog from '../components/ConfirmationDialog';
 
 const BudgetPage: React.FC = () => {
   const [budgets, setBudgets] = useState<Budget[]>([]);
@@ -23,6 +24,9 @@ const BudgetPage: React.FC = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);
   const { showToast } = useToast();
+
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const [budgetToDelete, setBudgetToDelete] = useState<number | null>(null);
 
   // Form State
   const [formData, setFormData] = useState<Partial<Budget>>({
@@ -129,15 +133,23 @@ const BudgetPage: React.FC = () => {
     }
   };
 
-  const handleDelete = async (id: number) => {
-    if (!window.confirm('Are you sure you want to delete this budget version?')) return;
+  const handleDelete = (id: number) => {
+    setBudgetToDelete(id);
+    setIsConfirmOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!budgetToDelete) return;
     try {
-      await api.deleteBudget(id);
+      await api.deleteBudget(budgetToDelete);
       showToast('Budget deleted', 'success');
-      if (selectedBudget?.id === id) setSelectedBudget(null);
+      if (selectedBudget?.id === budgetToDelete) setSelectedBudget(null);
       fetchData();
     } catch (error: any) {
       showToast(error.message || 'Failed to delete', 'error');
+    } finally {
+      setIsConfirmOpen(false);
+      setBudgetToDelete(null);
     }
   };
 
@@ -535,6 +547,16 @@ const BudgetPage: React.FC = () => {
           )}
         </div>
       </div>
+
+      <ConfirmationDialog
+        isOpen={isConfirmOpen}
+        onClose={() => setIsConfirmOpen(false)}
+        onConfirm={confirmDelete}
+        title="Delete Budget"
+        message="Are you sure you want to delete this budget version? This action cannot be undone."
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+      />
     </div>
   );
 };
