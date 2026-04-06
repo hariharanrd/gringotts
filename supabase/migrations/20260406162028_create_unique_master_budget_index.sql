@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX budget_master_unique ON public.budget (is_master) WHERE is_master = true;

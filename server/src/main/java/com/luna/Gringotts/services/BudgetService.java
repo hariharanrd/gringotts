@@ -2,6 +2,7 @@ package com.luna.Gringotts.services;
 
 import com.luna.Gringotts.records.*;
 import com.luna.Gringotts.repository.*;
+import org.jspecify.annotations.NonNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -244,36 +245,46 @@ public class BudgetService {
 
         // Aggregate spent amounts by category (use category id as key)
         Map<Long, Double> spentByCategory = new HashMap<>();
-
+        Double unCategorizedSpend = 0.0;
         for (Expense e : expenses) {
             if (e.getCategory() != null) {
                 spentByCategory.merge(e.getCategory().getId(), e.getValue(), Double::sum);
+            } else {
+                unCategorizedSpend += e.getValue();
             }
         }
         for (Saving s : savings) {
             if (s.getCategory() != null) {
                 spentByCategory.merge(s.getCategory().getId(), Math.abs(s.getValue()), Double::sum);
+            } else{
+                unCategorizedSpend += Math.abs(s.getValue());
             }
         }
         for (Revolving r : revolvings) {
             if (r.getCategory() != null) {
                 spentByCategory.merge(r.getCategory().getId(), r.getValue(), Double::sum);
+            } else {
+                unCategorizedSpend += r.getValue();
             }
         }
 
         double totalAllocated = budget.getTotalAmount();
-        double totalSpent = spentByCategory.values().stream().mapToDouble(Double::doubleValue).sum();
+        double totalSpent = spentByCategory.values().stream().mapToDouble(Double::doubleValue).sum() + unCategorizedSpend;
         double totalRemaining = totalAllocated - totalSpent;
-        double overallPercent = totalAllocated > 0 ? Math.min((totalSpent / totalAllocated) * 100, 100) : 0;
+        double overallPercent = totalAllocated > 0 ? (totalSpent / totalAllocated) * 100 : 0;
 
         // Build per-category utilization
         List<Map<String, Object>> categoryUtils = new ArrayList<>();
+        Set<Long> allocatedCategoryIds = new HashSet<>();
+        
         for (BudgetCategoryAllocation alloc : budget.getAllocations()) {
             Long catId = alloc.getCategory().getId();
+            allocatedCategoryIds.add(catId);
+            
             double allocated = alloc.getAllocatedAmount();
             double spent = spentByCategory.getOrDefault(catId, 0.0);
             double remaining = allocated - spent;
-            double percent = allocated > 0 ? Math.min((spent / allocated) * 100, 100) : 0;
+            double percent = allocated > 0 ? (spent / allocated) * 100 : (spent > 0 ? 100 : 0);
 
             Map<String, Object> entry = new LinkedHashMap<>();
             entry.put("category", alloc.getCategory());
@@ -283,6 +294,31 @@ public class BudgetService {
             entry.put("percent_used", Math.round(percent * 10.0) / 10.0);
             categoryUtils.add(entry);
         }
+        
+        // Add categories with spending but no allocation
+        for (Map.Entry<Long, Double> entry : spentByCategory.entrySet()) {
+            Long catId = entry.getKey();
+            if (!allocatedCategoryIds.contains(catId) && entry.getValue() > 0) {
+                Category cat = categoryRepository.findById(catId).orElse(null);
+                if (cat != null && !cat.getType().equals("INCOME")) {
+                    double spent = entry.getValue();
+                    Map<String, Object> unallocatedEntry = new LinkedHashMap<>();
+                    unallocatedEntry.put("category", cat);
+                    unallocatedEntry.put("allocated", 0.0);
+                    unallocatedEntry.put("spent", spent);
+                    unallocatedEntry.put("remaining", -spent);
+                    unallocatedEntry.put("percent_used", 100.0); // Flag as 100% used so client logic highlights it
+                    categoryUtils.add(unallocatedEntry);
+                }
+            }
+        }
+
+        //UNCATEGORIZED SPENDING
+        if(unCategorizedSpend > 0) {
+            Map<String, Object> unallocatedEntry = getUnCategorizedEntryDetails(unCategorizedSpend);
+            categoryUtils.add(unallocatedEntry);
+        }
+
         // Sort by percent_used descending
         categoryUtils.sort(Comparator.comparingDouble(
                 e -> -((Number) e.get("percent_used")).doubleValue()));
@@ -300,5 +336,18 @@ public class BudgetService {
         result.put("period_month", targetMonth);
         result.put("period_year", targetYear);
         return result;
+    }
+
+    private static @NonNull Map<String, Object> getUnCategorizedEntryDetails(Double unCategorizedSpend) {
+        Map<String, Object> unallocatedEntry = new LinkedHashMap<>();
+        Category category = new Category();
+        category.setName("Uncategorized");
+        category.setType("EXPENSE");
+        unallocatedEntry.put("category", category);
+        unallocatedEntry.put("allocated", 0.0);
+        unallocatedEntry.put("spent", unCategorizedSpend);
+        unallocatedEntry.put("remaining", -unCategorizedSpend);
+        unallocatedEntry.put("percent_used", 100.0); // Flag as 100% used so client logic highlights it
+        return unallocatedEntry;
     }
 }
