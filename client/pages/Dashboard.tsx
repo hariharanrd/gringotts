@@ -190,11 +190,12 @@ const Dashboard: React.FC = () => {
                 <div className="space-y-1">
                   <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Overall Spend vs Limit</span>
                   <div className="flex items-baseline gap-2">
-                    <span className="text-2xl font-black text-slate-900 dark:text-white">₹{budgetUtil.overall?.spent.toLocaleString()}</span>
+                    <span className={`text-2xl font-black ${budgetUtil.overall?.percent_used > 100 ? 'text-rose-500' : 'text-slate-900 dark:text-white'}`}>₹{budgetUtil.overall?.spent.toLocaleString()}</span>
                     <span className="text-sm font-medium text-slate-400">/ ₹{budgetUtil.overall?.allocated?.toLocaleString()}</span>
                   </div>
                 </div>
-                <div className={`text-sm font-black ${budgetUtil.overall?.percent_used > 90 ? 'text-rose-500' :
+                <div className={`text-sm font-black ${budgetUtil.overall?.percent_used > 100 ? 'text-rose-500' :
+                  budgetUtil.overall?.percent_used > 90 ? 'text-rose-500' :
                   budgetUtil.overall?.percent_used > 75 ? 'text-amber-500' : 'text-emerald-500'
                   }`}>
                   {budgetUtil.overall?.percent_used}%
@@ -202,7 +203,8 @@ const Dashboard: React.FC = () => {
               </div>
               <div className="w-full h-3 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden p-0.5 border border-slate-200/50 dark:border-slate-700/50">
                 <div
-                  className={`h-full rounded-full transition-all duration-1000 ease-out ${budgetUtil.overall?.percent_used > 90 ? 'bg-rose-500' :
+                  className={`h-full rounded-full transition-all duration-1000 ease-out ${budgetUtil.overall?.percent_used > 100 ? 'bg-rose-500' :
+                    budgetUtil.overall?.percent_used > 90 ? 'bg-rose-500' :
                     budgetUtil.overall?.percent_used > 75 ? 'bg-amber-500' : 'bg-gradient-to-r from-cyan-400 to-blue-500'
                     }`}
                   style={{ width: `${Math.min(budgetUtil.overall?.percent_used, 100)}%` }}
@@ -212,22 +214,24 @@ const Dashboard: React.FC = () => {
 
             {/* Category Breakdown */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-12 gap-y-6">
-              {budgetUtil.categories?.slice(0, 6).map(cat => (
+              {budgetUtil.categories?.slice(0, 10).map(cat => {
+                const isOverBudget = cat.percent_used >= 100 || (cat.spent > 0 && cat.allocated === 0);
+                return (
                 <div key={cat.category.id} className="space-y-2 group">
                   <div className="flex justify-between items-center text-[11px] font-bold">
                     <span className="text-slate-500 dark:text-slate-400 group-hover:text-cyan-500 transition-colors uppercase tracking-tight">{cat.category.name}</span>
-                    <span className="text-slate-700 dark:text-slate-200">₹{cat.spent.toLocaleString()} <span className="text-slate-400 font-medium">/ ₹{cat.allocated.toLocaleString()}</span></span>
+                    <span className={`${isOverBudget ? 'text-rose-500' : 'text-slate-700 dark:text-slate-200'}`}>₹{cat.spent.toLocaleString()} <span className="text-slate-400 font-medium">/ ₹{cat.allocated.toLocaleString()}</span></span>
                   </div>
                   <div className="w-full h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
                     <div
-                      className={`h-full rounded-full transition-all duration-700 ${cat.percent_used > 100 ? 'bg-rose-500' :
+                      className={`h-full rounded-full transition-all duration-700 ${isOverBudget ? 'bg-rose-500' :
                         cat.percent_used > 80 ? 'bg-amber-500' : 'bg-cyan-500'
                         }`}
-                      style={{ width: `${Math.min(cat.percent_used, 100)}%` }}
+                      style={{ width: `${cat.allocated === 0 && cat.spent > 0 ? 100 : Math.min(cat.percent_used, 100)}%` }}
                     />
                   </div>
                 </div>
-              ))}
+              )})}
               {budgetUtil.categories?.length === 0 && (
                 <p className="col-span-full text-center py-4 text-xs text-slate-400 italic">No category allocations defined for this budget</p>
               )}
