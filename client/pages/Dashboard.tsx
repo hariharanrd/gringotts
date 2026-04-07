@@ -215,7 +215,7 @@ const Dashboard: React.FC = () => {
             {/* Category Breakdown */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-12 gap-y-6">
               {budgetUtil.categories?.slice(0, 10).map(cat => {
-                const isOverBudget = cat.percent_used >= 100 || (cat.spent > 0 && cat.allocated === 0);
+                const isOverBudget = cat.percent_used > 100 || (cat.spent > 0 && cat.allocated === 0);
                 return (
                 <div key={cat.category.id} className="space-y-2 group">
                   <div className="flex justify-between items-center text-[11px] font-bold">
