@@ -108,6 +108,47 @@ const Dashboard: React.FC = () => {
     fontSize: 12,
   };
 
+  // Group categories for Budget Utilization Widget
+  const getGroupedCategories = () => {
+    if (!budgetUtil || !budgetUtil.categories) return { expenses: [], revolvings: [], savings: [] };
+    return {
+      expenses: budgetUtil.categories.filter(c => c.category.type === 'EXPENSE'),
+      revolvings: budgetUtil.categories.filter(c => c.category.type === 'REVOLVING'),
+      savings: budgetUtil.categories.filter(c => c.category.type === 'SAVING'),
+    };
+  };
+
+  const groupedCategories = getGroupedCategories();
+
+  const CategorySection = ({ title, categories }: { title: string, categories: any[] }) => {
+    if (categories.length === 0) return null;
+    return (
+      <div className="space-y-4 mb-6">
+        <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest border-b border-slate-200/50 dark:border-slate-700/50 pb-2">{title}</h4>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-12 gap-y-6">
+          {categories.map(cat => {
+            const isOverBudget = cat.percent_used > 100 || (cat.spent > 0 && cat.allocated === 0);
+            return (
+            <div key={cat.category.id} className="space-y-2 group">
+              <div className="flex justify-between items-center text-[11px] font-bold">
+                <span className="text-slate-500 dark:text-slate-400 group-hover:text-cyan-500 transition-colors uppercase tracking-tight">{cat.category.name}</span>
+                <span className={`${isOverBudget ? 'text-rose-500' : 'text-slate-700 dark:text-slate-200'}`}>₹{cat.spent.toLocaleString()} <span className="text-slate-400 font-medium">/ ₹{cat.allocated.toLocaleString()}</span></span>
+              </div>
+              <div className="w-full h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all duration-700 ${isOverBudget ? 'bg-rose-500' :
+                    cat.percent_used > 80 ? 'bg-amber-500' : 'bg-cyan-500'
+                    }`}
+                  style={{ width: `${cat.allocated === 0 && cat.spent > 0 ? 100 : Math.min(cat.percent_used, 100)}%` }}
+                />
+              </div>
+            </div>
+          )})}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-8">
       {/* Period badge */}
@@ -212,28 +253,14 @@ const Dashboard: React.FC = () => {
               </div>
             </div>
 
-            {/* Category Breakdown */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-12 gap-y-6">
-              {budgetUtil.categories?.slice(0, 10).map(cat => {
-                const isOverBudget = cat.percent_used > 100 || (cat.spent > 0 && cat.allocated === 0);
-                return (
-                <div key={cat.category.id} className="space-y-2 group">
-                  <div className="flex justify-between items-center text-[11px] font-bold">
-                    <span className="text-slate-500 dark:text-slate-400 group-hover:text-cyan-500 transition-colors uppercase tracking-tight">{cat.category.name}</span>
-                    <span className={`${isOverBudget ? 'text-rose-500' : 'text-slate-700 dark:text-slate-200'}`}>₹{cat.spent.toLocaleString()} <span className="text-slate-400 font-medium">/ ₹{cat.allocated.toLocaleString()}</span></span>
-                  </div>
-                  <div className="w-full h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                    <div
-                      className={`h-full rounded-full transition-all duration-700 ${isOverBudget ? 'bg-rose-500' :
-                        cat.percent_used > 80 ? 'bg-amber-500' : 'bg-cyan-500'
-                        }`}
-                      style={{ width: `${cat.allocated === 0 && cat.spent > 0 ? 100 : Math.min(cat.percent_used, 100)}%` }}
-                    />
-                  </div>
-                </div>
-              )})}
+            {/* Category Breakdown by Groups */}
+            <div className="mt-8">
+              <CategorySection title="Expenses" categories={groupedCategories.expenses} />
+              <CategorySection title="Revolvings" categories={groupedCategories.revolvings} />
+              <CategorySection title="Savings" categories={groupedCategories.savings} />
+
               {budgetUtil.categories?.length === 0 && (
-                <p className="col-span-full text-center py-4 text-xs text-slate-400 italic">No category allocations defined for this budget</p>
+                <p className="text-center py-4 text-xs text-slate-400 italic">No category allocations defined for this budget</p>
               )}
             </div>
           </div>
