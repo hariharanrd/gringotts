@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
 import { Transaction, Category, SubCategory, Item } from '../types';
-import { ArrowDownRight, PlusCircle, Pencil, Trash2 } from 'lucide-react';
+import { ArrowDownRight, PlusCircle, Pencil, Trash2, Columns } from 'lucide-react';
 import { useToast } from '../components/ToastContext';
 import Pagination from '../components/Pagination';
 import { TableSkeleton } from '../components/Skeleton';
@@ -25,6 +25,19 @@ const BULK_FIELDS: { value: BulkField; label: string }[] = [
   { value: 'payment_mode', label: 'Payment Mode' },
 ];
 
+type ColumnKey = 'date' | 'description' | 'category' | 'subcategory' | 'item' | 'amount' | 'payment_mode' | 'notes';
+
+const AVAILABLE_COLUMNS: { key: ColumnKey; label: string; defaultVisible: boolean }[] = [
+  { key: 'date', label: 'Date', defaultVisible: true },
+  { key: 'description', label: 'Description', defaultVisible: true },
+  { key: 'category', label: 'Category', defaultVisible: true },
+  { key: 'subcategory', label: 'Sub Category', defaultVisible: false },
+  { key: 'item', label: 'Item', defaultVisible: false },
+  { key: 'amount', label: 'Amount', defaultVisible: true },
+  { key: 'payment_mode', label: 'Payment Mode', defaultVisible: true },
+  { key: 'notes', label: 'Notes', defaultVisible: false },
+];
+
 const selectClass = "w-full sm:w-auto px-3 py-2 bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60 rounded-lg text-sm text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-cyan-500/40";
 
 const Expenses: React.FC<ExpensesProps> = ({ onEdit, onAdd, refreshTrigger }) => {
@@ -39,6 +52,31 @@ const Expenses: React.FC<ExpensesProps> = ({ onEdit, onAdd, refreshTrigger }) =>
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const { showToast } = useToast();
+
+  const [visibleColumns, setVisibleColumns] = useState<Set<ColumnKey>>(
+    new Set(AVAILABLE_COLUMNS.filter(c => c.defaultVisible).map(c => c.key))
+  );
+  const [isColumnChooserOpen, setIsColumnChooserOpen] = useState(false);
+  const columnDropdownRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (columnDropdownRef.current && !columnDropdownRef.current.contains(event.target as Node)) {
+        setIsColumnChooserOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const toggleColumn = (key: ColumnKey) => {
+    setVisibleColumns(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
 
   // Bulk update state
   const [bulkField, setBulkField] = useState<BulkField | ''>('');
@@ -278,6 +316,38 @@ const Expenses: React.FC<ExpensesProps> = ({ onEdit, onAdd, refreshTrigger }) =>
         )}
 
         <div className="flex items-center gap-2 md:ml-auto">
+          {/* Column Chooser */}
+          <div className="relative" ref={columnDropdownRef}>
+            <button
+              onClick={() => setIsColumnChooserOpen(!isColumnChooserOpen)}
+              className="flex items-center gap-2 px-3 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/60 rounded-xl shadow-sm hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors text-slate-700 dark:text-slate-300"
+              title="Choose Columns"
+            >
+              <Columns className="w-5 h-5" />
+            </button>
+
+            {isColumnChooserOpen && (
+              <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700/60 z-20 py-2">
+                <div className="px-4 py-2 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
+                  Visible Columns
+                </div>
+                <div className="flex flex-col max-h-64 overflow-y-auto">
+                  {AVAILABLE_COLUMNS.map(col => (
+                    <label key={col.key} className="flex items-center gap-3 px-4 py-2 hover:bg-slate-50 dark:hover:bg-slate-700/50 cursor-pointer transition-colors">
+                      <input
+                        type="checkbox"
+                        checked={visibleColumns.has(col.key)}
+                        onChange={() => toggleColumn(col.key)}
+                        className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-cyan-500 focus:ring-cyan-500/40 cursor-pointer accent-cyan-500"
+                      />
+                      <span className="text-sm text-slate-700 dark:text-slate-300 font-medium">{col.label}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
           <FilterMenu
             activeFilters={filters}
             availableFields={[
@@ -314,10 +384,14 @@ const Expenses: React.FC<ExpensesProps> = ({ onEdit, onAdd, refreshTrigger }) =>
                     className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-cyan-500 focus:ring-cyan-500/40 cursor-pointer accent-cyan-500"
                   />
                 </th>
-                <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Date</th>
-                <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Description</th>
-                <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Category</th>
-                <th scope="col" className="px-6 py-4 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Amount</th>
+                {visibleColumns.has('date') && <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Date</th>}
+                {visibleColumns.has('description') && <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Description</th>}
+                {visibleColumns.has('category') && <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Category</th>}
+                {visibleColumns.has('subcategory') && <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Sub Category</th>}
+                {visibleColumns.has('item') && <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Item</th>}
+                {visibleColumns.has('payment_mode') && <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Payment Mode</th>}
+                {visibleColumns.has('notes') && <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Notes</th>}
+                {visibleColumns.has('amount') && <th scope="col" className="px-6 py-4 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Amount</th>}
                 <th scope="col" className="px-6 py-4 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
@@ -332,14 +406,34 @@ const Expenses: React.FC<ExpensesProps> = ({ onEdit, onAdd, refreshTrigger }) =>
                       className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-cyan-500 focus:ring-cyan-500/40 cursor-pointer accent-cyan-500"
                     />
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 dark:text-slate-400">{new Date(expense.transaction_time).toLocaleDateString()}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-800 dark:text-slate-200">{expense.description}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 dark:text-slate-400">
+                  {visibleColumns.has('date') && <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 dark:text-slate-400">{new Date(expense.transaction_time).toLocaleDateString()}</td>}
+                  {visibleColumns.has('description') && <td className="px-6 py-4 space-y-1">
+                    <div className="text-sm font-medium text-slate-800 dark:text-slate-200">{expense.description}</div>
+                  </td>}
+                  {visibleColumns.has('category') && <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 dark:text-slate-400">
                     {expense.category?.name && (
                       <span className="px-2.5 py-1 bg-slate-100 dark:bg-slate-700/50 rounded-lg text-xs font-medium text-slate-600 dark:text-slate-300">{expense.category.name}</span>
                     )}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-semibold text-rose-500 dark:text-rose-400">-₹{expense.value.toLocaleString()}</td>
+                  </td>}
+                  {visibleColumns.has('subcategory') && <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 dark:text-slate-400">
+                    {expense.subcategory?.name && (
+                      <span className="px-2.5 py-1 bg-slate-100 dark:bg-slate-700/50 rounded-lg text-xs font-medium text-slate-600 dark:text-slate-300">{expense.subcategory.name}</span>
+                    )}
+                  </td>}
+                  {visibleColumns.has('item') && <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 dark:text-slate-400">
+                    {expense.item?.name && (
+                      <span className="px-2.5 py-1 bg-slate-100 dark:bg-slate-700/50 rounded-lg text-xs font-medium text-slate-600 dark:text-slate-300">{expense.item.name}</span>
+                    )}
+                  </td>}
+                  {visibleColumns.has('payment_mode') && <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 dark:text-slate-400">
+                    {(expense as any).payment_mode && (
+                      <span className="px-2.5 py-1 bg-slate-100 dark:bg-slate-700/50 rounded-lg text-xs font-medium text-slate-600 dark:text-slate-300">{(expense as any).payment_mode.replace('_', ' ')}</span>
+                    )}
+                  </td>}
+                  {visibleColumns.has('notes') && <td className="px-6 py-4 text-sm text-slate-500 dark:text-slate-400 max-w-xs truncate" title={expense.notes}>
+                    {expense.notes}
+                  </td>}
+                  {visibleColumns.has('amount') && <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-semibold text-rose-500 dark:text-rose-400">-₹{expense.value.toLocaleString()}</td>}
                   <td className="px-6 py-4 whitespace-nowrap text-right">
                     <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                       <button
@@ -382,13 +476,33 @@ const Expenses: React.FC<ExpensesProps> = ({ onEdit, onAdd, refreshTrigger }) =>
                 />
                 <div className="flex-1">
                   <div className="flex justify-between items-start">
-                    <span className="text-sm font-medium text-slate-800 dark:text-slate-200 mr-2">{expense.description}</span>
-                    <span className="text-sm font-semibold text-rose-500 dark:text-rose-400 whitespace-nowrap">-₹{expense.value.toLocaleString()}</span>
+                    {visibleColumns.has('description') && <span className="text-sm font-medium text-slate-800 dark:text-slate-200 mr-2">{expense.description}</span>}
+                    {visibleColumns.has('amount') && <span className="text-sm font-semibold text-rose-500 dark:text-rose-400 whitespace-nowrap">-₹{expense.value.toLocaleString()}</span>}
                   </div>
-                  <div className="text-sm text-slate-500 dark:text-slate-400 mt-1">{new Date(expense.transaction_time).toLocaleDateString()}</div>
-                  {expense.category?.name && (
+                  {visibleColumns.has('date') && <div className="text-sm text-slate-500 dark:text-slate-400 mt-1">{new Date(expense.transaction_time).toLocaleDateString()}</div>}
+                  {visibleColumns.has('category') && expense.category?.name && (
                     <div className="mt-2">
                       <span className="px-2.5 py-1 bg-slate-100 dark:bg-slate-700/50 rounded-lg text-xs font-medium text-slate-600 dark:text-slate-300">{expense.category.name}</span>
+                    </div>
+                  )}
+                  {visibleColumns.has('subcategory') && expense.subcategory?.name && (
+                    <div className="mt-1.5">
+                      <span className="px-2 py-0.5 bg-slate-100 dark:bg-slate-700/50 rounded text-xs text-slate-500 dark:text-slate-400">Sub: {expense.subcategory.name}</span>
+                    </div>
+                  )}
+                  {visibleColumns.has('item') && expense.item?.name && (
+                    <div className="mt-1.5">
+                      <span className="px-2 py-0.5 bg-slate-100 dark:bg-slate-700/50 rounded text-xs text-slate-500 dark:text-slate-400">Item: {expense.item.name}</span>
+                    </div>
+                  )}
+                  {visibleColumns.has('payment_mode') && (expense as any).payment_mode && (
+                    <div className="mt-1.5">
+                      <span className="text-xs text-slate-500 dark:text-slate-400">Mode: {(expense as any).payment_mode.replace('_', ' ')}</span>
+                    </div>
+                  )}
+                  {visibleColumns.has('notes') && expense.notes && (
+                    <div className="mt-1.5 text-xs text-slate-500 dark:text-slate-400 break-words line-clamp-2">
+                      {expense.notes}
                     </div>
                   )}
                 </div>

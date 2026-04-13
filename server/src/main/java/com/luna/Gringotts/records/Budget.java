@@ -51,6 +51,11 @@ public class Budget {
     @OneToMany(mappedBy = "budget", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     List<BudgetCategoryAllocation> allocations = new ArrayList<>();
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
+    User user;
+
     // ── Getters ───────────────────────────────────────────────────────────────
 
     public Long getId() { return id; }
@@ -76,4 +81,6 @@ public class Budget {
     public void setNotes(String notes) { this.notes = notes; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
     public void setAllocations(List<BudgetCategoryAllocation> allocations) { this.allocations = allocations; }
+    public User getUser() { return user; }
+    public void setUser(User user) { this.user = user; }
 }

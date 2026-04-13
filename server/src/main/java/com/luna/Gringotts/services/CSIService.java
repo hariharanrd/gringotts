@@ -3,12 +3,15 @@ package com.luna.Gringotts.services;
 import com.luna.Gringotts.records.Category;
 import com.luna.Gringotts.records.Item;
 import com.luna.Gringotts.records.SubCategory;
+import com.luna.Gringotts.records.User;
 import com.luna.Gringotts.repository.CategoryRepository;
 import com.luna.Gringotts.repository.ItemRepository;
 import com.luna.Gringotts.repository.SubCategoryRepository;
+import com.luna.Gringotts.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.cache.annotation.Cacheable;
@@ -26,8 +29,18 @@ public class CSIService {
     @Autowired
     ItemRepository itemRepository;
 
+    @Autowired
+    UserRepository userRepository;
+
+    public User getCurrentUser() {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        return userRepository.findByUsername(username)
+                .orElseThrow(() -> new IllegalStateException("Authenticated user not found: " + username));
+    }
+
     @CacheEvict(value = {"categories", "categoryById"}, allEntries = true)
     public Category addCategory(Category category){
+        category.setUser(getCurrentUser());
         return categoryRepository.save(category);
     }
 
@@ -64,6 +77,7 @@ public class CSIService {
 
     @CacheEvict(value = {"categories", "categoryById"}, allEntries = true)
     public Category updateCategory(Category category){
+        category.setUser(getCurrentUser());
         return categoryRepository.save(category);
     }
 
@@ -81,14 +95,14 @@ public class CSIService {
         return itemRepository.findById(saved.getId()).orElse(saved);
     }
 
-    @Cacheable(value = "categories", key = "#pageable.pageNumber + '-' + #pageable.pageSize")
+    @Cacheable(value = "categories", key = "#root.target.getCurrentUser().id + '-' + #pageable.pageNumber + '-' + #pageable.pageSize")
     public Page<Category> getCategories(Pageable pageable){
-        return categoryRepository.findAll(pageable);
+        return categoryRepository.findByUser(getCurrentUser(), pageable);
     }
 
-    @Cacheable(value = "categories", key = "#type + '-' + #pageable.pageNumber + '-' + #pageable.pageSize")
+    @Cacheable(value = "categories", key = "#root.target.getCurrentUser().id + '-' + #type + '-' + #pageable.pageNumber + '-' + #pageable.pageSize")
     public Page<Category> getCategoriesByType(String type, Pageable pageable){
-        return categoryRepository.findByType(type, pageable);
+        return categoryRepository.findByTypeAndUser(type, getCurrentUser(), pageable);
     }
 
     @Cacheable(value = "subCategories", key = "#categoryId + '-' + #pageable.pageNumber + '-' + #pageable.pageSize")
