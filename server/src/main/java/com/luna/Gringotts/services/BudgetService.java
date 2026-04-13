@@ -32,28 +32,22 @@ public class BudgetService {
     private RevolvingRepository revolvingRepository;
 
     @Autowired
-    private UserRepository userRepository;
-
-    private User getCurrentUser() {
-        String username = SecurityContextHolder.getContext().getAuthentication().getName();
-        return userRepository.findByUsername(username)
-                .orElseThrow(() -> new IllegalStateException("Authenticated user not found: " + username));
-    }
+    private IAMService iamService;
 
     // ── Read ──────────────────────────────────────────────────────────────────
 
     public Budget getMasterBudget() {
-        return budgetRepository.findByIsMasterTrueAndUser(getCurrentUser())
+        return budgetRepository.findByIsMasterTrueAndUser(iamService.getCurrentUser())
                 .orElseThrow(() -> new IllegalStateException("No master budget found"));
     }
 
     public List<Budget> getMonthlyBudgets() {
-        return budgetRepository.findAllByIsMasterFalseAndUserOrderByYearDescMonthDesc(getCurrentUser());
+        return budgetRepository.findAllByIsMasterFalseAndUserOrderByYearDescMonthDesc(iamService.getCurrentUser());
     }
 
     public List<Budget> getAllBudgets() {
         List<Budget> all = new ArrayList<>();
-        budgetRepository.findByIsMasterTrueAndUser(getCurrentUser()).ifPresent(all::add);
+        budgetRepository.findByIsMasterTrueAndUser(iamService.getCurrentUser()).ifPresent(all::add);
         all.addAll(getMonthlyBudgets());
         return all;
     }
@@ -66,7 +60,7 @@ public class BudgetService {
     /** Returns the monthly budget for the current month/year.
      *  Falls back to the master budget if no monthly version exists. */
     public Budget getActiveBudget() {
-        User user = getCurrentUser();
+        User user = iamService.getCurrentUser();
         LocalDateTime now = LocalDateTime.now();
         return budgetRepository.findByMonthAndYearAndUser(now.getMonthValue(), now.getYear(), user)
                 .orElseGet(() -> budgetRepository.findByIsMasterTrueAndUser(user).orElse(null));
@@ -76,7 +70,7 @@ public class BudgetService {
 
     @Transactional
     public Budget createBudget(Budget budget) {
-        User user = getCurrentUser();
+        User user = iamService.getCurrentUser();
         budget.setUser(user);
 
         if (Boolean.TRUE.equals(budget.getIsMaster())) {
@@ -118,7 +112,7 @@ public class BudgetService {
     /** Clones the source budget's header + all allocations into a new monthly version. */
     @Transactional
     public Budget createMonthlyVersion(Long sourceBudgetId, int month, int year) {
-        User user = getCurrentUser();
+        User user = iamService.getCurrentUser();
         if (budgetRepository.findByMonthAndYearAndUser(month, year, user).isPresent()) {
             throw new IllegalStateException("A budget for " + month + "/" + year + " already exists");
         }
@@ -255,7 +249,7 @@ public class BudgetService {
         end = ym.atEndOfMonth().atTime(23, 59, 59);
 
         // Fetch transactions for the period
-        User user = getCurrentUser();
+        User user = iamService.getCurrentUser();
         List<Expense> expenses = expenseRepository.findByUserAndTransactionTimeBetween(user, start, end);
         List<Saving> savings = savingRepository.findByUserAndTransactionTimeBetween(user, start, end);
         List<Revolving> revolvings = revolvingRepository.findByUserAndTransactionTimeBetween(user, start, end);

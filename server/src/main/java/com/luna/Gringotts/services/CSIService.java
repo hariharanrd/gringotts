@@ -30,17 +30,12 @@ public class CSIService {
     ItemRepository itemRepository;
 
     @Autowired
-    UserRepository userRepository;
+    IAMService iamService;
 
-    public User getCurrentUser() {
-        String username = SecurityContextHolder.getContext().getAuthentication().getName();
-        return userRepository.findByUsername(username)
-                .orElseThrow(() -> new IllegalStateException("Authenticated user not found: " + username));
-    }
 
     @CacheEvict(value = {"categories", "categoryById"}, allEntries = true)
     public Category addCategory(Category category){
-        category.setUser(getCurrentUser());
+        category.setUser(iamService.getCurrentUser());
         return categoryRepository.save(category);
     }
 
@@ -77,7 +72,7 @@ public class CSIService {
 
     @CacheEvict(value = {"categories", "categoryById"}, allEntries = true)
     public Category updateCategory(Category category){
-        category.setUser(getCurrentUser());
+        category.setUser(iamService.getCurrentUser());
         return categoryRepository.save(category);
     }
 
@@ -95,14 +90,14 @@ public class CSIService {
         return itemRepository.findById(saved.getId()).orElse(saved);
     }
 
-    @Cacheable(value = "categories", key = "#root.target.getCurrentUser().id + '-' + #pageable.pageNumber + '-' + #pageable.pageSize")
+    @Cacheable(value = "categories", key = "#root.target.iamService.getCurrentUser().id + '-' + #pageable.pageNumber + '-' + #pageable.pageSize")
     public Page<Category> getCategories(Pageable pageable){
-        return categoryRepository.findByUser(getCurrentUser(), pageable);
+        return categoryRepository.findByUser(iamService.getCurrentUser(), pageable);
     }
 
-    @Cacheable(value = "categories", key = "#root.target.getCurrentUser().id + '-' + #type + '-' + #pageable.pageNumber + '-' + #pageable.pageSize")
+    @Cacheable(value = "categories", key = "#root.target.iamService.getCurrentUser().id + '-' + #type + '-' + #pageable.pageNumber + '-' + #pageable.pageSize")
     public Page<Category> getCategoriesByType(String type, Pageable pageable){
-        return categoryRepository.findByTypeAndUser(type, getCurrentUser(), pageable);
+        return categoryRepository.findByTypeAndUser(type, iamService.getCurrentUser(), pageable);
     }
 
     @Cacheable(value = "subCategories", key = "#categoryId + '-' + #pageable.pageNumber + '-' + #pageable.pageSize")

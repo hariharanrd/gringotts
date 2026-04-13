@@ -16,7 +16,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Example;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.transaction.annotation.Transactional;
@@ -59,13 +58,8 @@ public class TransactionService {
     @Autowired
     UserRepository userRepository;
 
-    // ── Current-user helper ──────────────────────────────────────────────────
-
-    private User getCurrentUser() {
-        String username = SecurityContextHolder.getContext().getAuthentication().getName();
-        return userRepository.findByUsername(username)
-                .orElseThrow(() -> new IllegalStateException("Authenticated user not found: " + username));
-    }
+    @Autowired
+    IAMService iamService;
 
     public Transaction getTransactionById(Long id) {
         return transactionRepository.findById(id).orElse(null);
@@ -88,51 +82,51 @@ public class TransactionService {
     }
 
     public void saveExpense(Expense e){
-        e.setUser(getCurrentUser());
+        e.setUser(iamService.getCurrentUser());
         expenseRepository.save(e);
     }
 
     public void saveIncome(Income i){
-        i.setUser(getCurrentUser());
+        i.setUser(iamService.getCurrentUser());
         incomeRepository.save(i);
     }
 
     public void saveSaving(Saving s){
-        s.setUser(getCurrentUser());
+        s.setUser(iamService.getCurrentUser());
         savingRepository.save(s);
     }
 
     public void saveRevolving(Revolving r){
-        r.setUser(getCurrentUser());
+        r.setUser(iamService.getCurrentUser());
         revolvingRepository.save(r);
     }
 
     public void saveTransactions(List<Transaction> transactions) {
-        User user = getCurrentUser();
+        User user = iamService.getCurrentUser();
         transactions.forEach(t -> t.setUser(user));
         transactionRepository.saveAll(transactions);
     }
 
     public Page<Expense> getExpenses(List<SearchCriteria> filters, Pageable pageable){
-        User user = getCurrentUser();
+        User user = iamService.getCurrentUser();
         Specification<Expense> spec = TransactionSpecification.forUser(user, filters);
         return expenseRepository.findAll(spec, pageable);
     }
 
     public Page<Income> getIncomes(List<SearchCriteria> filters, Pageable pageable){
-        User user = getCurrentUser();
+        User user = iamService.getCurrentUser();
         Specification<Income> spec = TransactionSpecification.forUser(user, filters);
         return incomeRepository.findAll(spec, pageable);
     }
 
     public Page<Saving> getSavings(List<SearchCriteria> filters, Pageable pageable){
-        User user = getCurrentUser();
+        User user = iamService.getCurrentUser();
         Specification<Saving> spec = TransactionSpecification.forUser(user, filters);
         return savingRepository.findAll(spec, pageable);
     }
 
     public Page<Revolving> getRevolvings(List<SearchCriteria> filters, Pageable pageable){
-        User user = getCurrentUser();
+        User user = iamService.getCurrentUser();
         Specification<Revolving> spec = TransactionSpecification.forUser(user, filters);
         return revolvingRepository.findAll(spec, pageable);
     }
@@ -312,7 +306,7 @@ public class TransactionService {
 
     public Map<String, Object> getSummary(int days) {
         LocalDateTime since = LocalDateTime.now().minusDays(days);
-        User user = getCurrentUser();
+        User user = iamService.getCurrentUser();
 
         List<Expense> expenses = expenseRepository.findByUserAndTransactionTimeAfter(user, since);
         List<Income> incomes = incomeRepository.findByUserAndTransactionTimeAfter(user, since);
@@ -359,7 +353,7 @@ public class TransactionService {
     }
 
     public void bulkUpdateCategory(List<Long> transactionIds, Long categoryId) {
-        User user = getCurrentUser();
+        User user = iamService.getCurrentUser();
         Category category = categoryRepository.findById(categoryId)
                 .orElseThrow(() -> new IllegalArgumentException("Category not found: " + categoryId));
         List<Transaction> transactions = transactionRepository.findAllById(transactionIds);
@@ -371,7 +365,7 @@ public class TransactionService {
 
     @Transactional
     public void bulkUpdateFields(List<Long> transactionIds, Map<String, Object> fields) {
-        User user = getCurrentUser();
+        User user = iamService.getCurrentUser();
         List<Transaction> transactions = transactionRepository.findAllById(transactionIds);
         // Only operate on transactions belonging to the current user
         transactions = transactions.stream()
