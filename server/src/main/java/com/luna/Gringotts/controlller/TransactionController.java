@@ -94,7 +94,7 @@ public class TransactionController {
         return ResponseEntity.ok(income);
     }
 
-    @GetMapping
+    @GetMapping("/savings/{id}")
     public ResponseEntity<Saving> getSavingById(@PathVariable Long id) {
         Saving saving = transactionService.getSavingById(id);
         if (saving == null) {
@@ -104,23 +104,16 @@ public class TransactionController {
     }
 
     @PostMapping("/expenses")
-    public ResponseEntity<Map<String,String>> addExpense(@RequestBody Expense expense) {
+    public ResponseEntity<Map<String,Object>> addExpense(@RequestBody Expense expense) {
         transactionService.saveExpense(expense);
-        return ResponseEntity.ok(Map.of("status","success"));
+        return ResponseEntity.ok(Map.of("data", expense));
     }
 
     @PutMapping("/expenses/{id}")
     @Transactional
-    public ResponseEntity<Map<String,String>> updateExpense(@PathVariable Long id, @RequestBody Expense expense) {
-        Transaction existing = transactionService.getTransactionById(id);
-        if (existing != null && !(existing instanceof Expense)) {
-            transactionService.deleteTransaction(id);
-            expense.setId(null);
-        } else {
-            expense.setId(id);
-        }
-        transactionService.saveExpense(expense);
-        return ResponseEntity.ok(Map.of("status","success"));
+    public ResponseEntity<Map<String,Object>> updateExpense(@PathVariable Long id, @RequestBody Expense expense) {
+        Expense saved = transactionService.updateToExpense(id, expense);
+        return ResponseEntity.ok(Map.of("data", saved));
     }
 
     @GetMapping("/incomes")
@@ -139,23 +132,16 @@ public class TransactionController {
     }
 
     @PostMapping("/incomes")
-    public ResponseEntity<Map<String,String>> addIncome(@RequestBody Income income) {
+    public ResponseEntity<Map<String,Object>> addIncome(@RequestBody Income income) {
         transactionService.saveIncome(income);
-        return ResponseEntity.ok(Map.of("status","success"));
+        return ResponseEntity.ok(Map.of("data", income));
     }
 
     @PutMapping("/incomes/{id}")
     @Transactional
-    public ResponseEntity<Map<String,String>> updateIncome(@PathVariable Long id, @RequestBody Income income) {
-        Transaction existing = transactionService.getTransactionById(id);
-        if (existing != null && !(existing instanceof Income)) {
-            transactionService.deleteTransaction(id);
-            income.setId(null);
-        } else {
-            income.setId(id);
-        }
-        transactionService.saveIncome(income);
-        return ResponseEntity.ok(Map.of("status","success"));
+    public ResponseEntity<Map<String,Object>> updateIncome(@PathVariable Long id, @RequestBody Income income) {
+        Income saved = transactionService.updateToIncome(id, income);
+        return ResponseEntity.ok(Map.of("data", saved));
     }
 
     @GetMapping("/savings")
@@ -174,23 +160,16 @@ public class TransactionController {
     }
 
     @PostMapping("/savings")
-    public ResponseEntity<Saving> addSaving(@RequestBody Saving saving) {
+    public ResponseEntity<Map<String,Object>> addSaving(@RequestBody Saving saving) {
         transactionService.saveSaving(saving);
-        return ResponseEntity.ok(saving);
+        return ResponseEntity.ok(Map.of("data", saving));
     }
 
     @PutMapping("/savings/{id}")
     @Transactional
-    public ResponseEntity<Saving> updateSaving(@PathVariable Long id, @RequestBody Saving saving) {
-        Transaction existing = transactionService.getTransactionById(id);
-        if (existing != null && !(existing instanceof Saving)) {
-            transactionService.deleteTransaction(id);
-            saving.setId(null);
-        } else {
-            saving.setId(id);
-        }
-        transactionService.saveSaving(saving);
-        return ResponseEntity.ok(saving);
+    public ResponseEntity<Map<String,Object>> updateSaving(@PathVariable Long id, @RequestBody Saving saving) {
+        Saving saved = transactionService.updateToSaving(id, saving);
+        return ResponseEntity.ok(Map.of("data", saved));
     }
 
     @GetMapping("/revolvings")
@@ -218,23 +197,16 @@ public class TransactionController {
     }
 
     @PostMapping("/revolvings")
-    public ResponseEntity<Revolving> addRevolving(@RequestBody Revolving revolving) {
+    public ResponseEntity<Map<String,Object>> addRevolving(@RequestBody Revolving revolving) {
         transactionService.saveRevolving(revolving);
-        return ResponseEntity.ok(revolving);
+        return ResponseEntity.ok(Map.of("data", revolving));
     }
 
     @PutMapping("/revolvings/{id}")
     @Transactional
-    public ResponseEntity<Revolving> updateRevolving(@PathVariable Long id, @RequestBody Revolving revolving) {
-        Transaction existing = transactionService.getTransactionById(id);
-        if (existing != null && !(existing instanceof Revolving)) {
-            transactionService.deleteTransaction(id);
-            revolving.setId(null);
-        } else {
-            revolving.setId(id);
-        }
-        transactionService.saveRevolving(revolving);
-        return ResponseEntity.ok(revolving);
+    public ResponseEntity<Map<String,Object>> updateRevolving(@PathVariable Long id, @RequestBody Revolving revolving) {
+        Revolving saved = transactionService.updateToRevolving(id, revolving);
+        return ResponseEntity.ok(Map.of("data", saved));
     }
 
 
@@ -245,6 +217,17 @@ public class TransactionController {
         List<Long> transactionIds = rawIds.stream().map(Integer::longValue).toList();
         Long categoryId = ((Number) request.get("category_id")).longValue();
         transactionService.bulkUpdateCategory(transactionIds, categoryId);
+        return ResponseEntity.ok(Map.of("status", "success"));
+    }
+
+    @PutMapping("/transactions/bulk-update")
+    public ResponseEntity<Map<String, String>> bulkUpdate(@RequestBody Map<String, Object> request) {
+        @SuppressWarnings("unchecked")
+        List<Integer> rawIds = (List<Integer>) request.get("transaction_ids");
+        List<Long> transactionIds = rawIds.stream().map(Integer::longValue).toList();
+        @SuppressWarnings("unchecked")
+        Map<String, Object> fields = (Map<String, Object>) request.get("fields");
+        transactionService.bulkUpdateFields(transactionIds, fields);
         return ResponseEntity.ok(Map.of("status", "success"));
     }
 

@@ -2,18 +2,18 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Save, TrendingDown, TrendingUp, PiggyBank, RefreshCw } from 'lucide-react';
 import { api } from '../services/api';
-import { Category, SubCategory, Item, TransactionType, Expense, Income, Saving, Revolving, Transaction} from '../types';
+import { Category, SubCategory, Item, TransactionType, Expense, Income, Saving, Revolving, Transaction } from '../types';
 import { useToast } from '../components/ToastContext';
 
 interface TransactionModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess: () => void;
+  onSuccess: (savedType: TransactionType, savedId: number) => void;
   transaction?: Transaction | null;
   defaultType?: TransactionType;
 }
 
-type TransactionFormState = Omit<Partial<Transaction>, 'value' > & {
+type TransactionFormState = Omit<Partial<Transaction>, 'value'> & {
   value: string | number;
   payment_mode?: string;
   source?: string;
@@ -97,7 +97,7 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, on
 
         if (transaction) {
           setType(transaction.type);
-          
+
           if (transaction.category) {
             const subs = await getSubCategories(transaction.category.id);
             setSubCategories(subs);
@@ -148,7 +148,7 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, on
       setItems([]);
     }
   };
-  
+
   const isEditing = !!transaction;
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -166,25 +166,28 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, on
         notes: formData.notes,
         type
       };
-      
+
       const apiCall = isEditing
         ? (type === TransactionType.EXPENSE ? api.updateExpense : type === TransactionType.INCOME ? api.updateIncome : type === TransactionType.SAVING ? api.updateSaving : api.updateRevolving)
         : (type === TransactionType.EXPENSE ? api.createExpense : type === TransactionType.INCOME ? api.createIncome : type === TransactionType.SAVING ? api.createSaving : api.createRevolving);
 
 
+      let savedResponse: any;
       if (type === TransactionType.EXPENSE) {
-        await apiCall({ ...commonPayload, payment_mode: formData.payment_mode, type: TransactionType.EXPENSE } as any);
+        savedResponse = await apiCall({ ...commonPayload, payment_mode: formData.payment_mode, type: TransactionType.EXPENSE } as any);
       } else if (type === TransactionType.INCOME) {
-        await apiCall({ ...commonPayload, source: formData.source, type: TransactionType.INCOME } as any);
+        savedResponse = await apiCall({ ...commonPayload, source: formData.source, type: TransactionType.INCOME } as any);
       } else if (type === TransactionType.SAVING) {
-        await apiCall({ ...commonPayload, is_in: formData.is_in, type: TransactionType.SAVING } as any);
+        savedResponse = await apiCall({ ...commonPayload, is_in: formData.is_in, type: TransactionType.SAVING } as any);
       } else if (type === TransactionType.REVOLVING) {
-        await apiCall({ ...commonPayload, is_give: formData.is_give, closed: formData.closed, type: TransactionType.REVOLVING } as any);
+        savedResponse = await apiCall({ ...commonPayload, is_give: formData.is_give, closed: formData.closed, type: TransactionType.REVOLVING } as any);
       }
-      
+
+      const savedId: number = savedResponse?.id ?? commonPayload.id;
+
       showToast('Transaction saved successfully', 'success');
       resetForm();
-      onSuccess();
+      onSuccess(type, savedId);
       onClose();
     } catch (err) {
       console.error(err);
@@ -228,27 +231,27 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, on
               }[t];
 
               return (
-              <button
-                key={t}
-                type="button"
-                onClick={() => {
-                  setType(t);
-                  // Re-fetch categories for new type and clear selections
-                  api.getCategories(t).then(cats => {
-                    setCategories(cats);
-                    setSubCategories([]);
-                    setItems([]);
-                    setFormData(prev => ({ ...prev, category: undefined, subcategory: undefined, item: undefined }));
-                  });
-                }}
-                className={`py-2.5 flex items-center justify-center text-sm font-semibold rounded-lg transition-all ${
-                  type === t ? `bg-gradient-to-r ${typeColors[t]} text-white shadow-lg` : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700/50'
-                }`}
-              >
-                <Icon className="w-5 h-5 md:hidden" />
-                <span className="hidden md:inline">{t}</span>
-              </button>
-            )})}
+                <button
+                  key={t}
+                  type="button"
+                  onClick={() => {
+                    setType(t);
+                    // Re-fetch categories for new type and clear selections
+                    api.getCategories(t).then(cats => {
+                      setCategories(cats);
+                      setSubCategories([]);
+                      setItems([]);
+                      setFormData(prev => ({ ...prev, category: undefined, subcategory: undefined, item: undefined }));
+                    });
+                  }}
+                  className={`py-2.5 flex items-center justify-center text-sm font-semibold rounded-lg transition-all ${type === t ? `bg-gradient-to-r ${typeColors[t]} text-white shadow-lg` : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700/50'
+                    }`}
+                >
+                  <Icon className="w-5 h-5 md:hidden" />
+                  <span className="hidden md:inline">{t}</span>
+                </button>
+              )
+            })}
           </div>
 
           <div className="space-y-4">
@@ -291,7 +294,7 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, on
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-               <div className="space-y-1.5">
+              <div className="space-y-1.5">
                 <label className="text-sm font-medium text-slate-600 dark:text-slate-300">Category</label>
                 <select
                   className="w-full px-4 py-2.5 bg-slate-100 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 rounded-xl focus:ring-2 focus:ring-cyan-500/40 outline-none text-slate-900 dark:text-white"
@@ -340,7 +343,10 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, on
                   <option value="CASH">Cash</option>
                   <option value="CREDIT_CARD">Credit Card</option>
                   <option value="DEBIT_CARD">Debit Card</option>
-                  <option value="UPI">UPI / Online</option>
+                  <option value="UPI">UPI</option>
+                    <option value="EMANDATE">E-Mandate</option>
+                    <option value="BANK_TRANSFER">Bank Transfer</option>
+                    <option value="WALLET">Wallet</option>
                 </select>
               </div>
             )}
@@ -366,18 +372,16 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, on
                     <button
                       type="button"
                       onClick={() => setFormData(prev => ({ ...prev, is_in: true }))}
-                      className={`py-2 text-sm font-semibold rounded-lg transition-all ${
-                        formData.is_in ? 'bg-white dark:bg-slate-700 text-violet-600 dark:text-violet-400 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
-                      }`}
+                      className={`py-2 text-sm font-semibold rounded-lg transition-all ${formData.is_in ? 'bg-white dark:bg-slate-700 text-violet-600 dark:text-violet-400 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
+                        }`}
                     >
                       IN (Deposit)
                     </button>
                     <button
                       type="button"
                       onClick={() => setFormData(prev => ({ ...prev, is_in: false }))}
-                      className={`py-2 text-sm font-semibold rounded-lg transition-all ${
-                        !formData.is_in ? 'bg-white dark:bg-slate-700 text-rose-600 dark:text-rose-400 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
-                      }`}
+                      className={`py-2 text-sm font-semibold rounded-lg transition-all ${!formData.is_in ? 'bg-white dark:bg-slate-700 text-rose-600 dark:text-rose-400 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
+                        }`}
                     >
                       OUT (Withdrawal)
                     </button>
@@ -394,18 +398,16 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, on
                     <button
                       type="button"
                       onClick={() => setFormData(prev => ({ ...prev, is_give: true }))}
-                      className={`py-2 text-sm font-semibold rounded-lg transition-all ${
-                        formData.is_give !== false ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
-                      }`}
+                      className={`py-2 text-sm font-semibold rounded-lg transition-all ${formData.is_give !== false ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
+                        }`}
                     >
                       GIVE
                     </button>
                     <button
                       type="button"
                       onClick={() => setFormData(prev => ({ ...prev, is_give: false }))}
-                      className={`py-2 text-sm font-semibold rounded-lg transition-all ${
-                        formData.is_give === false ? 'bg-white dark:bg-slate-700 text-cyan-600 dark:text-cyan-400 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
-                      }`}
+                      className={`py-2 text-sm font-semibold rounded-lg transition-all ${formData.is_give === false ? 'bg-white dark:bg-slate-700 text-cyan-600 dark:text-cyan-400 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
+                        }`}
                     >
                       RECEIVE
                     </button>

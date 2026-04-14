@@ -1,6 +1,7 @@
 package com.luna.Gringotts.repository;
 
 import com.luna.Gringotts.records.Transaction;
+import com.luna.Gringotts.records.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -23,6 +24,15 @@ public interface TransactionRepository<T extends Transaction> extends JpaReposit
 
     @EntityGraph(attributePaths = {"category", "subCategory", "item"})
     List<T> findByTransactionTimeAfter(LocalDateTime after);
+
+    @EntityGraph(attributePaths = {"category", "subCategory", "item"})
+    List<T> findByUserAndTransactionTimeAfter(User user, LocalDateTime after);
+
+    @EntityGraph(attributePaths = {"category", "subCategory", "item"})
+    List<T> findByTransactionTimeBetween(LocalDateTime start, LocalDateTime end);
+
+    @EntityGraph(attributePaths = {"category", "subCategory", "item"})
+    List<T> findByUserAndTransactionTimeBetween(User user, LocalDateTime start, LocalDateTime end);
 
     @Override
     @EntityGraph(attributePaths = {"category", "subCategory", "item"})

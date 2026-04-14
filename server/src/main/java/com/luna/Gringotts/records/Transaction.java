@@ -66,6 +66,11 @@ public class Transaction {
     @Column(name = "imported")
     Boolean imported = false;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
+    User user;
+
     public Long getId() {
         return id;
     }
@@ -152,5 +157,13 @@ public class Transaction {
 
     public void setImported(Boolean imported) {
         this.imported = imported;
+    }
+
+    public User getUser() {
+        return user;
+    }
+
+    public void setUser(User user) {
+        this.user = user;
     }
 }
