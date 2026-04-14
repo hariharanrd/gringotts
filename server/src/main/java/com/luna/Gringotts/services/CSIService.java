@@ -30,7 +30,7 @@ public class CSIService {
     ItemRepository itemRepository;
 
     @Autowired
-    IAMService iamService;
+    public IAMService iamService;
 
 
     @CacheEvict(value = {"categories", "categoryById"}, allEntries = true)
