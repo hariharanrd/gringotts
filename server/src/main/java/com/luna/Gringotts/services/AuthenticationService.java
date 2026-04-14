@@ -125,6 +125,18 @@ public class AuthenticationService {
         return new MfaResult(jwt, trustToken);
     }
 
+    public SilentRefreshResult silentRefresh(String trustToken) {
+        if (trustToken != null) {
+            Optional<TrustedBrowser> trusted = trustedBrowserRepository.findByToken(trustToken);
+            if (trusted.isPresent() && trusted.get().getExpiresAt().isAfter(LocalDateTime.now())) {
+                User user = userRepository.findByUsername(trusted.get().getUsername()).orElseThrow();
+                return new SilentRefreshResult(jwtService.generateToken(user));
+            }
+        }
+        return new SilentRefreshResult(null);
+    }
+
     public static record PreAuthResult(boolean requiresMfa, String preAuthToken, String jwt, String trustToken) {}
     public static record MfaResult(String jwt, String trustToken) {}
+    public static record SilentRefreshResult(String jwt) {}
 }

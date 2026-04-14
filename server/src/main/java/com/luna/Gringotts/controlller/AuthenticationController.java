@@ -45,15 +45,27 @@ public class AuthenticationController {
             @RequestBody PreAuthenticateRequest request,
             @RequestHeader(value = "X-Trust-Token", required = false) String trustToken,
             HttpServletResponse response) {
+
+        // Silent token refresh: Android sends only a trust token (no credentials needed)
+        if (request.getUsername() == null && trustToken != null) {
+            AuthenticationService.SilentRefreshResult result = service.silentRefresh(trustToken);
+            if (result.jwt() != null) {
+                setSessionCookie(result.jwt(), response);
+                return ResponseEntity.ok(new PreAuthenticateResponse(false, null, result.jwt()));
+            }
+            // Trust token invalid/expired — tell client to show login
+            return ResponseEntity.status(401).build();
+        }
+
         AuthenticationService.PreAuthResult result = service.preAuthenticate(
                 request.getUsername(), request.getPassword(), trustToken);
 
         if (!result.requiresMfa()) {
             setSessionCookie(result.jwt(), response);
-            return ResponseEntity.ok(new PreAuthenticateResponse(false, null));
+            return ResponseEntity.ok(new PreAuthenticateResponse(false, null, result.jwt()));
         }
 
-        return ResponseEntity.ok(new PreAuthenticateResponse(true, result.preAuthToken()));
+        return ResponseEntity.ok(new PreAuthenticateResponse(true, result.preAuthToken(), null));
     }
 
     @PostMapping("/authenticate")
@@ -65,7 +77,7 @@ public class AuthenticationController {
 
         setSessionCookie(result.jwt(), response);
 
-        return ResponseEntity.ok(new AuthenticateResponse(result.trustToken()));
+        return ResponseEntity.ok(new AuthenticateResponse(result.trustToken(), result.jwt()));
     }
 
     private void setSessionCookie(String token, HttpServletResponse response) {
@@ -146,7 +158,7 @@ public class AuthenticationController {
         }
     }
 
-    public static record PreAuthenticateResponse(boolean requiresMfa, String preAuthToken) {
+    public static record PreAuthenticateResponse(boolean requiresMfa, String preAuthToken, String jwt) {
     }
 
     public static class AuthenticateRequest {
@@ -179,6 +191,6 @@ public class AuthenticationController {
         }
     }
 
-    public static record AuthenticateResponse(String trustToken) {
+    public static record AuthenticateResponse(String trustToken, String jwt) {
     }
 }
