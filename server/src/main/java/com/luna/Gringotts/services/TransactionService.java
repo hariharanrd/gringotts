@@ -9,6 +9,7 @@ import com.luna.Gringotts.repository.CategoryRepository;
 import com.luna.Gringotts.repository.SubCategoryRepository;
 import com.luna.Gringotts.repository.ItemRepository;
 import com.luna.Gringotts.repository.TransactionRepository;
+import com.luna.Gringotts.repository.UserRepository;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -54,6 +55,12 @@ public class TransactionService {
     @Autowired
     ItemRepository itemRepository;
 
+    @Autowired
+    UserRepository userRepository;
+
+    @Autowired
+    IAMService iamService;
+
     public Transaction getTransactionById(Long id) {
         return transactionRepository.findById(id).orElse(null);
     }
@@ -75,54 +82,52 @@ public class TransactionService {
     }
 
     public void saveExpense(Expense e){
+        e.setUser(iamService.getCurrentUser());
         expenseRepository.save(e);
     }
 
     public void saveIncome(Income i){
+        i.setUser(iamService.getCurrentUser());
         incomeRepository.save(i);
     }
 
     public void saveSaving(Saving s){
+        s.setUser(iamService.getCurrentUser());
         savingRepository.save(s);
     }
 
     public void saveRevolving(Revolving r){
+        r.setUser(iamService.getCurrentUser());
         revolvingRepository.save(r);
     }
 
     public void saveTransactions(List<Transaction> transactions) {
+        User user = iamService.getCurrentUser();
+        transactions.forEach(t -> t.setUser(user));
         transactionRepository.saveAll(transactions);
     }
 
     public Page<Expense> getExpenses(List<SearchCriteria> filters, Pageable pageable){
-        if (filters == null || filters.isEmpty()) {
-            return expenseRepository.findAll(pageable);
-        }
-        Specification<Expense> spec = TransactionSpecification.getSpecification(filters);
+        User user = iamService.getCurrentUser();
+        Specification<Expense> spec = TransactionSpecification.forUser(user, filters);
         return expenseRepository.findAll(spec, pageable);
     }
 
     public Page<Income> getIncomes(List<SearchCriteria> filters, Pageable pageable){
-        if (filters == null || filters.isEmpty()) {
-            return incomeRepository.findAll(pageable);
-        }
-        Specification<Income> spec = TransactionSpecification.getSpecification(filters);
+        User user = iamService.getCurrentUser();
+        Specification<Income> spec = TransactionSpecification.forUser(user, filters);
         return incomeRepository.findAll(spec, pageable);
     }
 
     public Page<Saving> getSavings(List<SearchCriteria> filters, Pageable pageable){
-        if (filters == null || filters.isEmpty()) {
-            return savingRepository.findAll(pageable);
-        }
-        Specification<Saving> spec = TransactionSpecification.getSpecification(filters);
+        User user = iamService.getCurrentUser();
+        Specification<Saving> spec = TransactionSpecification.forUser(user, filters);
         return savingRepository.findAll(spec, pageable);
     }
 
     public Page<Revolving> getRevolvings(List<SearchCriteria> filters, Pageable pageable){
-        if (filters == null || filters.isEmpty()) {
-            return revolvingRepository.findAll(pageable);
-        }
-        Specification<Revolving> spec = TransactionSpecification.getSpecification(filters);
+        User user = iamService.getCurrentUser();
+        Specification<Revolving> spec = TransactionSpecification.forUser(user, filters);
         return revolvingRepository.findAll(spec, pageable);
     }
 
@@ -301,10 +306,11 @@ public class TransactionService {
 
     public Map<String, Object> getSummary(int days) {
         LocalDateTime since = LocalDateTime.now().minusDays(days);
+        User user = iamService.getCurrentUser();
 
-        List<Expense> expenses = expenseRepository.findByTransactionTimeAfter(since);
-        List<Income> incomes = incomeRepository.findByTransactionTimeAfter(since);
-        List<Saving> savings = savingRepository.findByTransactionTimeAfter(since);
+        List<Expense> expenses = expenseRepository.findByUserAndTransactionTimeAfter(user, since);
+        List<Income> incomes = incomeRepository.findByUserAndTransactionTimeAfter(user, since);
+        List<Saving> savings = savingRepository.findByUserAndTransactionTimeAfter(user, since);
 
         double totalExpenses = expenses.stream().mapToDouble(Transaction::getValue).sum();
         double totalIncomes = incomes.stream().mapToDouble(Transaction::getValue).sum();
@@ -325,7 +331,7 @@ public class TransactionService {
         allTransactions.addAll(incomes);
         allTransactions.addAll(savings);
         
-        List<Revolving> revolvings = revolvingRepository.findByTransactionTimeAfter(since);
+        List<Revolving> revolvings = revolvingRepository.findByUserAndTransactionTimeAfter(user, since);
         allTransactions.addAll(revolvings);
 
         allTransactions.sort(Comparator.comparing(Transaction::getTransactionTime).reversed());
@@ -347,16 +353,24 @@ public class TransactionService {
     }
 
     public void bulkUpdateCategory(List<Long> transactionIds, Long categoryId) {
+        User user = iamService.getCurrentUser();
         Category category = categoryRepository.findById(categoryId)
                 .orElseThrow(() -> new IllegalArgumentException("Category not found: " + categoryId));
         List<Transaction> transactions = transactionRepository.findAllById(transactionIds);
-        transactions.forEach(t -> t.setCategory(category));
+        transactions.stream()
+                .filter(t -> t.getUser() != null && t.getUser().getId().equals(user.getId()))
+                .forEach(t -> t.setCategory(category));
         transactionRepository.saveAll(transactions);
     }
 
     @Transactional
     public void bulkUpdateFields(List<Long> transactionIds, Map<String, Object> fields) {
+        User user = iamService.getCurrentUser();
         List<Transaction> transactions = transactionRepository.findAllById(transactionIds);
+        // Only operate on transactions belonging to the current user
+        transactions = transactions.stream()
+                .filter(t -> t.getUser() != null && t.getUser().getId().equals(user.getId()))
+                .collect(Collectors.toList());
 
         // Pre-fetch relational entities if referenced
         Category category = null;

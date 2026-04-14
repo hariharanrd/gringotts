@@ -4,6 +4,7 @@ import com.luna.Gringotts.records.*;
 import com.luna.Gringotts.repository.*;
 import org.jspecify.annotations.NonNull;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,20 +31,23 @@ public class BudgetService {
     @Autowired
     private RevolvingRepository revolvingRepository;
 
+    @Autowired
+    private IAMService iamService;
+
     // ── Read ──────────────────────────────────────────────────────────────────
 
     public Budget getMasterBudget() {
-        return budgetRepository.findByIsMasterTrue()
+        return budgetRepository.findByIsMasterTrueAndUser(iamService.getCurrentUser())
                 .orElseThrow(() -> new IllegalStateException("No master budget found"));
     }
 
     public List<Budget> getMonthlyBudgets() {
-        return budgetRepository.findAllByIsMasterFalseOrderByYearDescMonthDesc();
+        return budgetRepository.findAllByIsMasterFalseAndUserOrderByYearDescMonthDesc(iamService.getCurrentUser());
     }
 
     public List<Budget> getAllBudgets() {
         List<Budget> all = new ArrayList<>();
-        budgetRepository.findByIsMasterTrue().ifPresent(all::add);
+        budgetRepository.findByIsMasterTrueAndUser(iamService.getCurrentUser()).ifPresent(all::add);
         all.addAll(getMonthlyBudgets());
         return all;
     }
@@ -56,17 +60,21 @@ public class BudgetService {
     /** Returns the monthly budget for the current month/year.
      *  Falls back to the master budget if no monthly version exists. */
     public Budget getActiveBudget() {
+        User user = iamService.getCurrentUser();
         LocalDateTime now = LocalDateTime.now();
-        return budgetRepository.findByMonthAndYear(now.getMonthValue(), now.getYear())
-                .orElseGet(() -> budgetRepository.findByIsMasterTrue().orElse(null));
+        return budgetRepository.findByMonthAndYearAndUser(now.getMonthValue(), now.getYear(), user)
+                .orElseGet(() -> budgetRepository.findByIsMasterTrueAndUser(user).orElse(null));
     }
 
     // ── Create ────────────────────────────────────────────────────────────────
 
     @Transactional
     public Budget createBudget(Budget budget) {
+        User user = iamService.getCurrentUser();
+        budget.setUser(user);
+
         if (Boolean.TRUE.equals(budget.getIsMaster())) {
-            if (budgetRepository.findByIsMasterTrue().isPresent()) {
+            if (budgetRepository.findByIsMasterTrueAndUser(user).isPresent()) {
                 throw new IllegalStateException("A master budget already exists");
             }
         } else {
@@ -104,12 +112,14 @@ public class BudgetService {
     /** Clones the source budget's header + all allocations into a new monthly version. */
     @Transactional
     public Budget createMonthlyVersion(Long sourceBudgetId, int month, int year) {
-        if (budgetRepository.findByMonthAndYear(month, year).isPresent()) {
+        User user = iamService.getCurrentUser();
+        if (budgetRepository.findByMonthAndYearAndUser(month, year, user).isPresent()) {
             throw new IllegalStateException("A budget for " + month + "/" + year + " already exists");
         }
         Budget source = getBudgetById(sourceBudgetId);
 
         Budget copy = new Budget();
+        copy.setUser(user);
         copy.setName(source.getName() + " — " + month + "/" + year);
         copy.setMonth(month);
         copy.setYear(year);
@@ -239,9 +249,10 @@ public class BudgetService {
         end = ym.atEndOfMonth().atTime(23, 59, 59);
 
         // Fetch transactions for the period
-        List<Expense> expenses = expenseRepository.findByTransactionTimeBetween(start, end);
-        List<Saving> savings = savingRepository.findByTransactionTimeBetween(start, end);
-        List<Revolving> revolvings = revolvingRepository.findByTransactionTimeBetween(start, end);
+        User user = iamService.getCurrentUser();
+        List<Expense> expenses = expenseRepository.findByUserAndTransactionTimeBetween(user, start, end);
+        List<Saving> savings = savingRepository.findByUserAndTransactionTimeBetween(user, start, end);
+        List<Revolving> revolvings = revolvingRepository.findByUserAndTransactionTimeBetween(user, start, end);
 
         // Aggregate spent amounts by category (use category id as key)
         Map<Long, Double> spentByCategory = new HashMap<>();

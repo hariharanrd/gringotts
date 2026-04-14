@@ -1,6 +1,7 @@
 package com.luna.Gringotts.records;
 
 import jakarta.persistence.*;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 @Entity
 @Table(name = "category", schema = "public")
@@ -33,6 +34,11 @@ public class Category {
     @Column(nullable = false)
     String type;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
+    User user;
+
     public Long getId() {
         return id;
     }
@@ -47,6 +53,14 @@ public class Category {
 
     public String getType() {
         return type;
+    }
+
+    public User getUser() {
+        return user;
+    }
+
+    public void setUser(User user) {
+        this.user = user;
     }
 
 }

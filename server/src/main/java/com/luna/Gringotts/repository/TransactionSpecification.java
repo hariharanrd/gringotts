@@ -2,6 +2,7 @@ package com.luna.Gringotts.repository;
 
 import com.luna.Gringotts.records.SearchCriteria;
 import com.luna.Gringotts.records.Transaction;
+import com.luna.Gringotts.records.User;
 import org.springframework.data.jpa.domain.Specification;
 
 import jakarta.persistence.criteria.*;
@@ -41,6 +42,24 @@ public class TransactionSpecification {
 
             return builder.and(predicates.toArray(new Predicate[0]));
         };
+    }
+
+    /** Returns a Specification that filters by the owning user. */
+    public static <T extends Transaction> Specification<T> userFilter(User user) {
+        return (root, query, builder) -> builder.equal(root.get("user"), user);
+    }
+
+    /**
+     * Builds a combined user-scoped specification:
+     * always filters by user, and optionally applies additional criteria.
+     */
+    public static <T extends Transaction> Specification<T> forUser(
+            User user, List<SearchCriteria> criteriaList) {
+        Specification<T> spec = userFilter(user);
+        if (criteriaList != null && !criteriaList.isEmpty()) {
+            spec = spec.and(getSpecification(criteriaList));
+        }
+        return spec;
     }
 
     private static Path<?> getPath(Root<?> root, String field) {
