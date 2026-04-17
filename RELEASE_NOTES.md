@@ -7,7 +7,9 @@ Elevate your financial organization with enhanced visual customization! Now, you
 
 - **Custom Icons**: Choose from a curated library of icons (🍽️, 🚗, 🛋️, etc.) to represent your categories visually.
 - **Vibrant Colors**: Assign unique colors to each category for instant identification across the dashboard and transaction lists.
-- **Budget Refinement**: Improved budget utilization views to focus on open Revolvings and better handle uncategorized spending.
+- **Savings Breakdown**: Replaced the "Spending Split" pie chart with a dynamic "Savings Breakdown" bar chart. This new widget supports negative net savings, correctly visualizing both deposits and withdrawals.
+- **Outstanding Balances**: New dashboard cards for Revolvings provide at-a-glance summaries of "To Pay" (IOU) and "To Collect" (UOM) for all open transactions.
+- **Dashboard Layout Optimizations**: Balanced the charts row with equal widths and added gridlines for improved data reference on large screens.
 
 ---
 

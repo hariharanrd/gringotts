@@ -325,6 +325,13 @@ public class TransactionService {
                         Collectors.summingDouble(Transaction::getValue)
                 ));
 
+        // Category breakdown for savings
+        Map<String, Double> savingsBreakdown = savings.stream()
+                .collect(Collectors.groupingBy(
+                        s -> s.getCategory() != null ? s.getCategory().getName() : "Uncategorized",
+                        Collectors.summingDouble(s -> (s.getIsIn() != null && s.getIsIn()) ? s.getValue() : -s.getValue())
+                ));
+
         // Recent transactions (all types, sorted by date desc, limit 10)
         List<Transaction> allTransactions = new ArrayList<>();
         allTransactions.addAll(expenses);
@@ -334,6 +341,17 @@ public class TransactionService {
         List<Revolving> revolvings = revolvingRepository.findByUserAndTransactionTimeAfter(user, since);
         allTransactions.addAll(revolvings);
 
+        // Open Revolvings Summary (All-time balance)
+        List<Revolving> openRevolvings = revolvingRepository.findByUserAndClosedFalse(user);
+        double totalIOwe = openRevolvings.stream()
+                .filter(r -> Boolean.FALSE.equals(r.getIsGive()))
+                .mapToDouble(Transaction::getValue)
+                .sum();
+        double totalOthersOweMe = openRevolvings.stream()
+                .filter(r -> Boolean.TRUE.equals(r.getIsGive()))
+                .mapToDouble(Transaction::getValue)
+                .sum();
+
         allTransactions.sort(Comparator.comparing(Transaction::getTransactionTime).reversed());
         List<Transaction> recentTransactions = allTransactions.stream().limit(10).collect(Collectors.toList());
 
@@ -342,11 +360,14 @@ public class TransactionService {
         summary.put("total_expenses", totalExpenses);
         summary.put("total_incomes", totalIncomes);
         summary.put("total_savings", totalSavings);
+        summary.put("total_i_owe", totalIOwe);
+        summary.put("total_others_owe_me", totalOthersOweMe);
         summary.put("net_balance", totalIncomes - totalExpenses);
         summary.put("expense_count", expenses.size());
         summary.put("income_count", incomes.size());
         summary.put("saving_count", savings.size());
         summary.put("category_breakdown", categoryBreakdown);
+        summary.put("savings_breakdown", savingsBreakdown);
         summary.put("recent_transactions", recentTransactions);
 
         return summary;
