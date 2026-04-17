@@ -45,6 +45,8 @@ Take control of your future with our advanced budgeting engine:
 
 Organize your data exactly how you want it. Our three-tier system (**Category > SubCategory > Item**) ensures that every transaction is mapped to its most granular level for deep insights.
 
+- **Visual Classification**: Categories now support custom **Icons** and **Colors**, enabling instant visual identification of spending patterns across the dashboard and transaction views.
+
 ### 🛡️ Enterprise-Grade Security
 
 Your financial data is sensitive. We protect it with:
