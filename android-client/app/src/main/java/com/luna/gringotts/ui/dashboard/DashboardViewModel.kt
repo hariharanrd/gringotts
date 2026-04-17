@@ -18,6 +18,9 @@ class DashboardViewModel @Inject constructor(
     private val _uiState = MutableStateFlow<DashboardState>(DashboardState.Loading)
     val uiState: StateFlow<DashboardState> = _uiState
 
+    private val _isPrivateMode = MutableStateFlow(false)
+    val isPrivateMode: StateFlow<Boolean> = _isPrivateMode
+
     init {
         loadDashboard()
     }
@@ -33,6 +36,10 @@ class DashboardViewModel @Inject constructor(
                     _uiState.value = DashboardState.Error(error.message ?: "Failed to load dashboard")
                 }
         }
+    }
+
+    fun togglePrivateMode() {
+        _isPrivateMode.value = !_isPrivateMode.value
     }
 }
 

@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.luna.gringotts.data.remote.model.CategoryUtilizationDto
+import com.luna.gringotts.ui.components.VaultVolumeBar
 import java.text.NumberFormat
 import java.util.Locale
 
@@ -132,22 +133,11 @@ fun ActiveBudgetSummary(name: String, total: Double, spent: Double) {
             
             Spacer(modifier = Modifier.height(20.dp))
             
-            // Volume Bar
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(12.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.surfaceContainerHighest)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth(progress.toFloat())
-                        .fillMaxHeight()
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.primary)
-                )
-            }
+            // Signature Volume Bar
+            VaultVolumeBar(
+                progress = progress.toFloat(),
+                modifier = Modifier.fillMaxWidth()
+            )
             
             Spacer(modifier = Modifier.height(8.dp))
             Text(
@@ -173,13 +163,11 @@ fun CategoryUtilizationRow(util: CategoryUtilizationDto) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
-        Spacer(modifier = Modifier.height(8.dp))
-        LinearProgressIndicator(
+        Spacer(modifier = Modifier.height(12.dp))
+        VaultVolumeBar(
             progress = (util.percentage / 100.0).coerceIn(0.0, 1.0).toFloat(),
-            modifier = Modifier.fillMaxWidth().height(4.dp),
-            color = if (util.percentage > 100) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
-            trackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-            strokeCap = androidx.compose.ui.graphics.StrokeCap.Round
+            modifier = Modifier.fillMaxWidth(),
+            color = if (util.percentage > 100) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
         )
     }
 }

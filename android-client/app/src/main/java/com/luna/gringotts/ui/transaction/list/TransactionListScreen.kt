@@ -17,6 +17,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.luna.gringotts.data.remote.model.TransactionDto
+import com.luna.gringotts.ui.components.VaultGradientFAB
 import java.text.NumberFormat
 import java.util.Locale
 
@@ -56,10 +57,8 @@ fun TransactionListScreen(
             )
         },
         floatingActionButton = {
-            FloatingActionButton(
-                onClick = { onAddClick(type) },
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary
+            VaultGradientFAB(
+                onClick = { onAddClick(type) }
             ) {
                 Icon(Icons.Default.Add, contentDescription = "Add")
             }
@@ -92,11 +91,7 @@ fun TransactionListScreen(
                         
                         items(state.transactions) { tx ->
                             TransactionListItemRow(tx, onDelete = { viewModel.deleteTransaction(tx.id) })
-                            Divider(
-                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.15f),
-                                thickness = 0.5.dp,
-                                modifier = Modifier.padding(vertical = 8.dp)
-                            )
+                            Spacer(modifier = Modifier.height(12.dp))
                         }
                         
                         if (state.hasMore) {

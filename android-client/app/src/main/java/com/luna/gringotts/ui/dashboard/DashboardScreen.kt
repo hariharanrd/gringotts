@@ -8,14 +8,10 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.AccountBalanceWallet
-import androidx.compose.material.icons.filled.Category
-import androidx.compose.material.icons.filled.ShowChart
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
+import com.luna.gringotts.ui.components.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -40,6 +36,7 @@ fun DashboardScreen(
     onAddClick: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val isPrivateMode by viewModel.isPrivateMode.collectAsState()
 
     Scaffold(
         topBar = {
@@ -48,8 +45,18 @@ fun DashboardScreen(
                     Text(
                         "Digital Vault", 
                         style = MaterialTheme.typography.headlineLarge,
-                        color = MaterialTheme.colorScheme.onSurface
+                        color = MaterialTheme.colorScheme.onSurface,
+                        letterSpacing = (-1).sp
                     ) 
+                },
+                actions = {
+                    IconButton(onClick = { viewModel.togglePrivateMode() }) {
+                        Icon(
+                            imageVector = if (isPrivateMode) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                            contentDescription = "Toggle Privacy",
+                            tint = if (isPrivateMode) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.background,
@@ -58,11 +65,8 @@ fun DashboardScreen(
             )
         },
         floatingActionButton = {
-            FloatingActionButton(
-                onClick = onAddClick,
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary,
-                shape = CircleShape
+            VaultGradientFAB(
+                onClick = onAddClick
             ) {
                 Icon(Icons.Default.Add, contentDescription = "Add Transaction")
             }
@@ -102,9 +106,10 @@ fun DashboardScreen(
                         verticalArrangement = Arrangement.spacedBy(24.dp)
                     ) {
                         item {
-                            Spacer(modifier = Modifier.height(8.dp))
+                            Spacer(modifier = Modifier.height(16.dp))
                             VaultBalanceSection(
-                                amount = summary.totalIncomes - summary.totalExpenses
+                                amount = summary.totalIncomes - summary.totalExpenses,
+                                isPrivateMode = isPrivateMode
                             )
                         }
                         
@@ -125,6 +130,7 @@ fun DashboardScreen(
                                     title = "Income",
                                     amount = summary.totalIncomes,
                                     isPositive = true,
+                                    isPrivateMode = isPrivateMode,
                                     onClick = { onNavigateToList("INCOME") }
                                 )
                                 VaultStatCard(
@@ -132,6 +138,7 @@ fun DashboardScreen(
                                     title = "Expenses",
                                     amount = summary.totalExpenses,
                                     isPositive = false,
+                                    isPrivateMode = isPrivateMode,
                                     onClick = { onNavigateToList("EXPENSE") }
                                 )
                             }
@@ -147,7 +154,7 @@ fun DashboardScreen(
                         }
                         
                         items(summary.recentTransactions) { tx ->
-                            VaultTransactionListItem(tx)
+                            VaultTransactionListItem(tx, isPrivateMode = isPrivateMode)
                         }
                         
                         item {
@@ -161,7 +168,7 @@ fun DashboardScreen(
 }
 
 @Composable
-fun VaultBalanceSection(amount: Double) {
+fun VaultBalanceSection(amount: Double, isPrivateMode: Boolean) {
     val formatter = NumberFormat.getCurrencyInstance(Locale("en", "IN"))
     Column(modifier = Modifier.fillMaxWidth()) {
         Text(
@@ -171,8 +178,9 @@ fun VaultBalanceSection(amount: Double) {
             letterSpacing = 2.sp
         )
         Spacer(modifier = Modifier.height(8.dp))
-        Text(
-            formatter.format(amount), 
+        VaultBlurredText(
+            text = formatter.format(amount), 
+            isBlurred = isPrivateMode,
             style = MaterialTheme.typography.displayLarge,
             color = MaterialTheme.colorScheme.onSurface
         )
@@ -233,6 +241,7 @@ fun VaultStatCard(
     title: String,
     amount: Double,
     isPositive: Boolean,
+    isPrivateMode: Boolean,
     onClick: () -> Unit
 ) {
     val formatter = NumberFormat.getCurrencyInstance(Locale("en", "IN"))
@@ -244,8 +253,9 @@ fun VaultStatCard(
         Column(modifier = Modifier.padding(16.dp)) {
             Text(title, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(modifier = Modifier.height(12.dp))
-            Text(
-                formatter.format(amount),
+            VaultBlurredText(
+                text = formatter.format(amount),
+                isBlurred = isPrivateMode,
                 style = MaterialTheme.typography.titleLarge,
                 color = if (isPositive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
             )
@@ -254,7 +264,7 @@ fun VaultStatCard(
 }
 
 @Composable
-fun VaultTransactionListItem(tx: TransactionDto) {
+fun VaultTransactionListItem(tx: TransactionDto, isPrivateMode: Boolean) {
     val formatter = NumberFormat.getCurrencyInstance(Locale("en", "IN"))
     val isIncome = tx.type == "INCOME"
     
@@ -281,8 +291,9 @@ fun VaultTransactionListItem(tx: TransactionDto) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            Text(
+            VaultBlurredText(
                 text = (if (isIncome) "+" else "-") + formatter.format(tx.value),
+                isBlurred = isPrivateMode,
                 style = MaterialTheme.typography.titleMedium.copy(
                     fontFamily = MaterialTheme.typography.displayLarge.fontFamily
                 ),
