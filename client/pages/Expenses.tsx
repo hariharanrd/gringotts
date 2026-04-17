@@ -8,6 +8,7 @@ import Pagination from '../components/Pagination';
 import { TableSkeleton } from '../components/Skeleton';
 import { FilterMenu, FilterCriteria } from '../components/FilterMenu';
 import ConfirmationDialog from '../components/ConfirmationDialog';
+import CategoryIcon from '../components/CategoryIcon';
 
 interface ExpensesProps {
   onEdit: (transaction: Transaction) => void;
@@ -408,7 +409,10 @@ const Expenses: React.FC<ExpensesProps> = ({ onEdit, onAdd, refreshTrigger }) =>
                   </td>
                   {visibleColumns.has('date') && <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 dark:text-slate-400">{new Date(expense.transaction_time).toLocaleDateString()}</td>}
                   {visibleColumns.has('description') && <td className="px-6 py-4 space-y-1">
-                    <div className="text-sm font-medium text-slate-800 dark:text-slate-200">{expense.description}</div>
+                    <div className="flex items-center gap-3">
+                      <CategoryIcon category={expense.category} />
+                      <div className="text-sm font-medium text-slate-800 dark:text-slate-200">{expense.description}</div>
+                    </div>
                   </td>}
                   {visibleColumns.has('category') && <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 dark:text-slate-400">
                     {expense.category?.name && (
@@ -476,7 +480,12 @@ const Expenses: React.FC<ExpensesProps> = ({ onEdit, onAdd, refreshTrigger }) =>
                 />
                 <div className="flex-1">
                   <div className="flex justify-between items-start">
-                    {visibleColumns.has('description') && <span className="text-sm font-medium text-slate-800 dark:text-slate-200 mr-2">{expense.description}</span>}
+                    {visibleColumns.has('description') && (
+                      <div className="flex items-center gap-2 mr-2">
+                        <CategoryIcon category={expense.category} />
+                        <span className="text-sm font-medium text-slate-800 dark:text-slate-200">{expense.description}</span>
+                      </div>
+                    )}
                     {visibleColumns.has('amount') && <span className="text-sm font-semibold text-rose-500 dark:text-rose-400 whitespace-nowrap">-₹{expense.value.toLocaleString()}</span>}
                   </div>
                   {visibleColumns.has('date') && <div className="text-sm text-slate-500 dark:text-slate-400 mt-1">{new Date(expense.transaction_time).toLocaleDateString()}</div>}

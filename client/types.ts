@@ -11,6 +11,8 @@ export interface Category {
   name: string;
   description: string;
   type?: string;
+  icon?: string;
+  color?: string;
 }
 
 export interface SubCategory {

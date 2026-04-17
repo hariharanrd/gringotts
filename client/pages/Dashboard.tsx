@@ -6,6 +6,7 @@ import {
   Wallet,
   Calendar,
   Target,
+  PiggyBank
 } from 'lucide-react';
 
 import {
@@ -26,6 +27,7 @@ import { useTheme } from '../components/ThemeContext';
 import { DashboardSkeleton } from '../components/Skeleton';
 import { BudgetUtilization } from '../types';
 import { useNavigate } from 'react-router-dom';
+import CategoryIcon from '../components/CategoryIcon';
 
 
 const PIE_COLORS = ['#06b6d4', '#10b981', '#8b5cf6', '#f43f5e', '#f59e0b', '#ec4899', '#14b8a6', '#a855f7'];
@@ -45,7 +47,7 @@ interface SummaryData {
     description: string;
     value: number;
     transaction_time: string;
-    category?: { id: number; name: string };
+    category?: { id: number; name: string; icon?: string; color?: string };
     subcategory?: { id: number; name: string };
     item?: { id: number; name: string };
   }>;
@@ -58,16 +60,20 @@ const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
   const { theme } = useTheme();
+  // Fetch full categories list for dashboard charts so they have icons
+  const [categories, setCategories] = useState<any[]>([]);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [summaryData, budgetData] = await Promise.all([
+        const [summaryData, budgetData, categoriesData] = await Promise.all([
           api.getSummary(30),
-          api.getActiveBudgetUtilization().catch(() => null)
+          api.getActiveBudgetUtilization().catch(() => null),
+          api.getCategories()
         ]);
         setSummary(summaryData);
         setBudgetUtil(budgetData);
+        setCategories(categoriesData);
       } catch (err) {
         console.error('Failed to fetch dashboard data:', err);
         setError('Failed to load dashboard data');
@@ -131,7 +137,10 @@ const Dashboard: React.FC = () => {
             return (
             <div key={cat.category.id} className="space-y-2 group">
               <div className="flex justify-between items-center text-[11px] font-bold">
-                <span className="text-slate-500 dark:text-slate-400 group-hover:text-cyan-500 transition-colors uppercase tracking-tight">{cat.category.name}</span>
+                <div className="flex items-center gap-1.5">
+                  <CategoryIcon category={cat.category} className="w-3 h-3" />
+                  <span className="text-slate-500 dark:text-slate-400 group-hover:text-cyan-500 transition-colors uppercase tracking-tight">{cat.category.name}</span>
+                </div>
                 <span className={`${isOverBudget ? 'text-rose-500' : 'text-slate-700 dark:text-slate-200'}`}>₹{cat.spent.toLocaleString()} <span className="text-slate-400 font-medium">/ ₹{cat.allocated.toLocaleString()}</span></span>
               </div>
               <div className="w-full h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
@@ -182,7 +191,7 @@ const Dashboard: React.FC = () => {
         <StatCard
           label="Total Savings"
           value={fmt(summary.total_savings)}
-          icon={TrendingUp}
+          icon={PiggyBank}
           accentFrom="from-violet-500"
           accentTo="to-purple-600"
           glow="shadow-violet-500/15"
@@ -346,15 +355,18 @@ const Dashboard: React.FC = () => {
                 </ResponsiveContainer>
               </div>
               <div className="mt-3 space-y-1.5 max-h-[120px] overflow-y-auto pr-1">
-                {pieData.map((entry, i) => (
+                {pieData.map((entry, i) => {
+                   const category = categories.find(c => c.name === entry.name);
+                   return (
                   <div key={entry.name} className="flex items-center justify-between text-sm">
                     <div className="flex items-center gap-2 min-w-0">
                       <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }} />
+                      {<CategoryIcon category={category} className="w-3 h-3" />}
                       <span className="text-slate-600 dark:text-slate-300 truncate">{entry.name}</span>
                     </div>
                     <span className="text-slate-500 dark:text-slate-400 font-medium ml-3 flex-shrink-0">{fmt(entry.value)}</span>
                   </div>
-                ))}
+                )})}
               </div>
             </>
           ) : (
@@ -370,6 +382,7 @@ const Dashboard: React.FC = () => {
           {summary.recent_transactions.map(t => (
             <div key={t.id} className="flex items-center justify-between p-3 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700/25 transition-colors">
               <div className="flex items-center gap-3 min-w-0">
+                <CategoryIcon category={t.category as any} />
                 <div className="min-w-0">
                   <p className="text-sm font-medium text-slate-800 dark:text-slate-200 truncate">{t.description}</p>
                   <div className="flex items-center gap-2 mt-0.5">

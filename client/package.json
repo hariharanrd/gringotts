@@ -9,19 +9,19 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@google/genai": "^1.36.0",
+    "lucide-react": "^1.8.0",
+    "qrcode": "^1.5.3",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
-    "@google/genai": "^1.36.0",
-    "lucide-react": "^0.562.0",
-    "recharts": "^3.6.0",
     "react-router-dom": "^7.12.0",
-    "qrcode": "^1.5.3"
+    "recharts": "^3.6.0"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",
+    "@types/qrcode": "^1.5.5",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
-    "@types/qrcode": "^1.5.5",
     "@vitejs/plugin-react": "^5.0.0",
     "typescript": "~5.8.2",
     "vite": "^6.2.0"
