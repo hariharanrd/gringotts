@@ -16,6 +16,7 @@ import { api } from '../services/api';
 import { Budget, BudgetCategoryAllocation, Category, BudgetUtilization } from '../types';
 import { useToast } from '../components/ToastContext';
 import ConfirmationDialog from '../components/ConfirmationDialog';
+import CategoryIcon from '../components/CategoryIcon';
 
 const BudgetPage: React.FC = () => {
   const [budgets, setBudgets] = useState<Budget[]>([]);
@@ -400,6 +401,7 @@ const BudgetPage: React.FC = () => {
                     <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
                       {formData.allocations?.map((alloc, idx) => (
                         <div key={alloc.category.id} className="flex items-center gap-4 bg-slate-100/30 dark:bg-slate-800/30 p-4 rounded-2xl border border-slate-200 dark:border-slate-700/50 group">
+                          <CategoryIcon category={alloc.category} />
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-bold text-slate-800 dark:text-slate-200 truncate">{alloc.category.name}</p>
                             <p className="text-[10px] text-slate-500 uppercase tracking-wider">{alloc.category.type}</p>
@@ -517,7 +519,10 @@ const BudgetPage: React.FC = () => {
                     {selectedBudget.allocations.map(alloc => (
                       <div key={alloc.category.id} className="group">
                         <div className="flex justify-between items-center mb-2">
-                          <span className="text-sm font-bold text-slate-700 dark:text-slate-300 group-hover:text-cyan-500 transition-colors">{alloc.category.name}</span>
+                          <div className="flex items-center gap-2">
+                            <CategoryIcon category={alloc.category} />
+                            <span className="text-sm font-bold text-slate-700 dark:text-slate-300 group-hover:text-cyan-500 transition-colors">{alloc.category.name}</span>
+                          </div>
                           <span className="text-sm font-black text-slate-900 dark:text-white">₹{alloc.allocated_amount.toLocaleString()}</span>
                         </div>
                         <div className="w-full h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">

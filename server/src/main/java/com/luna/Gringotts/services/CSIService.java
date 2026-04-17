@@ -3,15 +3,12 @@ package com.luna.Gringotts.services;
 import com.luna.Gringotts.records.Category;
 import com.luna.Gringotts.records.Item;
 import com.luna.Gringotts.records.SubCategory;
-import com.luna.Gringotts.records.User;
 import com.luna.Gringotts.repository.CategoryRepository;
 import com.luna.Gringotts.repository.ItemRepository;
 import com.luna.Gringotts.repository.SubCategoryRepository;
-import com.luna.Gringotts.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.cache.annotation.Cacheable;
@@ -92,12 +89,12 @@ public class CSIService {
 
     @Cacheable(value = "categories", key = "#root.target.iamService.getCurrentUser().id + '-' + #pageable.pageNumber + '-' + #pageable.pageSize")
     public Page<Category> getCategories(Pageable pageable){
-        return categoryRepository.findByUser(iamService.getCurrentUser(), pageable);
+        return categoryRepository.findByUserOrderByTypeAscNameAsc(iamService.getCurrentUser(), pageable);
     }
 
     @Cacheable(value = "categories", key = "#root.target.iamService.getCurrentUser().id + '-' + #type + '-' + #pageable.pageNumber + '-' + #pageable.pageSize")
     public Page<Category> getCategoriesByType(String type, Pageable pageable){
-        return categoryRepository.findByTypeAndUser(type, iamService.getCurrentUser(), pageable);
+        return categoryRepository.findByTypeAndUserOrderByNameAsc(type, iamService.getCurrentUser(), pageable);
     }
 
     @Cacheable(value = "subCategories", key = "#categoryId + '-' + #pageable.pageNumber + '-' + #pageable.pageSize")
