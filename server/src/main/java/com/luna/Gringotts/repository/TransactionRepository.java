@@ -18,18 +18,9 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 @Repository
 public interface TransactionRepository<T extends Transaction> extends JpaRepository<T, Long>, JpaSpecificationExecutor<T> {
 
-    T findByDescriptionAndTransactionTime(String description, LocalDateTime transactionTime);
-
-    List<T> findByDescription(String description);
-
-    @EntityGraph(attributePaths = {"category", "subCategory", "item"})
-    List<T> findByTransactionTimeAfter(LocalDateTime after);
 
     @EntityGraph(attributePaths = {"category", "subCategory", "item"})
     List<T> findByUserAndTransactionTimeAfter(User user, LocalDateTime after);
-
-    @EntityGraph(attributePaths = {"category", "subCategory", "item"})
-    List<T> findByTransactionTimeBetween(LocalDateTime start, LocalDateTime end);
 
     @EntityGraph(attributePaths = {"category", "subCategory", "item"})
     List<T> findByUserAndTransactionTimeBetween(User user, LocalDateTime start, LocalDateTime end);
