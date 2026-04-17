@@ -252,35 +252,35 @@ public class BudgetService {
         User user = iamService.getCurrentUser();
         List<Expense> expenses = expenseRepository.findByUserAndTransactionTimeBetween(user, start, end);
         List<Saving> savings = savingRepository.findByUserAndTransactionTimeBetween(user, start, end);
-        List<Revolving> revolvings = revolvingRepository.findByUserAndTransactionTimeBetween(user, start, end);
+        List<Revolving> revolvings = revolvingRepository.findByUserAndTransactionTimeBetweenAndClosedFalse(user, start, end);
 
         // Aggregate spent amounts by category (use category id as key)
         Map<Long, Double> spentByCategory = new HashMap<>();
-        Double unCategorizedSpend = 0.0;
+        Double unCategorizedSpendExpense = 0.0, unCategorizedSaving = 0.0, unCategorizedRevolving = 0.0;
         for (Expense e : expenses) {
             if (e.getCategory() != null) {
                 spentByCategory.merge(e.getCategory().getId(), e.getValue(), Double::sum);
             } else {
-                unCategorizedSpend += e.getValue();
+                unCategorizedSpendExpense += e.getValue();
             }
         }
         for (Saving s : savings) {
             if (s.getCategory() != null) {
                 spentByCategory.merge(s.getCategory().getId(), Math.abs(s.getValue()), Double::sum);
             } else{
-                unCategorizedSpend += Math.abs(s.getValue());
+                unCategorizedSaving += Math.abs(s.getValue());
             }
         }
         for (Revolving r : revolvings) {
             if (r.getCategory() != null) {
                 spentByCategory.merge(r.getCategory().getId(), r.getValue(), Double::sum);
             } else {
-                unCategorizedSpend += r.getValue();
+                unCategorizedRevolving += r.getValue();
             }
         }
 
         double totalAllocated = budget.getTotalAmount();
-        double totalSpent = spentByCategory.values().stream().mapToDouble(Double::doubleValue).sum() + unCategorizedSpend;
+        double totalSpent = spentByCategory.values().stream().mapToDouble(Double::doubleValue).sum() + unCategorizedSpendExpense + unCategorizedSaving + unCategorizedRevolving;
         double totalRemaining = totalAllocated - totalSpent;
         double overallPercent = totalAllocated > 0 ? (totalSpent / totalAllocated) * 100 : 0;
 
@@ -325,8 +325,18 @@ public class BudgetService {
         }
 
         //UNCATEGORIZED SPENDING
-        if(unCategorizedSpend > 0) {
-            Map<String, Object> unallocatedEntry = getUnCategorizedEntryDetails(unCategorizedSpend);
+        if(unCategorizedSpendExpense > 0) {
+            Map<String, Object> unallocatedEntry = getUnCategorizedEntryDetails(unCategorizedSpendExpense, "EXPENSE");
+            categoryUtils.add(unallocatedEntry);
+        }
+
+        if(unCategorizedSaving > 0) {
+            Map<String, Object> unallocatedEntry = getUnCategorizedEntryDetails(unCategorizedSaving, "SAVING");
+            categoryUtils.add(unallocatedEntry);
+        }
+
+        if(unCategorizedRevolving > 0) {
+            Map<String, Object> unallocatedEntry = getUnCategorizedEntryDetails(unCategorizedRevolving, "REVOLVING");
             categoryUtils.add(unallocatedEntry);
         }
 
@@ -349,11 +359,11 @@ public class BudgetService {
         return result;
     }
 
-    private static @NonNull Map<String, Object> getUnCategorizedEntryDetails(Double unCategorizedSpend) {
+    private static @NonNull Map<String, Object> getUnCategorizedEntryDetails(Double unCategorizedSpend, String type) {
         Map<String, Object> unallocatedEntry = new LinkedHashMap<>();
         Category category = new Category();
         category.setName("Uncategorized");
-        category.setType("EXPENSE");
+        category.setType(type);
         unallocatedEntry.put("category", category);
         unallocatedEntry.put("allocated", 0.0);
         unallocatedEntry.put("spent", unCategorizedSpend);
