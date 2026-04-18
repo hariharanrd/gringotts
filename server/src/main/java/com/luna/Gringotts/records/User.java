@@ -22,6 +22,9 @@ public class User implements UserDetails {
 
     private String totpSecret;
 
+    @Column(nullable = false)
+    private boolean confirmed = false;
+
     public Long getId() {
         return id;
     }
@@ -46,6 +49,14 @@ public class User implements UserDetails {
         this.totpSecret = totpSecret;
     }
 
+    public boolean isConfirmed() {
+        return confirmed;
+    }
+
+    public void setConfirmed(boolean confirmed) {
+        this.confirmed = confirmed;
+    }
+
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return Collections.emptyList();
@@ -62,22 +73,7 @@ public class User implements UserDetails {
     }
 
     @Override
-    public boolean isAccountNonExpired() {
-        return true;
-    }
-
-    @Override
-    public boolean isAccountNonLocked() {
-        return true;
-    }
-
-    @Override
-    public boolean isCredentialsNonExpired() {
-        return true;
-    }
-
-    @Override
     public boolean isEnabled() {
-        return true;
+        return confirmed;
     }
 }
