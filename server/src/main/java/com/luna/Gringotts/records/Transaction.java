@@ -3,14 +3,22 @@ package com.luna.Gringotts.records;
 import java.time.LocalDateTime;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
-import org.springframework.boot.context.properties.bind.DefaultValue;
 import org.springframework.data.annotation.ReadOnlyProperty;
 
 @Entity
 @Table(name = "transaction", schema = "public")
 @Inheritance(strategy = InheritanceType.JOINED)
+@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "type", visible = true)
+@JsonSubTypes({
+        @JsonSubTypes.Type(value = Expense.class, name = "EXPENSE"),
+        @JsonSubTypes.Type(value = Income.class, name = "INCOME"),
+        @JsonSubTypes.Type(value = Saving.class, name = "SAVING"),
+        @JsonSubTypes.Type(value = Revolving.class, name = "REVOLVING")
+})
 public class Transaction {
 
     public Transaction() {
@@ -165,5 +173,14 @@ public class Transaction {
 
     public void setUser(User user) {
         this.user = user;
+    }
+
+    @JsonProperty("type")
+    public String getType() {
+        if (this instanceof Expense) return "EXPENSE";
+        if (this instanceof Income) return "INCOME";
+        if (this instanceof Saving) return "SAVING";
+        if (this instanceof Revolving) return "REVOLVING";
+        return null;
     }
 }

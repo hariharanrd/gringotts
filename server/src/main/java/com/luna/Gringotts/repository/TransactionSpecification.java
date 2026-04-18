@@ -6,8 +6,12 @@ import com.luna.Gringotts.records.User;
 import org.springframework.data.jpa.domain.Specification;
 
 import jakarta.persistence.criteria.*;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Date;
+import java.sql.Timestamp;
 
 public class TransactionSpecification {
 
@@ -34,8 +38,14 @@ public class TransactionSpecification {
                     case "gt":
                         predicates.add(builder.greaterThan((Expression<Comparable>) path, (Comparable) castToRequiredType(path.getJavaType(), value)));
                         break;
+                    case "ge":
+                        predicates.add(builder.greaterThanOrEqualTo((Expression<Comparable>) path, (Comparable) castToRequiredType(path.getJavaType(), value)));
+                        break;
                     case "lt":
                         predicates.add(builder.lessThan((Expression<Comparable>) path, (Comparable) castToRequiredType(path.getJavaType(), value)));
+                        break;
+                    case "le":
+                        predicates.add(builder.lessThanOrEqualTo((Expression<Comparable>) path, (Comparable) castToRequiredType(path.getJavaType(), value)));
                         break;
                 }
             }
@@ -81,6 +91,13 @@ public class TransactionSpecification {
             if (fieldType.isAssignableFrom(Long.class) || fieldType.isAssignableFrom(long.class)) return Long.valueOf(value);
             if (fieldType.isAssignableFrom(Integer.class) || fieldType.isAssignableFrom(int.class)) return Integer.valueOf(value);
             if (fieldType.isAssignableFrom(Boolean.class) || fieldType.isAssignableFrom(boolean.class)) return Boolean.valueOf(value);
+            if (fieldType.isAssignableFrom(LocalDateTime.class)) {
+                // Handle common ISO formats
+                if (value.length() == 10) { // e.g., 2023-01-01
+                    return LocalDateTime.parse(value + "T00:00:00");
+                }
+                return LocalDateTime.parse(value);
+            }
             if (Enum.class.isAssignableFrom(fieldType)) return Enum.valueOf((Class<Enum>) fieldType, value);
         } catch (Exception e) {
             // fallback for parsing failures

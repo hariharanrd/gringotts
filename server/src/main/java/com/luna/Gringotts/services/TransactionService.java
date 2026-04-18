@@ -107,6 +107,12 @@ public class TransactionService {
         transactionRepository.saveAll(transactions);
     }
 
+    public Page<Transaction> getTransactions(List<SearchCriteria> filters, Pageable pageable) {
+        User user = iamService.getCurrentUser();
+        Specification<Transaction> spec = TransactionSpecification.forUser(user, filters);
+        return transactionRepository.findAll(spec, pageable);
+    }
+
     public Page<Expense> getExpenses(List<SearchCriteria> filters, Pageable pageable){
         User user = iamService.getCurrentUser();
         Specification<Expense> spec = TransactionSpecification.forUser(user, filters);
