@@ -300,9 +300,9 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-4">
+      <div className="flex flex-wrap items-center gap-3 sm:gap-4 w-full justify-between">
         {/* Dropdown Tab Selector */}
-        <div className="relative shrink-0" ref={tabMenuRef}>
+        <div className="relative grow sm:grow-0 sm:min-w-[240px]" ref={tabMenuRef}>
           <button
             onClick={() => setIsTabMenuOpen(!isTabMenuOpen)}
             className={`w-full flex items-center gap-3 px-5 py-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/60 shadow-sm hover:shadow-md transition-all ${isTabMenuOpen ? 'ring-2 ring-cyan-500/20 border-cyan-500/50' : ''}`}
@@ -389,12 +389,9 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
             <button onClick={() => setSelectedIds(new Set())} className="text-[10px] text-slate-400 hover:text-slate-600 px-2 uppercase font-bold tracking-tighter">Cancel</button>
           </div>
         )}
-      </div>
-
-      <div className="flex flex-col sm:flex-row items-center gap-4">
         {/* Right Section Tools */}
-        <div className="flex items-center gap-2 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0">
-          <div className="relative" ref={columnDropdownRef}>
+        <div className="flex items-center gap-2 sm:gap-3">
+          <div className="relative hidden lg:block" ref={columnDropdownRef}>
             <button
               onClick={() => setIsColumnChooserOpen(!isColumnChooserOpen)}
               className="p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/60 rounded-xl shadow-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-slate-500"
@@ -439,20 +436,27 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
 
       <div className="glass overflow-hidden rounded-3xl border border-slate-200 dark:border-slate-800/50">
         {/* Desktop View: Table */}
-        <div className="hidden md:block overflow-x-auto">
+        <div className="hidden lg:block overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="border-b border-slate-100 dark:border-slate-800/50 bg-slate-50/50 dark:bg-slate-900/50">
                 <th className="p-4 px-6 w-10">
-                  <input type="checkbox" checked={selectedIds.size === transactions.length && transactions.length > 0} onChange={toggleSelectAll} className="w-4 h-4 rounded accent-cyan-500" />
+                  {currentTab !== 'all' && (
+                    <input type="checkbox" checked={selectedIds.size === transactions.length && transactions.length > 0} onChange={toggleSelectAll} className="w-4 h-4 rounded accent-cyan-500" />
+                  )}
                 </th>
                 {visibleColumns.has('date') && <th className="p-4 text-[11px] font-bold text-slate-400 uppercase tracking-widest">Date</th>}
                 {visibleColumns.has('description') && <th className="p-4 text-[11px] font-bold text-slate-400 uppercase tracking-widest">Description</th>}
                 {visibleColumns.has('type') && <th className="p-4 text-[11px] font-bold text-slate-400 uppercase tracking-widest">Type</th>}
                 {visibleColumns.has('category') && <th className="p-4 text-[11px] font-bold text-slate-400 uppercase tracking-widest">Category</th>}
                 {visibleColumns.has('subcategory') && <th className="p-4 text-[11px] font-bold text-slate-400 uppercase tracking-widest">Sub-Cat</th>}
+                {visibleColumns.has('item') && <th className="p-4 text-[11px] font-bold text-slate-400 uppercase tracking-widest">Item</th>}
                 {visibleColumns.has('payment_mode') && <th className="p-4 text-[11px] font-bold text-slate-400 uppercase tracking-widest">Payment</th>}
                 {visibleColumns.has('source') && <th className="p-4 text-[11px] font-bold text-slate-400 uppercase tracking-widest">Source</th>}
+                {visibleColumns.has('is_in') && <th className="p-4 text-[11px] font-bold text-slate-400 uppercase tracking-widest">In/Out</th>}
+                {visibleColumns.has('is_give') && <th className="p-4 text-[11px] font-bold text-slate-400 uppercase tracking-widest">Give/Recv</th>}
+                {visibleColumns.has('closed') && <th className="p-4 text-[11px] font-bold text-slate-400 uppercase tracking-widest">Status</th>}
+                {visibleColumns.has('notes') && <th className="p-4 text-[11px] font-bold text-slate-400 uppercase tracking-widest">Notes</th>}
                 {visibleColumns.has('amount') && <th className="p-4 text-right text-[11px] font-bold text-slate-400 uppercase tracking-widest">Amount</th>}
                 <th className="p-4 text-right text-[11px] font-bold text-slate-400 uppercase tracking-widest">Actions</th>
               </tr>
@@ -465,11 +469,13 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
                   className={`group hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors cursor-pointer ${selectedIds.has(t.id) ? 'bg-cyan-500/5' : ''}`}
                 >
                   <td className="p-4 px-6">
-                    <input type="checkbox" checked={selectedIds.has(t.id)} onChange={() => {
-                      const next = new Set(selectedIds);
-                      if (next.has(t.id)) next.delete(t.id); else next.add(t.id);
-                      setSelectedIds(next);
-                    }} className="w-4 h-4 rounded accent-cyan-500" />
+                    {currentTab !== 'all' && (
+                      <input type="checkbox" checked={selectedIds.has(t.id)} onChange={() => {
+                        const next = new Set(selectedIds);
+                        if (next.has(t.id)) next.delete(t.id); else next.add(t.id);
+                        setSelectedIds(next);
+                      }} className="w-4 h-4 rounded accent-cyan-500" />
+                    )}
                   </td>
                   {visibleColumns.has('date') && (
                     <td className="p-4 whitespace-nowrap">
@@ -488,9 +494,9 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
                   {visibleColumns.has('type') && (
                     <td className="p-4">
                       <span className={`text-[10px] font-bold px-2 py-1 rounded-lg uppercase tracking-wider ${t.type === 'EXPENSE' ? 'bg-rose-500/10 text-rose-500' :
-                          t.type === 'INCOME' ? 'bg-emerald-500/10 text-emerald-500' :
-                            t.type === 'SAVING' ? 'bg-violet-500/10 text-violet-500' :
-                              'bg-blue-500/10 text-blue-500'
+                        t.type === 'INCOME' ? 'bg-emerald-500/10 text-emerald-500' :
+                          t.type === 'SAVING' ? 'bg-violet-500/10 text-violet-500' :
+                            'bg-blue-500/10 text-blue-500'
                         }`}>
                         {t.type}
                       </span>
@@ -506,6 +512,11 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
                       {t.subcategory && <span className="text-[10px] font-medium text-slate-400">{t.subcategory.name}</span>}
                     </td>
                   )}
+                  {visibleColumns.has('item') && (
+                    <td className="p-4 whitespace-nowrap">
+                      {(t as any).item && <span className="text-[10px] font-medium text-slate-400">{(t as any).item.name}</span>}
+                    </td>
+                  )}
                   {visibleColumns.has('payment_mode') && (
                     <td className="p-4 whitespace-nowrap">
                       {(t as any).payment_mode && <span className="text-[10px] font-bold text-slate-400 uppercase">{(t as any).payment_mode.replace('_', ' ')}</span>}
@@ -514,6 +525,38 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
                   {visibleColumns.has('source') && (
                     <td className="p-4 whitespace-nowrap">
                       {(t as any).source && <span className="text-[10px] font-medium text-slate-400">{(t as any).source}</span>}
+                    </td>
+                  )}
+                  {visibleColumns.has('is_in') && (
+                    <td className="p-4 whitespace-nowrap">
+                      {typeof (t as any).is_in !== 'undefined' && (
+                        <span className={`text-[10px] font-bold px-2 py-1 rounded-md uppercase ${(t as any).is_in ? 'text-emerald-500 bg-emerald-500/10' : 'text-rose-500 bg-rose-500/10'}`}>
+                          {(t as any).is_in ? 'In' : 'Out'}
+                        </span>
+                      )}
+                    </td>
+                  )}
+                  {visibleColumns.has('is_give') && (
+                    <td className="p-4 whitespace-nowrap">
+                      {typeof (t as any).is_give !== 'undefined' && (
+                        <span className={`text-[10px] font-bold px-2 py-1 rounded-md uppercase ${(t as any).is_give ? 'text-blue-500 bg-blue-500/10' : 'text-violet-500 bg-violet-500/10'}`}>
+                          {(t as any).is_give ? 'Given' : 'Received'}
+                        </span>
+                      )}
+                    </td>
+                  )}
+                  {visibleColumns.has('closed') && (
+                    <td className="p-4 whitespace-nowrap">
+                      {typeof (t as any).closed !== 'undefined' && (
+                        <span className={`text-[10px] font-bold px-2 py-1 rounded-md uppercase ${(t as any).closed ? 'text-slate-500 bg-slate-500/10' : 'text-amber-500 bg-amber-500/10'}`}>
+                          {(t as any).closed ? 'Closed' : 'Active'}
+                        </span>
+                      )}
+                    </td>
+                  )}
+                  {visibleColumns.has('notes') && (
+                    <td className="p-4 min-w-[150px]">
+                      {t.notes && <span className="text-[10px] text-slate-400 line-clamp-1" title={t.notes}>{t.notes}</span>}
                     </td>
                   )}
                   {visibleColumns.has('amount') && (
@@ -534,7 +577,7 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
         </div>
 
         {/* Mobile View: Card List */}
-        <div className="md:hidden divide-y divide-slate-100 dark:divide-slate-800/20">
+        <div className="lg:hidden divide-y divide-slate-100 dark:divide-slate-800/20">
           {transactions.length === 0 ? (
             <div className="p-10 text-center text-slate-500 font-medium">No transactions found.</div>
           ) : (
@@ -545,20 +588,22 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
                 className={`p-4 active:bg-slate-50 dark:active:bg-slate-800/50 transition-colors cursor-pointer ${selectedIds.has(t.id) ? 'bg-cyan-500/5' : ''}`}
               >
                 <div className="flex items-start gap-4">
-                  <div className="pt-1">
-                    <input
-                      type="checkbox"
-                      checked={selectedIds.has(t.id)}
-                      onClick={(e) => e.stopPropagation()}
-                      onChange={(e) => {
-                        e.stopPropagation();
-                        const next = new Set(selectedIds);
-                        if (next.has(t.id)) next.delete(t.id); else next.add(t.id);
-                        setSelectedIds(next);
-                      }}
-                      className="w-5 h-5 rounded-lg accent-cyan-500 border-2 border-slate-300 dark:border-slate-600 focus:ring-0"
-                    />
-                  </div>
+                  {currentTab !== 'all' && (
+                    <div className="pt-1">
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.has(t.id)}
+                        onClick={(e) => e.stopPropagation()}
+                        onChange={(e) => {
+                          e.stopPropagation();
+                          const next = new Set(selectedIds);
+                          if (next.has(t.id)) next.delete(t.id); else next.add(t.id);
+                          setSelectedIds(next);
+                        }}
+                        className="w-5 h-5 rounded-lg accent-cyan-500 border-2 border-slate-300 dark:border-slate-600 focus:ring-0"
+                      />
+                    </div>
+                  )}
 
                   <div className="flex-1 min-w-0 space-y-1.5">
                     <div className="flex justify-between items-start gap-2">
@@ -578,9 +623,9 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
                         <span className="text-slate-500">{t.category?.name || 'Uncategorized'}</span>
                       </div>
                       <span className={`px-2 py-0.5 rounded-md ${t.type === 'EXPENSE' ? 'bg-rose-500/10 text-rose-500' :
-                          t.type === 'INCOME' ? 'bg-emerald-500/10 text-emerald-500' :
-                            t.type === 'SAVING' ? 'bg-violet-500/10 text-violet-500' :
-                              'bg-blue-500/10 text-blue-500'
+                        t.type === 'INCOME' ? 'bg-emerald-500/10 text-emerald-500' :
+                          t.type === 'SAVING' ? 'bg-violet-500/10 text-violet-500' :
+                            'bg-blue-500/10 text-blue-500'
                         }`}>
                         {t.type}
                       </span>
