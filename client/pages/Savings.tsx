@@ -34,8 +34,6 @@ const Savings: React.FC<SavingsProps> = ({ onEdit, onAdd, refreshTrigger }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [hasMore, setHasMore] = useState(false);
-  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [filters, setFilters] = useState<FilterCriteria[]>([]);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
@@ -283,6 +281,7 @@ const Savings: React.FC<SavingsProps> = ({ onEdit, onAdd, refreshTrigger }) => {
           <FilterMenu
             activeFilters={filters}
             availableFields={[
+              { label: 'Date', value: 'transactionTime', type: 'date' },
               { label: 'Category', value: 'category.name', type: 'string' },
               { label: 'SubCategory', value: 'subCategory.name', type: 'string' },
               { label: 'Item', value: 'item.name', type: 'string' },

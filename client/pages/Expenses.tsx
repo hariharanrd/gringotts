@@ -19,10 +19,10 @@ interface ExpensesProps {
 type BulkField = 'category' | 'subcategory' | 'item' | 'notes' | 'payment_mode';
 
 const BULK_FIELDS: { value: BulkField; label: string }[] = [
-  { value: 'category',     label: 'Category' },
-  { value: 'subcategory',  label: 'Sub Category' },
-  { value: 'item',         label: 'Item' },
-  { value: 'notes',        label: 'Notes' },
+  { value: 'category', label: 'Category' },
+  { value: 'subcategory', label: 'Sub Category' },
+  { value: 'item', label: 'Item' },
+  { value: 'notes', label: 'Notes' },
   { value: 'payment_mode', label: 'Payment Mode' },
 ];
 
@@ -113,7 +113,7 @@ const Expenses: React.FC<ExpensesProps> = ({ onEdit, onAdd, refreshTrigger }) =>
 
   useEffect(() => {
     if (categories.length === 0) {
-      api.getCategories('EXPENSE').then(setCategories).catch(() => {});
+      api.getCategories('EXPENSE').then(setCategories).catch(() => { });
     }
   }, []);
 
@@ -124,7 +124,7 @@ const Expenses: React.FC<ExpensesProps> = ({ onEdit, onAdd, refreshTrigger }) =>
     setItems([]);
     setBulkItemId('');
     if (bulkCategoryId !== '') {
-      api.getSubCategories(bulkCategoryId as number).then(setSubCategories).catch(() => {});
+      api.getSubCategories(bulkCategoryId as number).then(setSubCategories).catch(() => { });
     }
   }, [bulkCategoryId]);
 
@@ -133,7 +133,7 @@ const Expenses: React.FC<ExpensesProps> = ({ onEdit, onAdd, refreshTrigger }) =>
     setItems([]);
     setBulkItemId('');
     if (bulkSubCategoryId !== '') {
-      api.getItems(bulkSubCategoryId as number).then(setItems).catch(() => {});
+      api.getItems(bulkSubCategoryId as number).then(setItems).catch(() => { });
     }
   }, [bulkSubCategoryId]);
 
@@ -150,10 +150,10 @@ const Expenses: React.FC<ExpensesProps> = ({ onEdit, onAdd, refreshTrigger }) =>
 
   const isBulkApplyDisabled = () => {
     if (selectedIds.size === 0 || bulkField === '') return true;
-    if (bulkField === 'category'     && bulkCategoryId === '') return true;
-    if (bulkField === 'subcategory'  && bulkSubCategoryId === '') return true;
-    if (bulkField === 'item'         && bulkItemId === '') return true;
-    if (bulkField === 'notes'        && bulkNotes.trim() === '') return true;
+    if (bulkField === 'category' && bulkCategoryId === '') return true;
+    if (bulkField === 'subcategory' && bulkSubCategoryId === '') return true;
+    if (bulkField === 'item' && bulkItemId === '') return true;
+    if (bulkField === 'notes' && bulkNotes.trim() === '') return true;
     if (bulkField === 'payment_mode' && bulkPaymentMode === '') return true;
     return false;
   };
@@ -163,11 +163,11 @@ const Expenses: React.FC<ExpensesProps> = ({ onEdit, onAdd, refreshTrigger }) =>
     setBulkLoading(true);
     try {
       const fields: Record<string, unknown> = {};
-      if (bulkField === 'category')     fields['category_id']    = bulkCategoryId;
-      if (bulkField === 'subcategory')  fields['subcategory_id'] = bulkSubCategoryId;
-      if (bulkField === 'item')         fields['item_id']        = bulkItemId;
-      if (bulkField === 'notes')        fields['notes']          = bulkNotes;
-      if (bulkField === 'payment_mode') fields['payment_mode']   = bulkPaymentMode;
+      if (bulkField === 'category') fields['category_id'] = bulkCategoryId;
+      if (bulkField === 'subcategory') fields['subcategory_id'] = bulkSubCategoryId;
+      if (bulkField === 'item') fields['item_id'] = bulkItemId;
+      if (bulkField === 'notes') fields['notes'] = bulkNotes;
+      if (bulkField === 'payment_mode') fields['payment_mode'] = bulkPaymentMode;
 
       await api.bulkUpdate(Array.from(selectedIds), fields);
       showToast(`Updated ${bulkField.replace('_', ' ')} for ${selectedIds.size} expense(s)`, 'success');
@@ -291,12 +291,12 @@ const Expenses: React.FC<ExpensesProps> = ({ onEdit, onAdd, refreshTrigger }) =>
               <select className={selectClass} value={bulkPaymentMode} onChange={e => setBulkPaymentMode(e.target.value)}>
                 <option value="">Select payment mode…</option>
                 <option value="CASH">Cash</option>
-                  <option value="CREDIT_CARD">Credit Card</option>
-                  <option value="DEBIT_CARD">Debit Card</option>
-                  <option value="UPI">UPI</option>
-                  <option value="EMANDATE">E-Mandate</option>
-                  <option value="BANK_TRANSFER">Bank Transfer</option>
-                  <option value="WALLET">Wallet</option>
+                <option value="CREDIT_CARD">Credit Card</option>
+                <option value="DEBIT_CARD">Debit Card</option>
+                <option value="UPI">UPI</option>
+                <option value="EMANDATE">E-Mandate</option>
+                <option value="BANK_TRANSFER">Bank Transfer</option>
+                <option value="WALLET">Wallet</option>
               </select>
             )}
 
@@ -352,6 +352,7 @@ const Expenses: React.FC<ExpensesProps> = ({ onEdit, onAdd, refreshTrigger }) =>
           <FilterMenu
             activeFilters={filters}
             availableFields={[
+              { label: 'Date', value: 'transactionTime', type: 'date' },
               { label: 'Category', value: 'category.name', type: 'string' },
               { label: 'SubCategory', value: 'subCategory.name', type: 'string' },
               { label: 'Item', value: 'item.name', type: 'string' },

@@ -91,8 +91,10 @@ export const FilterMenu: React.FC<FilterMenuProps> = ({ activeFilters, onApplyFi
       case 'date':
         return [
           { value: 'eq', label: 'equals' },
-          { value: 'gt', label: 'greater than' },
-          { value: 'lt', label: 'less than' }
+          { value: 'gt', label: 'after' },
+          { value: 'ge', label: 'on or after' },
+          { value: 'lt', label: 'before' },
+          { value: 'le', label: 'on or before' }
         ];
       case 'string':
       default:
@@ -107,8 +109,10 @@ export const FilterMenu: React.FC<FilterMenuProps> = ({ activeFilters, onApplyFi
     switch (cond) {
       case 'eq': return 'equals';
       case 'like': return 'contains';
-      case 'gt': return 'greater than';
-      case 'lt': return 'less than';
+      case 'gt': return 'after';
+      case 'ge': return 'on or after';
+      case 'lt': return 'before';
+      case 'le': return 'on or before';
       default: return cond;
     }
   };
@@ -193,7 +197,7 @@ export const FilterMenu: React.FC<FilterMenuProps> = ({ activeFilters, onApplyFi
                   </div>
                   <div className="flex gap-2 w-full">
                     <input
-                      type="text"
+                      type={availableFields.find(f => f.value === filter.field)?.type === 'date' ? 'date' : 'text'}
                       className="flex-1 text-sm sm:text-xs px-3 py-2 sm:py-1.5 rounded-lg bg-white dark:bg-slate-800 border shadow-sm border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-cyan-500/50 outline-none dark:text-slate-200"
                       value={filter.value}
                       onChange={e => updateFilter(index, 'value', e.target.value)}

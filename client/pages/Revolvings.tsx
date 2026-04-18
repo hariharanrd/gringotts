@@ -35,8 +35,6 @@ const Revolvings: React.FC<RevolvingsProps> = ({ onEdit, onAdd, refreshTrigger }
   const [isLoading, setIsLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [hasMore, setHasMore] = useState(false);
-  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [filters, setFilters] = useState<FilterCriteria[]>([]);
   const [showClosed, setShowClosed] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -60,6 +58,7 @@ const Revolvings: React.FC<RevolvingsProps> = ({ onEdit, onAdd, refreshTrigger }
     setIsLoading(true);
     try {
       let combinedFilters = [...baseFilters];
+      
       if (!includeClosed) {
         combinedFilters.push({ field: 'closed', condition: 'eq', value: 'false' });
       }
@@ -298,6 +297,7 @@ const Revolvings: React.FC<RevolvingsProps> = ({ onEdit, onAdd, refreshTrigger }
           <FilterMenu
             activeFilters={filters}
             availableFields={[
+              { label: 'Date', value: 'transactionTime', type: 'date' },
               { label: 'Category', value: 'category.name', type: 'string' },
               { label: 'SubCategory', value: 'subCategory.name', type: 'string' },
               { label: 'Item', value: 'item.name', type: 'string' },

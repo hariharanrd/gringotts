@@ -276,6 +276,7 @@ const Incomes: React.FC<IncomesProps> = ({ onEdit, onAdd, refreshTrigger }) => {
           <FilterMenu
             activeFilters={filters}
             availableFields={[
+              { label: 'Date', value: 'transactionTime', type: 'date' },
               { label: 'Category', value: 'category.name', type: 'string' },
               { label: 'SubCategory', value: 'subCategory.name', type: 'string' },
               { label: 'Item', value: 'item.name', type: 'string' },
