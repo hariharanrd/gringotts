@@ -73,7 +73,10 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
   const [hasMore, setHasMore] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [isSelectionMode, setIsSelectionMode] = useState(false);
-  const [filters, setFilters] = useState<FilterCriteria[]>([]);
+  const [filters, setFilters] = useState<FilterCriteria[]>(() => {
+    const saved = localStorage.getItem('gringotts_transaction_filters');
+    return saved ? JSON.parse(saved) : [];
+  });
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
 
@@ -113,7 +116,6 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
     }
     setVisibleColumns(cols);
     setCurrentPage(1);
-    setFilters([]);
   }, [currentTab]);
 
   const fetchTransactions = async (page: number, currentFilters: FilterCriteria[] = []) => {
@@ -142,6 +144,11 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
     fetchTransactions(currentPage, filters);
     setSelectedIds(new Set());
   }, [currentPage, filters, refreshTrigger, currentTab]);
+
+  // Persist filters to localStorage
+  useEffect(() => {
+    localStorage.setItem('gringotts_transaction_filters', JSON.stringify(filters));
+  }, [filters]);
 
   // Click outside handlers
   useEffect(() => {

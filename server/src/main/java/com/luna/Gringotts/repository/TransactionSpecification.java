@@ -25,30 +25,39 @@ public class TransactionSpecification {
 
             List<Predicate> predicates = new ArrayList<>();
             for (SearchCriteria criteria : criteriaList) {
-                Path<?> path = getPath(root, criteria.getField());
-                String condition = criteria.getCondition().toLowerCase();
-                String value = criteria.getValue();
+                try {
+                    Path<?> path = getPath(root, criteria.getField());
+                    String condition = criteria.getCondition().toLowerCase();
+                    String value = criteria.getValue();
 
-                switch (condition) {
-                    case "eq":
-                        predicates.add(builder.equal(path, castToRequiredType(path.getJavaType(), value)));
-                        break;
-                    case "like":
-                    case "contains":
-                        predicates.add(builder.like(builder.lower(path.as(String.class)), "%" + value.toLowerCase() + "%"));
-                        break;
-                    case "gt":
-                        predicates.add(builder.greaterThan((Expression<Comparable>) path, (Comparable) castToRequiredType(path.getJavaType(), value)));
-                        break;
-                    case "ge":
-                        predicates.add(builder.greaterThanOrEqualTo((Expression<Comparable>) path, (Comparable) castToRequiredType(path.getJavaType(), value)));
-                        break;
-                    case "lt":
-                        predicates.add(builder.lessThan((Expression<Comparable>) path, (Comparable) castToRequiredType(path.getJavaType(), value)));
-                        break;
-                    case "le":
-                        predicates.add(builder.lessThanOrEqualTo((Expression<Comparable>) path, (Comparable) castToRequiredType(path.getJavaType(), value)));
-                        break;
+                    switch (condition) {
+                        case "eq":
+                            predicates.add(builder.equal(path, castToRequiredType(path.getJavaType(), value)));
+                            break;
+                        case "like":
+                        case "contains":
+                            predicates.add(builder.like(builder.lower(path.as(String.class)),
+                                    "%" + value.toLowerCase() + "%"));
+                            break;
+                        case "gt":
+                            predicates.add(builder.greaterThan((Expression<Comparable>) path,
+                                    (Comparable) castToRequiredType(path.getJavaType(), value)));
+                            break;
+                        case "ge":
+                            predicates.add(builder.greaterThanOrEqualTo((Expression<Comparable>) path,
+                                    (Comparable) castToRequiredType(path.getJavaType(), value)));
+                            break;
+                        case "lt":
+                            predicates.add(builder.lessThan((Expression<Comparable>) path,
+                                    (Comparable) castToRequiredType(path.getJavaType(), value)));
+                            break;
+                        case "le":
+                            predicates.add(builder.lessThanOrEqualTo((Expression<Comparable>) path,
+                                    (Comparable) castToRequiredType(path.getJavaType(), value)));
+                            break;
+                    }
+                } catch (IllegalArgumentException ignored) {
+                    // Ignore criteria if the field doesn't exist for the current transaction type
                 }
             }
 
@@ -112,13 +121,17 @@ public class TransactionSpecification {
         return fieldName; // Fallback to original
     }
 
-    @SuppressWarnings({"unchecked", "rawtypes"})
+    @SuppressWarnings({ "unchecked", "rawtypes" })
     private static Object castToRequiredType(Class<?> fieldType, String value) {
         try {
-            if (fieldType.isAssignableFrom(Double.class) || fieldType.isAssignableFrom(double.class)) return Double.valueOf(value);
-            if (fieldType.isAssignableFrom(Long.class) || fieldType.isAssignableFrom(long.class)) return Long.valueOf(value);
-            if (fieldType.isAssignableFrom(Integer.class) || fieldType.isAssignableFrom(int.class)) return Integer.valueOf(value);
-            if (fieldType.isAssignableFrom(Boolean.class) || fieldType.isAssignableFrom(boolean.class)) return Boolean.valueOf(value);
+            if (fieldType.isAssignableFrom(Double.class) || fieldType.isAssignableFrom(double.class))
+                return Double.valueOf(value);
+            if (fieldType.isAssignableFrom(Long.class) || fieldType.isAssignableFrom(long.class))
+                return Long.valueOf(value);
+            if (fieldType.isAssignableFrom(Integer.class) || fieldType.isAssignableFrom(int.class))
+                return Integer.valueOf(value);
+            if (fieldType.isAssignableFrom(Boolean.class) || fieldType.isAssignableFrom(boolean.class))
+                return Boolean.valueOf(value);
             if (fieldType.isAssignableFrom(LocalDateTime.class)) {
                 // Handle common ISO formats
                 if (value.length() == 10) { // e.g., 2023-01-01
@@ -126,7 +139,8 @@ public class TransactionSpecification {
                 }
                 return LocalDateTime.parse(value);
             }
-            if (Enum.class.isAssignableFrom(fieldType)) return Enum.valueOf((Class<Enum>) fieldType, value);
+            if (Enum.class.isAssignableFrom(fieldType))
+                return Enum.valueOf((Class<Enum>) fieldType, value);
         } catch (Exception e) {
             // fallback for parsing failures
         }
