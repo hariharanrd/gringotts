@@ -30,6 +30,35 @@ public class JwtService {
         return claimsResolver.apply(claims);
     }
 
+    public String generatePreAuthToken(String username) {
+        Map<String, Object> extraClaims = new HashMap<>();
+        extraClaims.put("type", "pre-auth");
+        return Jwts.builder()
+                .setClaims(extraClaims)
+                .setSubject(username)
+                .setIssuedAt(new Date(System.currentTimeMillis()))
+                .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 5)) // 5 minutes
+                .signWith(getSignInKey(), SignatureAlgorithm.HS256)
+                .compact();
+    }
+
+    public String extractPreAuthUsername(String token) {
+        final Claims claims = extractAllClaims(token);
+        if (!"pre-auth".equals(claims.get("type"))) {
+            throw new RuntimeException("Invalid token type");
+        }
+        return claims.getSubject();
+    }
+
+    public boolean isPreAuthTokenValid(String token) {
+        try {
+            final Claims claims = extractAllClaims(token);
+            return "pre-auth".equals(claims.get("type")) && !claims.getExpiration().before(new Date());
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
     public String generateToken(UserDetails userDetails) {
         return generateToken(new HashMap<>(), userDetails);
     }

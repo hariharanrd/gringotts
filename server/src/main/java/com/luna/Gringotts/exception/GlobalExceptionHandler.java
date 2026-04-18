@@ -31,7 +31,7 @@ public class GlobalExceptionHandler {
         LOGGER.log(Level.SEVERE, "Exception occurred", ex);
         Map<String, String> response = new HashMap<>();
         response.put("status", "error");
-        response.put("message", "Internal Error");
+        response.put("message", ex.getMessage() != null ? ex.getMessage() : "Internal Error");
         
         return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
     }

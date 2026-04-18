@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { useToast } from '../components/ToastContext';
 import TransactionModal from '../components/TransactionModal';
+import CategoryIcon from '../components/CategoryIcon';
 
 /* ─── colour config per type ─── */
 const TYPE_CONFIG: Record<TransactionType, {
@@ -226,7 +227,12 @@ const TransactionDetails: React.FC = () => {
 
           {/* Category chain */}
           {transaction.category && (
-            <Field icon={Tag} label="Category" value={transaction.category.name} />
+            <Field icon={Tag} label="Category" value={
+              <div className="flex items-center gap-2 mt-1">
+                <CategoryIcon category={transaction.category} />
+                <span>{transaction.category.name}</span>
+              </div>
+            } />
           )}
           {transaction.subcategory && (
             <Field icon={Layers} label="Sub-Category" value={transaction.subcategory.name} />

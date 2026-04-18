@@ -2,7 +2,6 @@ package com.luna.Gringotts.controlller;
 
 import com.luna.Gringotts.services.AppConfigurationService;
 import com.luna.Gringotts.services.AuthenticationService;
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -33,7 +32,7 @@ public class AuthenticationController {
 
     @PostMapping("/register")
     public ResponseEntity<Map<String, String>> register(@RequestBody RegisterRequest request) {
-        boolean registrationAllowed = Boolean.parseBoolean(appConfigurationService.getValue("IAM","USER_REGISTRATION","false"));
+        boolean registrationAllowed = Boolean.parseBoolean(appConfigurationService.getValue("IAM", "USER_REGISTRATION", "false"));
         if(registrationAllowed) {
             return ResponseEntity.ok(service.register(request.getUsername(), request.getPassword()));
         } else {
@@ -41,24 +40,43 @@ public class AuthenticationController {
         }
     }
 
+    @PostMapping("/pre-authenticate")
+    public ResponseEntity<PreAuthenticateResponse> preAuthenticate(
+            @RequestBody PreAuthenticateRequest request,
+            @RequestHeader(value = "X-Trust-Token", required = false) String trustToken,
+            HttpServletResponse response) {
+        AuthenticationService.PreAuthResult result = service.preAuthenticate(
+                request.getUsername(), request.getPassword(), trustToken);
+
+        if (!result.requiresMfa()) {
+            setSessionCookie(result.jwt(), response);
+            return ResponseEntity.ok(new PreAuthenticateResponse(false, null));
+        }
+
+        return ResponseEntity.ok(new PreAuthenticateResponse(true, result.preAuthToken()));
+    }
+
     @PostMapping("/authenticate")
-    public ResponseEntity<Void> authenticate(
-            @RequestBody AuthenticationRequest request,
-            HttpServletRequest httpServletRequest,
-            HttpServletResponse response
-    ) {
-        String token = service.authenticate(request.getUsername(), request.getPassword(), request.getCode());
+    public ResponseEntity<AuthenticateResponse> authenticate(
+            @RequestBody AuthenticateRequest request,
+            HttpServletResponse response) {
+        AuthenticationService.MfaResult result = service.completeMfa(
+                request.getPreAuthToken(), request.getCode(), request.isTrustBrowser());
+
+        setSessionCookie(result.jwt(), response);
+
+        return ResponseEntity.ok(new AuthenticateResponse(result.trustToken()));
+    }
+
+    private void setSessionCookie(String token, HttpServletResponse response) {
         ResponseCookie cookie = ResponseCookie.from("__session", token)
                 .httpOnly(true)
                 .secure(Boolean.parseBoolean(production))
                 .path("/")
-                .maxAge(24 * 60 * 60)
+                .maxAge(7 * 24 * 60 * 60)
                 .sameSite("Lax")
                 .build();
-        
         response.addHeader("Set-Cookie", cookie.toString());
-        
-        return ResponseEntity.ok().build();
     }
 
     @PostMapping("/logout")
@@ -70,15 +88,16 @@ public class AuthenticationController {
                 .maxAge(0)
                 .sameSite("Lax")
                 .build();
-        
+
         response.addHeader("Set-Cookie", cookie.toString());
         return ResponseEntity.ok().build();
     }
 
     @GetMapping("/me")
-    public ResponseEntity<Map<String,String>> checkAuth() {
+    public ResponseEntity<Map<String, String>> checkAuth() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication != null && authentication.isAuthenticated() && !"anonymousUser".equals(authentication.getPrincipal())) {
+        if (authentication != null && authentication.isAuthenticated()
+                && !"anonymousUser".equals(authentication.getPrincipal())) {
 
             return ResponseEntity.ok(Map.of("username", authentication.getName()));
         }
@@ -89,22 +108,77 @@ public class AuthenticationController {
         private String username;
         private String password;
 
-        public String getUsername() { return username; }
-        public void setUsername(String username) { this.username = username; }
-        public String getPassword() { return password; }
-        public void setPassword(String password) { this.password = password; }
+        public String getUsername() {
+            return username;
+        }
+
+        public void setUsername(String username) {
+            this.username = username;
+        }
+
+        public String getPassword() {
+            return password;
+        }
+
+        public void setPassword(String password) {
+            this.password = password;
+        }
     }
 
-    public static class AuthenticationRequest {
+    public static class PreAuthenticateRequest {
         private String username;
         private String password;
-        private int code;
 
-        public String getUsername() { return username; }
-        public void setUsername(String username) { this.username = username; }
-        public String getPassword() { return password; }
-        public void setPassword(String password) { this.password = password; }
-        public int getCode() { return code; }
-        public void setCode(int code) { this.code = code; }
+        public String getUsername() {
+            return username;
+        }
+
+        public void setUsername(String username) {
+            this.username = username;
+        }
+
+        public String getPassword() {
+            return password;
+        }
+
+        public void setPassword(String password) {
+            this.password = password;
+        }
+    }
+
+    public static record PreAuthenticateResponse(boolean requiresMfa, String preAuthToken) {
+    }
+
+    public static class AuthenticateRequest {
+        private String preAuthToken;
+        private int code;
+        private boolean trustBrowser;
+
+        public String getPreAuthToken() {
+            return preAuthToken;
+        }
+
+        public void setPreAuthToken(String preAuthToken) {
+            this.preAuthToken = preAuthToken;
+        }
+
+        public int getCode() {
+            return code;
+        }
+
+        public void setCode(int code) {
+            this.code = code;
+        }
+
+        public boolean isTrustBrowser() {
+            return trustBrowser;
+        }
+
+        public void setTrustBrowser(boolean trustBrowser) {
+            this.trustBrowser = trustBrowser;
+        }
+    }
+
+    public static record AuthenticateResponse(String trustToken) {
     }
 }

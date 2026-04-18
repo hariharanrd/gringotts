@@ -6,8 +6,7 @@ import {
   Plus, 
   Trash2, 
   Pencil,
-  Tag, 
-  Layers, 
+  Layers,
   Package 
 } from 'lucide-react';
 import { api } from '../services/api';
@@ -15,6 +14,7 @@ import { Category, SubCategory, Item } from '../types';
 import ConfigurationModal, { ConfigType, EditData } from '../components/ConfigurationModal';
 import ConfirmationDialog from '../components/ConfirmationDialog';
 import { useToast } from '../components/ToastContext';
+import CategoryIcon from '../components/CategoryIcon';
 
 const Configuration: React.FC = () => {
   const { showToast } = useToast();
@@ -192,9 +192,7 @@ const Configuration: React.FC = () => {
                   ) : (
                     <ChevronRight className="w-4 h-4 text-slate-400 dark:text-slate-500" />
                   )}
-                  <div className="p-2 bg-cyan-500/10 rounded-lg">
-                    <Tag className="w-4 h-4 text-cyan-500 dark:text-cyan-400" />
-                  </div>
+                  <CategoryIcon category={category} />
                   <div>
                     <div className="flex items-center gap-2">
                       <h3 className="font-medium text-slate-800 dark:text-slate-200">{category.name}</h3>
@@ -212,7 +210,7 @@ const Configuration: React.FC = () => {
                 </div>
                 <div className="flex items-center gap-1">
                   <button 
-                    onClick={(e) => { e.stopPropagation(); openEditModal('CATEGORY', { id: category.id, name: category.name, description: category.description, type: category.type }); }}
+                    onClick={(e) => { e.stopPropagation(); openEditModal('CATEGORY', { id: category.id, name: category.name, description: category.description, type: category.type, icon: category.icon, color: category.color }); }}
                     className="p-2 text-slate-400 dark:text-slate-600 hover:text-cyan-500 dark:hover:text-cyan-400 hover:bg-cyan-500/10 rounded-lg transition-colors"
                     title="Edit Category"
                   >

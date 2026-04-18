@@ -26,8 +26,13 @@ public class CSIService {
     @Autowired
     ItemRepository itemRepository;
 
+    @Autowired
+    public IAMService iamService;
+
+
     @CacheEvict(value = {"categories", "categoryById"}, allEntries = true)
     public Category addCategory(Category category){
+        category.setUser(iamService.getCurrentUser());
         return categoryRepository.save(category);
     }
 
@@ -64,6 +69,7 @@ public class CSIService {
 
     @CacheEvict(value = {"categories", "categoryById"}, allEntries = true)
     public Category updateCategory(Category category){
+        category.setUser(iamService.getCurrentUser());
         return categoryRepository.save(category);
     }
 
@@ -81,14 +87,14 @@ public class CSIService {
         return itemRepository.findById(saved.getId()).orElse(saved);
     }
 
-    @Cacheable(value = "categories", key = "#pageable.pageNumber + '-' + #pageable.pageSize")
+    @Cacheable(value = "categories", key = "#root.target.iamService.getCurrentUser().id + '-' + #pageable.pageNumber + '-' + #pageable.pageSize")
     public Page<Category> getCategories(Pageable pageable){
-        return categoryRepository.findAll(pageable);
+        return categoryRepository.findByUserOrderByTypeAscNameAsc(iamService.getCurrentUser(), pageable);
     }
 
-    @Cacheable(value = "categories", key = "#type + '-' + #pageable.pageNumber + '-' + #pageable.pageSize")
+    @Cacheable(value = "categories", key = "#root.target.iamService.getCurrentUser().id + '-' + #type + '-' + #pageable.pageNumber + '-' + #pageable.pageSize")
     public Page<Category> getCategoriesByType(String type, Pageable pageable){
-        return categoryRepository.findByType(type, pageable);
+        return categoryRepository.findByTypeAndUserOrderByNameAsc(type, iamService.getCurrentUser(), pageable);
     }
 
     @Cacheable(value = "subCategories", key = "#categoryId + '-' + #pageable.pageNumber + '-' + #pageable.pageSize")

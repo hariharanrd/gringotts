@@ -8,6 +8,7 @@ import Pagination from '../components/Pagination';
 import { TableSkeleton } from '../components/Skeleton';
 import { FilterMenu, FilterCriteria } from '../components/FilterMenu';
 import ConfirmationDialog from '../components/ConfirmationDialog';
+import CategoryIcon from '../components/CategoryIcon';
 
 interface IncomesProps {
   onEdit: (transaction: Transaction) => void;
@@ -327,7 +328,12 @@ const Incomes: React.FC<IncomesProps> = ({ onEdit, onAdd, refreshTrigger }) => {
                     />
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 dark:text-slate-400">{new Date(income.transaction_time).toLocaleDateString()}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-800 dark:text-slate-200">{income.description}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-800 dark:text-slate-200">
+                    <div className="flex items-center gap-3">
+                      <CategoryIcon category={income.category} />
+                      <div className="text-sm font-medium text-slate-800 dark:text-slate-200">{income.description}</div>
+                    </div>
+                  </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 dark:text-slate-400">
                     {income.category?.name && (
                       <span className="px-2.5 py-1 bg-slate-100 dark:bg-slate-700/50 rounded-lg text-xs font-medium text-slate-600 dark:text-slate-300">{income.category.name}</span>
@@ -376,7 +382,10 @@ const Incomes: React.FC<IncomesProps> = ({ onEdit, onAdd, refreshTrigger }) => {
                 />
                 <div className="flex-1">
                   <div className="flex justify-between items-start">
-                    <span className="text-sm font-medium text-slate-800 dark:text-slate-200">{income.description}</span>
+                    <div className="flex items-center gap-2 mr-2">
+                      <CategoryIcon category={income.category} />
+                      <span className="text-sm font-medium text-slate-800 dark:text-slate-200">{income.description}</span>
+                    </div>
                     <span className="text-sm font-semibold text-emerald-500 dark:text-emerald-400 whitespace-nowrap">+₹{income.value.toLocaleString()}</span>
                   </div>
                   <div className="text-sm text-slate-500 dark:text-slate-400 mt-1">{new Date(income.transaction_time).toLocaleDateString()}</div>
