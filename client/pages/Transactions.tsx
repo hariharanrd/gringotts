@@ -439,10 +439,12 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
         <div className="hidden lg:block overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="border-b border-slate-100 dark:border-slate-800/50 bg-slate-50/50 dark:bg-slate-900/50">
+              <tr className="group border-b border-slate-100 dark:border-slate-800/50 bg-slate-50/50 dark:bg-slate-900/50">
                 <th className="p-4 px-6 w-10">
                   {currentTab !== 'all' && (
-                    <input type="checkbox" checked={selectedIds.size === transactions.length && transactions.length > 0} onChange={toggleSelectAll} className="w-4 h-4 rounded accent-cyan-500" />
+                    <div className={`transition-all duration-200 ${selectedIds.size > 0 ? 'opacity-100 pointer-events-auto' : 'opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto'}`}>
+                      <input type="checkbox" checked={selectedIds.size === transactions.length && transactions.length > 0} onChange={toggleSelectAll} className="w-4 h-4 rounded accent-cyan-500 cursor-pointer" />
+                    </div>
                   )}
                 </th>
                 {visibleColumns.has('date') && <th className="p-4 text-[11px] font-bold text-slate-400 uppercase tracking-widest">Date</th>}
@@ -470,11 +472,13 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
                 >
                   <td className="p-4 px-6">
                     {currentTab !== 'all' && (
-                      <input type="checkbox" checked={selectedIds.has(t.id)} onChange={() => {
-                        const next = new Set(selectedIds);
-                        if (next.has(t.id)) next.delete(t.id); else next.add(t.id);
-                        setSelectedIds(next);
-                      }} className="w-4 h-4 rounded accent-cyan-500" />
+                      <div className={`transition-all duration-200 ${selectedIds.size > 0 ? 'opacity-100 pointer-events-auto' : 'opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto'}`}>
+                        <input type="checkbox" checked={selectedIds.has(t.id)} onChange={() => {
+                          const next = new Set(selectedIds);
+                          if (next.has(t.id)) next.delete(t.id); else next.add(t.id);
+                          setSelectedIds(next);
+                        }} className="w-4 h-4 rounded accent-cyan-500 cursor-pointer" />
+                      </div>
                     )}
                   </td>
                   {visibleColumns.has('date') && (
@@ -585,11 +589,11 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
               <div
                 key={t.id}
                 onClick={(e) => handleRowClick(e, t)}
-                className={`p-4 active:bg-slate-50 dark:active:bg-slate-800/50 transition-colors cursor-pointer ${selectedIds.has(t.id) ? 'bg-cyan-500/5' : ''}`}
+                className={`group p-4 active:bg-slate-50 dark:active:bg-slate-800/50 transition-colors cursor-pointer ${selectedIds.has(t.id) ? 'bg-cyan-500/5' : ''}`}
               >
                 <div className="flex items-start gap-4">
                   {currentTab !== 'all' && (
-                    <div className="pt-1">
+                    <div className={`pt-1 transition-all duration-200 ${selectedIds.size > 0 ? 'opacity-100 pointer-events-auto' : 'opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto'}`}>
                       <input
                         type="checkbox"
                         checked={selectedIds.has(t.id)}
@@ -600,7 +604,7 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
                           if (next.has(t.id)) next.delete(t.id); else next.add(t.id);
                           setSelectedIds(next);
                         }}
-                        className="w-5 h-5 rounded-lg accent-cyan-500 border-2 border-slate-300 dark:border-slate-600 focus:ring-0"
+                        className="w-5 h-5 rounded-lg accent-cyan-500 border-2 border-slate-300 dark:border-slate-600 focus:ring-0 cursor-pointer"
                       />
                     </div>
                   )}
@@ -645,7 +649,7 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
                         )}
                         {t.notes && (
                           <div className="w-full text-xs text-slate-400 italic line-clamp-1 mt-1 font-medium bg-slate-50/50 dark:bg-slate-900/30 p-2 rounded-xl">
-                            {t.notes}
+                            {t.notes.substring(0, 25) + (t.notes.length > 25 ? '...' : '')}
                           </div>
                         )}
                       </div>
