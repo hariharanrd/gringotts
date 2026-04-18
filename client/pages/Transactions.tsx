@@ -273,7 +273,7 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
 
   const getAvailableFields = () => {
     const baseFields: { label: string; value: string; type: 'string' | 'number' | 'date' | 'boolean' }[] = [
-      { label: 'Date', value: 'transactionTime', type: 'date' },
+      { label: 'Date', value: 'transaction_time', type: 'date' },
       { label: 'Description', value: 'description', type: 'string' },
       { label: 'Amount', value: 'value', type: 'number' },
       { label: 'Category', value: 'category.name', type: 'string' },
@@ -283,13 +283,13 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
     ];
 
     if (currentTab === 'expense') {
-      baseFields.push({ label: 'Payment Mode', value: 'paymentMode', type: 'string' });
+      baseFields.push({ label: 'Payment Mode', value: 'payment_mode', type: 'string' });
     } else if (currentTab === 'income') {
       baseFields.push({ label: 'Income Source', value: 'source', type: 'string' });
     } else if (currentTab === 'saving') {
-      baseFields.push({ label: 'Is In (Deposit)', value: 'isIn', type: 'boolean' });
+      baseFields.push({ label: 'Is In (Deposit)', value: 'is_in', type: 'boolean' });
     } else if (currentTab === 'revolving') {
-      baseFields.push({ label: 'Is Give (Lent)', value: 'isGive', type: 'boolean' });
+      baseFields.push({ label: 'Is Give (Lent)', value: 'is_give', type: 'boolean' });
       baseFields.push({ label: 'Is Closed', value: 'closed', type: 'boolean' });
     }
     return baseFields;

@@ -11,6 +11,8 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Date;
+import java.lang.reflect.Field;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import java.sql.Timestamp;
 
 public class TransactionSpecification {
@@ -75,13 +77,39 @@ public class TransactionSpecification {
     private static Path<?> getPath(Root<?> root, String field) {
         if (field.contains(".")) {
             String[] parts = field.split("\\.");
-            Path<?> path = root.get(parts[0]);
+            Class<?> currentClass = root.getJavaType();
+            String resolvedFirstPart = resolveFieldName(currentClass, parts[0]);
+            Path<?> path = root.get(resolvedFirstPart);
+
             for (int i = 1; i < parts.length; i++) {
-                path = path.get(parts[i]);
+                currentClass = path.getJavaType();
+                String resolvedPart = resolveFieldName(currentClass, parts[i]);
+                path = path.get(resolvedPart);
             }
             return path;
         }
-        return root.get(field);
+        return root.get(resolveFieldName(root.getJavaType(), field));
+    }
+
+    private static String resolveFieldName(Class<?> clazz, String fieldName) {
+        // First try finding a field with a matching @JsonProperty annotation
+        Class<?> current = clazz;
+        while (current != null && current != Object.class) {
+            for (Field field : current.getDeclaredFields()) {
+                if (field.isAnnotationPresent(JsonProperty.class)) {
+                    String jsonValue = field.getAnnotation(JsonProperty.class).value();
+                    if (fieldName.equals(jsonValue)) {
+                        return field.getName();
+                    }
+                }
+                // Also explicitly check if the field name matches (standard case)
+                if (field.getName().equals(fieldName)) {
+                    return field.getName();
+                }
+            }
+            current = current.getSuperclass();
+        }
+        return fieldName; // Fallback to original
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})
