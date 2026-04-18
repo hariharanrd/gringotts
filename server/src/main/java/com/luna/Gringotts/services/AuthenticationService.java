@@ -29,19 +29,22 @@ public class AuthenticationService {
     private final AuthenticationManager authenticationManager;
     private final GoogleAuthenticator gAuth;
     private final TrustedBrowserRepository trustedBrowserRepository;
+    private final DefaultDataInitializer defaultDataInitializer;
 
     public AuthenticationService(
             UserRepository userRepository,
             PasswordEncoder passwordEncoder,
             JwtService jwtService,
             AuthenticationManager authenticationManager,
-            TrustedBrowserRepository trustedBrowserRepository
+            TrustedBrowserRepository trustedBrowserRepository,
+            DefaultDataInitializer defaultDataInitializer
     ) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
         this.authenticationManager = authenticationManager;
         this.trustedBrowserRepository = trustedBrowserRepository;
+        this.defaultDataInitializer = defaultDataInitializer;
         this.gAuth = new GoogleAuthenticator();
     }
 
@@ -123,6 +126,7 @@ public class AuthenticationService {
         if (!user.isConfirmed()) {
             user.setConfirmed(true);
             userRepository.save(user);
+            defaultDataInitializer.initializeCategories(user);
         }
 
         String jwt = jwtService.generateToken(user);

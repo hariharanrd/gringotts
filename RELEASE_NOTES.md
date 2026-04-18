@@ -9,6 +9,11 @@ We've introduced a gated registration process to ensure all accounts are properl
 - **Automated Onboarding**: Successfully verifying your 2FA during registration now automatically logs you in and takes you straight to your dashboard.
 - **Gated Authentication**: Only fully confirmed users can access the system, preventing incomplete or insecure registrations.
 
+### 🏠 Smart Account Initialization
+No more starting from scratch! New users now land on a fully prepared system.
+- **Pre-populated Categories**: Upon account activation, the system automatically creates a essential set of categories (Home, Utilities, Work, etc.) for Expenses, Income, Savings, and Revolvings.
+- **Design Consistent Defaults**: Initialization is driven by a customizable JSON configuration and uses the project's standard icon and color palettes.
+
 ### 🎨 Refined Authentication UX
 - **Password Protection**: Added password confirmation during registration to prevent accidental lockout.
 - **Secret Management**: Improved TOTP setup with a hidden-by-default secret and one-click copy functionality.

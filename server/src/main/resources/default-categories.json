@@ -1,0 +1,11 @@
+[
+  { "name": "Home", "type": "EXPENSE", "icon": "Home", "color": "text-violet-500" },
+  { "name": "Utilities", "type": "EXPENSE", "icon": "Tv", "color": "text-amber-500" },
+  { "name": "Shopping", "type": "EXPENSE", "icon": "ShoppingCart", "color": "text-pink-500" },
+  { "name": "Travel", "type": "EXPENSE", "icon": "Plane", "color": "text-cyan-500" },
+  { "name": "Others", "type": "EXPENSE", "icon": "Tag", "color": "text-slate-500" },
+  { "name": "Work", "type": "INCOME", "icon": "Briefcase", "color": "text-emerald-500" },
+  { "name": "Fixed Deposit", "type": "SAVING", "icon": "Lock", "color": "text-purple-500" },
+  { "name": "Mutual Funds", "type": "SAVING", "icon": "TrendingUp", "color": "text-rose-500" },
+  { "name": "Contract", "type": "REVOLVING", "icon": "Handshake", "color": "text-blue-500" }
+]
