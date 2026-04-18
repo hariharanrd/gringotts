@@ -1,6 +1,23 @@
 # 🚀 Release Notes
 
-## [April 17, 2026] Visual Categorization & Budget Refinements
+## [April 18, 2026] Secure Onboarding & Authentication
+Major improvements to the registration and login experience, focusing on security and a seamless first-run experience.
+
+### 🛡️ Mandatory Account Confirmation
+We've introduced a gated registration process to ensure all accounts are properly secured from the start.
+- **Mandatory 2FA Verification**: New users are now required to successfully verify their TOTP setup before their account is activated.
+- **Automated Onboarding**: Successfully verifying your 2FA during registration now automatically logs you in and takes you straight to your dashboard.
+- **Gated Authentication**: Only fully confirmed users can access the system, preventing incomplete or insecure registrations.
+
+### 🎨 Refined Authentication UX
+- **Password Protection**: Added password confirmation during registration to prevent accidental lockout.
+- **Secret Management**: Improved TOTP setup with a hidden-by-default secret and one-click copy functionality.
+- **Seamless Navigation**: Added a "Don't have an account? Sign Up" link to the login page for easier discovery.
+- **Clearer Error Feedback**: Optimized system messages to provide helpful feedback (e.g., "User already exists") while maintaining security best practices (e.g., "User doesn't exist" for unconfirmed accounts).
+
+---
+
+## [April 17, 2026] Visual Categorization & Dashboard Refinements
 
 ### 🎨 Personalize Your Categories
 Elevate your financial organization with enhanced visual customization! Now, you can personalize your Category Hierarchy with a rich set of icons and vibrant colors.
