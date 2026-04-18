@@ -10,7 +10,7 @@ export interface FilterCriteria {
 interface FilterMenuProps {
   activeFilters: FilterCriteria[];
   onApplyFilters: (filters: FilterCriteria[]) => void;
-  availableFields: { label: string; value: string; type?: 'string' | 'number' | 'date' }[];
+  availableFields: { label: string; value: string; type?: 'string' | 'number' | 'date' | 'boolean' }[];
 }
 
 export const FilterMenu: React.FC<FilterMenuProps> = ({ activeFilters, onApplyFilters, availableFields }) => {
@@ -95,6 +95,10 @@ export const FilterMenu: React.FC<FilterMenuProps> = ({ activeFilters, onApplyFi
           { value: 'ge', label: 'on or after' },
           { value: 'lt', label: 'before' },
           { value: 'le', label: 'on or before' }
+        ];
+      case 'boolean':
+        return [
+          { value: 'eq', label: 'equals' }
         ];
       case 'string':
       default:
@@ -196,13 +200,25 @@ export const FilterMenu: React.FC<FilterMenuProps> = ({ activeFilters, onApplyFi
                     </select>
                   </div>
                   <div className="flex gap-2 w-full">
-                    <input
-                      type={availableFields.find(f => f.value === filter.field)?.type === 'date' ? 'date' : 'text'}
-                      className="flex-1 text-sm sm:text-xs px-3 py-2 sm:py-1.5 rounded-lg bg-white dark:bg-slate-800 border shadow-sm border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-cyan-500/50 outline-none dark:text-slate-200"
-                      value={filter.value}
-                      onChange={e => updateFilter(index, 'value', e.target.value)}
-                      placeholder="Value"
-                    />
+                    {availableFields.find(f => f.value === filter.field)?.type === 'boolean' ? (
+                      <select
+                        className="flex-1 text-sm sm:text-xs px-3 py-2 sm:py-1.5 rounded-lg bg-white dark:bg-slate-800 border shadow-sm border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-cyan-500/50 outline-none dark:text-slate-200"
+                        value={filter.value}
+                        onChange={e => updateFilter(index, 'value', e.target.value)}
+                      >
+                        <option value="">Select Value...</option>
+                        <option value="true">True</option>
+                        <option value="false">False</option>
+                      </select>
+                    ) : (
+                      <input
+                        type={availableFields.find(f => f.value === filter.field)?.type === 'date' ? 'date' : 'text'}
+                        className="flex-1 text-sm sm:text-xs px-3 py-2 sm:py-1.5 rounded-lg bg-white dark:bg-slate-800 border shadow-sm border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-cyan-500/50 outline-none dark:text-slate-200"
+                        value={filter.value}
+                        onChange={e => updateFilter(index, 'value', e.target.value)}
+                        placeholder="Value"
+                      />
+                    )}
                     <button
                       onClick={() => removeDraftFilter(index)}
                       className="flex items-center justify-center w-9 sm:w-auto px-2 text-rose-400 hover:text-white hover:bg-rose-500 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 sm:border-transparent sm:bg-transparent rounded-lg transition-colors"

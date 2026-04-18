@@ -5,10 +5,7 @@ import Layout from './components/Layout';
 import TransactionModal from './components/TransactionModal';
 import ImportModal from './components/ImportModal';
 import Dashboard from './pages/Dashboard';
-import Expenses from './pages/Expenses';
-import Incomes from './pages/Incomes';
-import Savings from './pages/Savings';
-import Revolvings from './pages/Revolvings';
+import Transactions from './pages/Transactions';
 import Configuration from './pages/Configuration';
 import Budget from './pages/Budget';
 import TransactionDetails from './pages/TransactionDetails';
@@ -171,10 +168,7 @@ const GringottsApp: React.FC = () => {
               ) : (
                 <Routes>
                   <Route path="/dashboard" element={<Dashboard />} />
-                  <Route path="/expenses" element={<Expenses onEdit={handleEditTransaction} onAdd={() => handleAddTransaction(TransactionType.EXPENSE)} refreshTrigger={refreshKey} />} />
-                  <Route path="/incomes" element={<Incomes onEdit={handleEditTransaction} onAdd={() => handleAddTransaction(TransactionType.INCOME)} refreshTrigger={refreshKey} />} />
-                  <Route path="/savings" element={<Savings onEdit={handleEditTransaction} onAdd={() => handleAddTransaction(TransactionType.SAVING)} refreshTrigger={refreshKey} />} />
-                  <Route path="/revolvings" element={<Revolvings onEdit={handleEditTransaction} onAdd={() => handleAddTransaction(TransactionType.REVOLVING)} refreshTrigger={refreshKey} />} />
+                  <Route path="/transactions" element={<Transactions onEdit={handleEditTransaction} onAdd={handleAddTransaction} refreshTrigger={refreshKey} />} />
                   <Route path="/transaction/:id" element={<TransactionDetails />} />
                   <Route path="/configuration" element={<Configuration />} />
                   <Route path="/budget" element={<Budget />} />

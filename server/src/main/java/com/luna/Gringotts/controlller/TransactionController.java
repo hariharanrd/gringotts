@@ -61,6 +61,21 @@ public class TransactionController {
         return ResponseEntity.ok(summary);
     }
 
+    @GetMapping("/transactions")
+    public ResponseEntity<Map<String, Object>> getTransactions(
+            @RequestParam("page") int page,
+            @RequestParam(value = "filters", required = false) String filtersJson) {
+        Pageable pageable = PageRequest.of(page - 1, 10, Sort.by(Sort.Direction.DESC, "transactionTime"));
+        List<com.luna.Gringotts.records.SearchCriteria> filters = parseFilters(filtersJson);
+        Page<Transaction> result = transactionService.getTransactions(filters, pageable);
+        HashMap<String, Object> map = new HashMap<>();
+        map.put("data", result.getContent());
+        map.put("total_count", result.getTotalElements());
+        map.put("page", pageable.getPageNumber() + 1);
+        map.put("has_more", result.hasNext());
+        return ResponseEntity.ok(map);
+    }
+
     @GetMapping("/expenses")
     public ResponseEntity<Map<String, Object>> getExpenses(
             @RequestParam("page") int page,

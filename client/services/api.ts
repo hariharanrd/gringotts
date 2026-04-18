@@ -60,6 +60,16 @@ export const api = {
     return handleResponse(response);
   },
 
+  getTransactions: async (currentPage: number, filters?: {field: string, condition: string, value: string}[]): Promise<ResponseProps> => {
+    let url = `${BASE_URL}/transactions?page=${currentPage}`;
+    if (filters && filters.length > 0) url += `&filters=${encodeURIComponent(JSON.stringify(filters))}`;
+    const response = await fetchWithCredentials(url);
+    const data = await handleResponse(response);
+    // Polymorphic JSON will already have @type if we configured backend correctly, 
+    // but we can map it to our internal TransactionType enum if needed.
+    return data;
+  },
+
   getExpenses: async (currentPage: number, filters?: {field: string, condition: string, value: string}[]): Promise<ResponseProps> => {
     let url = `${BASE_URL}/expenses?page=${currentPage}`;
     if (filters && filters.length > 0) url += `&filters=${encodeURIComponent(JSON.stringify(filters))}`;

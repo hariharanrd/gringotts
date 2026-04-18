@@ -29,10 +29,7 @@ interface LayoutProps {
 
 const navItems = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },
-  { id: 'expenses', label: 'Expenses', icon: TrendingDown, path: '/expenses' },
-  { id: 'incomes', label: 'Incomes', icon: TrendingUp, path: '/incomes' },
-  { id: 'savings', label: 'Savings', icon: PiggyBank, path: '/savings' },
-  { id: 'revolvings', label: 'Revolving', icon: RefreshCw, path: '/revolvings' },
+  { id: 'transactions', label: 'Transactions', icon: Landmark, path: '/transactions' },
   { id: 'budget', label: 'Budget', icon: Target, path: '/budget' },
   { id: 'configuration', label: 'Settings', icon: Settings, path: '/configuration' },
 ];
