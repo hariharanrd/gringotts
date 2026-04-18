@@ -1,10 +1,10 @@
 
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { 
-  LayoutDashboard, 
-  Settings, 
-  Menu, 
+import {
+  LayoutDashboard,
+  Settings,
+  Menu,
   X,
   LogOut,
   TrendingDown,
@@ -46,8 +46,8 @@ const Layout: React.FC<LayoutProps> = ({ userName, children, onImport }) => {
     <div className="flex h-screen overflow-hidden bg-slate-50 dark:bg-slate-950">
       {/* Mobile Sidebar Overlay */}
       {isSidebarOpen && (
-        <div 
-          className="fixed inset-0 bg-black/30 dark:bg-black/60 backdrop-blur-sm z-40 md:hidden transition-opacity" 
+        <div
+          className="fixed inset-0 bg-black/30 dark:bg-black/60 backdrop-blur-sm z-40 md:hidden transition-opacity"
           onClick={() => setIsSidebarOpen(false)}
         />
       )}
@@ -61,8 +61,8 @@ const Layout: React.FC<LayoutProps> = ({ userName, children, onImport }) => {
         <div className="flex flex-col h-full">
           {/* Brand */}
           <div className="p-6 flex items-center gap-3 border-b border-slate-200 dark:border-slate-700/50">
-            <div className="bg-gradient-to-br from-cyan-500 to-blue-600 p-2.5 rounded-xl shadow-lg shadow-cyan-500/20">
-              <Landmark className="text-white w-5 h-5" />
+            <div className="bg-white dark:bg-slate-900 p-1.5 rounded-xl">
+              <img src="/favicon.png" alt="Gringotts" className="w-16 h-16 object-contain rounded-lg" />
             </div>
             <div>
               <h1 className="text-lg font-bold text-slate-900 dark:text-white tracking-tight">Gringotts</h1>
@@ -81,8 +81,8 @@ const Layout: React.FC<LayoutProps> = ({ userName, children, onImport }) => {
                   onClick={() => setIsSidebarOpen(false)}
                   className={`
                     w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 relative group
-                    ${isActive 
-                      ? 'bg-gradient-to-r from-cyan-500/10 to-blue-500/10 text-cyan-600 dark:text-cyan-400 shadow-inner' 
+                    ${isActive
+                      ? 'bg-gradient-to-r from-cyan-500/10 to-blue-500/10 text-cyan-600 dark:text-cyan-400 shadow-inner'
                       : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 hover:text-slate-800 dark:hover:text-slate-200'}
                   `}
                 >
@@ -116,7 +116,7 @@ const Layout: React.FC<LayoutProps> = ({ userName, children, onImport }) => {
         {/* Header */}
         <header className="sticky top-0 z-30 bg-white/80 dark:bg-slate-950/80 backdrop-blur-xl border-b border-slate-200 dark:border-slate-800/60 px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <button 
+            <button
               className="md:hidden text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors p-1"
               onClick={() => setIsSidebarOpen(true)}
             >
@@ -144,7 +144,7 @@ const Layout: React.FC<LayoutProps> = ({ userName, children, onImport }) => {
                 <span className="hidden sm:inline">Import</span>
               </button>
             )}
-            <button 
+            <button
               onClick={() => setIsProfileOpen(!isProfileOpen)}
               className="flex items-center gap-3 hover:bg-slate-100 dark:hover:bg-slate-800/60 p-2 pr-4 rounded-xl transition-all duration-200"
             >
@@ -156,8 +156,8 @@ const Layout: React.FC<LayoutProps> = ({ userName, children, onImport }) => {
 
             {isProfileOpen && (
               <div className="absolute top-full right-0 mt-2 w-48 glass rounded-xl shadow-2xl shadow-black/20 dark:shadow-black/40 py-2 z-50">
-                <Link 
-                  to="/logout" 
+                <Link
+                  to="/logout"
                   className="flex items-center gap-3 px-4 py-2.5 text-sm text-rose-500 dark:text-rose-400 hover:bg-rose-500/10 transition-colors w-full font-medium"
                   onClick={() => setIsProfileOpen(false)}
                 >
