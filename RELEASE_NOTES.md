@@ -1,25 +1,49 @@
 # 🚀 Release Notes
 
-## [April 18, 2026] Secure Onboarding & Authentication
-Major improvements to the registration and login experience, focusing on security and a seamless first-run experience.
+## [April 18, 2026] Unified Transaction Views & Improved User Registration
+
+A major architectural consolidation that brings all transaction types into a single, high-performance hub while drastically improving UI efficiency. Improvements made to the registration and login experience, focusing on security and a seamless first-run experience.
+
+### 📑 One Hub, All Transactions
+
+We've unified what were previously separate pages (Expenses, Incomes, Savings, and Revolvings) into a single **Transactions** view.
+
+- **Contextual View Switching**: A new tab system allows you to switch between transaction types instantly. The system dynamically adapts filters, table columns, and bulk operations based on your active tab.
+
+### 🖱️ Bulk Selection Improvement
+
+- **Hover-Triggered Checks**: Desktop checkboxes now appear only when you hover over a row, removing unnecessary visual noise and preserving a clean look.
+- **Mobile Selection Mode**: Introduced a dedicated "Selection Mode" toggle in the header for mobile users. Once active, the entire card becomes a touch-target for selection, preventing accidental navigation.
+- **Zero-Gap Layout**: When not in selection mode, the checkbox column completely collapses to reclaim every pixel of screen real estate.
+
+### 🧭 Collapsible Side Navigation
+
+- **Pinned vs. Unpinned**: The sidebar can now be collapsed to a minimal icon-only bar, perfect for power users who want a distraction-free data view.
+
+### ⚙️ Precision Control
+
+- **Dynamic Column Chooser**: Real-time control over visible fields ensures you only see the data points that matter for your current task.
+- **Unified Actions**: Bulk actions and filters are now consistently styled and accessible across all transaction types.
 
 ### 🛡️ Mandatory Account Confirmation
+
 We've introduced a gated registration process to ensure all accounts are properly secured from the start.
+
 - **Mandatory 2FA Verification**: New users are now required to successfully verify their TOTP setup before their account is activated.
 - **Automated Onboarding**: Successfully verifying your 2FA during registration now automatically logs you in and takes you straight to your dashboard.
 - **Gated Authentication**: Only fully confirmed users can access the system, preventing incomplete or insecure registrations.
 
 ### 🎨 Refined Authentication UX
+
 - **Password Protection**: Added password confirmation during registration to prevent accidental lockout.
 - **Secret Management**: Improved TOTP setup with a hidden-by-default secret and one-click copy functionality.
-- **Seamless Navigation**: Added a "Don't have an account? Sign Up" link to the login page for easier discovery.
-- **Clearer Error Feedback**: Optimized system messages to provide helpful feedback (e.g., "User already exists") while maintaining security best practices (e.g., "User doesn't exist" for unconfirmed accounts).
 
 ---
 
 ## [April 17, 2026] Visual Categorization & Dashboard Refinements
 
 ### 🎨 Personalize Your Categories
+
 Elevate your financial organization with enhanced visual customization! Now, you can personalize your Category Hierarchy with a rich set of icons and vibrant colors.
 
 - **Custom Icons**: Choose from a curated library of icons (🍽️, 🚗, 🛋️, etc.) to represent your categories visually.
@@ -33,6 +57,7 @@ Elevate your financial organization with enhanced visual customization! Now, you
 ## [April 14, 2026] Multi-Tenancy & Security
 
 ### 🛡️ Enterprise-Grade Isolation
+
 This major update focuses on security and data integrity, ensuring Gringotts is ready for multi-user environments.
 
 - **Multi-User Data Isolation**: Transactions, Categories, and Budgets are now fully isolated per user account.
@@ -44,6 +69,7 @@ This major update focuses on security and data integrity, ensuring Gringotts is 
 ## [April 6, 2026] Advanced Budgeting Engine
 
 ### 🎯 Strategic Financial Planning
+
 Take control of your future with our advanced budgeting engine and dashboard improvements.
 
 - **Master Templates**: Define your ideal monthly spending structure once and reuse it.
@@ -57,6 +83,7 @@ Take control of your future with our advanced budgeting engine and dashboard imp
 ## [April 3, 2026] Transaction Insights
 
 ### 🔍 Deep Dive into Spending
+
 - **Transaction Details**: A dedicated view for individual transactions, providing space for extensive notes and audit details.
 - **Atomic Operations**: Backend logic updated to ensure all category transitions and updates are transactional, preventing data corruption.
 - **Auto-Cleanup**: Forms now automatically clear upon successful submission or cancellation.
@@ -66,6 +93,7 @@ Take control of your future with our advanced budgeting engine and dashboard imp
 ## [March 27, 2026] Modern Foundation
 
 ### 📱 Responsive UI & Automation
+
 - **Responsive Design**: Complete layout overhaul to ensure a premium, architectural interface on all devices (Mobile, Tablet, Desktop).
 - **Automated Statement Parsing**: Stop manual entry with support for HDFC Bank savings and credit card statements.
 - **Infrastructure as Code**: Integrated GitHub Actions for automated Firebase Hosting deployments.
