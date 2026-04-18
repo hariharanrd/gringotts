@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Landmark, Eye, EyeOff, ChevronLeft, ShieldCheck } from 'lucide-react';
 
 interface LoginProps {
@@ -15,6 +16,7 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const navigate = useNavigate();
 
   const handlePreAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -173,17 +175,30 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
                   'Continue'
                 )}
               </button>
+
+              <div className="text-center pt-2">
+                <p className="text-sm text-slate-500 dark:text-slate-400">
+                  Don't have an account?{' '}
+                  <button
+                    type="button"
+                    onClick={() => navigate('/register')}
+                    className="text-cyan-600 dark:text-cyan-400 font-bold hover:underline"
+                  >
+                    Sign Up
+                  </button>
+                </p>
+              </div>
             </form>
           ) : (
             <form id="mfa-form" onSubmit={handleAuth} className="space-y-5 animate-in fade-in slide-in-from-right-4 duration-300">
               {/* Hidden username field to help password managers associate this MFA step with the correct account */}
-              <input 
-                type="text" 
-                name="username" 
-                value={username} 
-                autoComplete="username" 
-                className="hidden" 
-                readOnly 
+              <input
+                type="text"
+                name="username"
+                value={username}
+                autoComplete="username"
+                className="hidden"
+                readOnly
               />
 
               <div className="space-y-1.5">

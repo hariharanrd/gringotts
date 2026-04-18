@@ -8,7 +8,10 @@ import com.warrenstrange.googleauth.GoogleAuthenticator;
 import com.warrenstrange.googleauth.GoogleAuthenticatorKey;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -56,10 +59,13 @@ public class AuthenticationService {
         user.setTotpSecret(key.getKey());
         
         userRepository.save(user);
+        
+        String preAuthToken = jwtService.generatePreAuthToken(username);
 
         Map<String, String> response = new HashMap<>();
         response.put("secret", key.getKey());
         response.put("otpAuthTotpURL", "otpauth://totp/Gringotts:" + username + "?secret=" + key.getKey() + "&issuer=Gringotts");
+        response.put("preAuthToken", preAuthToken);
         
         return response;
     }
@@ -80,9 +86,13 @@ public class AuthenticationService {
     }
 
     public PreAuthResult preAuthenticate(String username, String password, String trustToken) {
-        authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(username, password)
-        );
+        try {
+            authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(username, password)
+            );
+        } catch(DisabledException | UsernameNotFoundException | BadCredentialsException ue){
+            throw new RuntimeException("Bad Credentials");
+        }
 
         if (trustToken != null) {
             Optional<TrustedBrowser> trusted = trustedBrowserRepository.findByToken(trustToken);
@@ -108,6 +118,11 @@ public class AuthenticationService {
 
         if (!gAuth.authorize(user.getTotpSecret(), code)) {
             throw new RuntimeException("Invalid 2FA code");
+        }
+
+        if (!user.isConfirmed()) {
+            user.setConfirmed(true);
+            userRepository.save(user);
         }
 
         String jwt = jwtService.generateToken(user);
