@@ -12,7 +12,8 @@ import {
   Pencil,
   Trash2,
   Columns,
-  ChevronDown
+  ChevronDown,
+  ListChecks
 } from 'lucide-react';
 import { useToast } from '../components/ToastContext';
 import Pagination from '../components/Pagination';
@@ -71,6 +72,7 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
   const [totalPages, setTotalPages] = useState(1);
   const [hasMore, setHasMore] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [filters, setFilters] = useState<FilterCriteria[]>([]);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
@@ -188,6 +190,8 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
   const handleTabChange = (tab: TabType) => {
     setSearchParams({ type: tab });
     setIsTabMenuOpen(false);
+    setIsSelectionMode(false);
+    setSelectedIds(new Set());
   };
 
   const toggleColumn = (key: ColumnKey) => {
@@ -293,6 +297,15 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
 
   const handleRowClick = (e: React.MouseEvent, transaction: Transaction) => {
     if ((e.target as HTMLElement).closest('button') || (e.target as HTMLElement).closest('input')) return;
+    
+    if (isSelectionMode || selectedIds.size > 0) {
+      const next = new Set(selectedIds);
+      if (next.has(transaction.id)) next.delete(transaction.id); 
+      else next.add(transaction.id);
+      setSelectedIds(next);
+      return;
+    }
+
     navigate(`/transaction/${transaction.id}?type=${transaction.type}`);
   };
 
@@ -424,12 +437,28 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
             onApplyFilters={(f) => { setFilters(f); setCurrentPage(1); }}
           />
 
+
+
+          {currentTab !== 'all' && (
+            <button
+              onClick={() => {
+                const newMode = !isSelectionMode;
+                setIsSelectionMode(newMode);
+                if (!newMode) setSelectedIds(new Set());
+              }}
+              className={`lg:hidden flex items-center justify-center p-3 rounded-2xl border transition-all ${isSelectionMode ? 'bg-cyan-500 text-white border-cyan-500 shadow-lg shadow-cyan-500/20' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-500'}`}
+              title="Select Mode"
+            >
+              <ListChecks className="w-5 h-5" />
+            </button>
+          )}
+
           <button
             onClick={() => onAdd(currentTab === 'all' ? undefined : (currentTab.toUpperCase() as any))}
             className="flex items-center gap-2 bg-gradient-to-r from-cyan-600 to-blue-700 text-white py-3 px-5 rounded-2xl shadow-lg shadow-cyan-600/20 hover:from-cyan-500 hover:to-blue-600 transition-all font-bold text-sm"
           >
             <PlusCircle className="w-4 h-4" />
-            <span>Add</span>
+            <span className="hidden sm:inline">Add</span>
           </button>
         </div>
       </div>
@@ -440,9 +469,9 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="group border-b border-slate-100 dark:border-slate-800/50 bg-slate-50/50 dark:bg-slate-900/50">
-                <th className="p-4 px-6 w-10">
+                <th className={`transition-all duration-300 overflow-hidden ${currentTab !== 'all' && (isSelectionMode || selectedIds.size > 0) ? 'w-14 opacity-100' : 'w-0 opacity-0'}`}>
                   {currentTab !== 'all' && (
-                    <div className={`transition-all duration-200 ${selectedIds.size > 0 ? 'opacity-100 pointer-events-auto' : 'opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto'}`}>
+                    <div className="flex justify-center items-center w-14 p-4">
                       <input type="checkbox" checked={selectedIds.size === transactions.length && transactions.length > 0} onChange={toggleSelectAll} className="w-4 h-4 rounded accent-cyan-500 cursor-pointer" />
                     </div>
                   )}
@@ -470,9 +499,9 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
                   onClick={(e) => handleRowClick(e, t)}
                   className={`group hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors cursor-pointer ${selectedIds.has(t.id) ? 'bg-cyan-500/5' : ''}`}
                 >
-                  <td className="p-4 px-6">
+                  <td className={`transition-all duration-300 overflow-hidden ${currentTab !== 'all' && (isSelectionMode || selectedIds.size > 0) ? 'w-14' : (currentTab !== 'all' ? 'w-0 group-hover:w-14' : 'w-0')}`}>
                     {currentTab !== 'all' && (
-                      <div className={`transition-all duration-200 ${selectedIds.size > 0 ? 'opacity-100 pointer-events-auto' : 'opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto'}`}>
+                      <div className={`flex justify-center items-center w-14 p-4 transition-opacity duration-300 ${isSelectionMode || selectedIds.size > 0 ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
                         <input type="checkbox" checked={selectedIds.has(t.id)} onChange={() => {
                           const next = new Set(selectedIds);
                           if (next.has(t.id)) next.delete(t.id); else next.add(t.id);
@@ -591,21 +620,23 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
                 onClick={(e) => handleRowClick(e, t)}
                 className={`group p-4 active:bg-slate-50 dark:active:bg-slate-800/50 transition-colors cursor-pointer ${selectedIds.has(t.id) ? 'bg-cyan-500/5' : ''}`}
               >
-                <div className="flex items-start gap-4">
+                <div className="flex items-start">
                   {currentTab !== 'all' && (
-                    <div className={`pt-1 transition-all duration-200 ${selectedIds.size > 0 ? 'opacity-100 pointer-events-auto' : 'opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto'}`}>
-                      <input
-                        type="checkbox"
-                        checked={selectedIds.has(t.id)}
-                        onClick={(e) => e.stopPropagation()}
-                        onChange={(e) => {
-                          e.stopPropagation();
-                          const next = new Set(selectedIds);
-                          if (next.has(t.id)) next.delete(t.id); else next.add(t.id);
-                          setSelectedIds(next);
-                        }}
-                        className="w-5 h-5 rounded-lg accent-cyan-500 border-2 border-slate-300 dark:border-slate-600 focus:ring-0 cursor-pointer"
-                      />
+                    <div className={`transition-all duration-300 overflow-hidden ${isSelectionMode || selectedIds.size > 0 ? 'w-10 opacity-100' : 'w-0 opacity-0'}`}>
+                      <div className="pt-1 pr-4">
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.has(t.id)}
+                          onClick={(e) => e.stopPropagation()}
+                          onChange={(e) => {
+                            e.stopPropagation();
+                            const next = new Set(selectedIds);
+                            if (next.has(t.id)) next.delete(t.id); else next.add(t.id);
+                            setSelectedIds(next);
+                          }}
+                          className="w-5 h-5 rounded-lg accent-cyan-500 border-2 border-slate-300 dark:border-slate-600 focus:ring-0 cursor-pointer"
+                        />
+                      </div>
                     </div>
                   )}
 
