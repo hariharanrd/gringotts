@@ -15,7 +15,9 @@ import {
   Sun,
   Moon,
   RefreshCw,
-  Target
+  Target,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 
 import { useTheme } from './ThemeContext';
@@ -37,6 +39,7 @@ const navItems = [
 
 const Layout: React.FC<LayoutProps> = ({ userName, children, onImport }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isPinned, setIsPinned] = useState(true);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const location = useLocation();
   const activeTab = location.pathname.replace('/', '');
@@ -54,20 +57,31 @@ const Layout: React.FC<LayoutProps> = ({ userName, children, onImport }) => {
 
       {/* Sidebar */}
       <aside className={`
-        fixed inset-y-0 left-0 z-50 w-72 bg-white/80 dark:bg-slate-900/80 backdrop-blur-2xl border-r border-slate-200 dark:border-slate-700/50 transform transition-transform duration-300 ease-out
+        fixed inset-y-0 left-0 z-50 ${isPinned ? 'w-64' : 'w-20'} bg-white/80 dark:bg-slate-900/80 backdrop-blur-2xl border-r border-slate-200 dark:border-slate-700/50 transform transition-all duration-300 ease-out
         md:relative md:translate-x-0
         ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
       `}>
         <div className="flex flex-col h-full">
           {/* Brand */}
-          <div className="p-6 flex items-center gap-3 border-b border-slate-200 dark:border-slate-700/50">
-            <div className="bg-white dark:bg-slate-900 p-1.5 rounded-xl">
-              <img src="/favicon.png" alt="Gringotts" className="w-16 h-16 object-contain rounded-lg" />
+          <div className={`flex items-center justify-between border-b border-slate-200 dark:border-slate-700/50 transition-all duration-300 ${isPinned ? 'p-6' : 'p-2 flex-col gap-4 py-6'}`}>
+            <div className={`flex items-center gap-3 overflow-hidden transition-all duration-300 ${!isPinned && 'justify-center w-full'}`}>
+              <div className="bg-white dark:bg-slate-900 p-1.5 rounded-xl shrink-0 shadow-sm">
+                <img src="/favicon.png" alt="Gringotts" className={`${isPinned ? 'w-10 h-10' : 'w-12 h-12'} object-contain rounded-lg transition-all duration-300`} />
+              </div>
+              {isPinned && (
+                <div className="animate-in fade-in slide-in-from-left-2 duration-300">
+                  <h1 className="text-lg font-bold text-slate-900 dark:text-white tracking-tight">Gringotts</h1>
+                  <p className="text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-widest font-medium">Vault</p>
+                </div>
+              )}
             </div>
-            <div>
-              <h1 className="text-lg font-bold text-slate-900 dark:text-white tracking-tight">Gringotts</h1>
-              <p className="text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-widest font-medium">Finance Tracker</p>
-            </div>
+
+            <button
+              onClick={() => setIsPinned(!isPinned)}
+              className={`p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all ${isPinned ? 'hidden md:flex' : 'flex'}`}
+            >
+              {isPinned ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+            </button>
           </div>
 
           {/* Nav */}
@@ -80,17 +94,17 @@ const Layout: React.FC<LayoutProps> = ({ userName, children, onImport }) => {
                   to={item.path}
                   onClick={() => setIsSidebarOpen(false)}
                   className={`
-                    w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 relative group
+                    w-full flex items-center ${isPinned ? 'gap-3 px-4' : 'justify-center px-0'} py-3 rounded-xl text-sm font-medium transition-all duration-200 relative group
                     ${isActive
                       ? 'bg-gradient-to-r from-cyan-500/10 to-blue-500/10 text-cyan-600 dark:text-cyan-400 shadow-inner'
                       : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 hover:text-slate-800 dark:hover:text-slate-200'}
                   `}
                 >
                   {isActive && (
-                    <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-gradient-to-b from-cyan-400 to-blue-500 rounded-r-full shadow-lg shadow-cyan-500/30" />
+                    <div className={`absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-gradient-to-b from-cyan-400 to-blue-500 rounded-r-full shadow-lg shadow-cyan-500/30 ${!isPinned && 'left-1'}`} />
                   )}
-                  <item.icon className={`w-5 h-5 transition-transform duration-200 ${isActive ? '' : 'group-hover:scale-110'}`} />
-                  {item.label}
+                  <item.icon className={`w-5 h-5 transition-transform duration-200 shrink-0 ${isActive ? '' : 'group-hover:scale-110'}`} />
+                  {isPinned && <span className="animate-in fade-in slide-in-from-left-2 duration-300">{item.label}</span>}
                 </Link>
               );
             })}
@@ -98,14 +112,16 @@ const Layout: React.FC<LayoutProps> = ({ userName, children, onImport }) => {
 
           {/* Bottom user section */}
           <div className="p-4 border-t border-slate-200 dark:border-slate-700/50">
-            <div className="flex items-center gap-3 px-3 py-2">
-              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center text-white font-bold text-sm shadow-lg shadow-violet-500/20">
+            <div className={`flex items-center ${isPinned ? 'gap-3 px-3' : 'justify-center px-0'} py-2`}>
+              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center text-white font-bold text-sm shadow-lg shadow-violet-500/20 shrink-0">
                 {userName?.charAt(0)?.toUpperCase() || '?'}
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-slate-800 dark:text-slate-200 truncate">{userName}</p>
-                <p className="text-[11px] text-slate-400 dark:text-slate-500">Vault Keeper</p>
-              </div>
+              {isPinned && (
+                <div className="flex-1 min-w-0 animate-in fade-in slide-in-from-left-2 duration-300">
+                  <p className="text-sm font-semibold text-slate-800 dark:text-slate-200 truncate">{userName}</p>
+                  <p className="text-[11px] text-slate-400 dark:text-slate-500">Vault Keeper</p>
+                </div>
+              )}
             </div>
           </div>
         </div>
