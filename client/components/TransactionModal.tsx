@@ -41,7 +41,7 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, on
     subcategory: undefined,
     item: undefined,
     transaction_time: new Date().toISOString().slice(0, 16),
-    payment_mode: 'CASH',
+    payment_mode: 'UPI',
     source: '',
     is_in: true,
     is_give: true,
@@ -59,7 +59,7 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, on
       subcategory: undefined,
       item: undefined,
       transaction_time: new Date().toISOString().slice(0, 16),
-      payment_mode: 'CASH',
+      payment_mode: 'UPI',
       source: '',
       is_in: true,
       is_give: true,
@@ -341,12 +341,13 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, on
                   onChange={(e) => setFormData(prev => ({ ...prev, payment_mode: e.target.value }))}
                 >
                   <option value="CASH">Cash</option>
-                  <option value="CREDIT_CARD">Credit Card</option>
-                  <option value="DEBIT_CARD">Debit Card</option>
                   <option value="UPI">UPI</option>
-                    <option value="EMANDATE">E-Mandate</option>
-                    <option value="BANK_TRANSFER">Bank Transfer</option>
-                    <option value="WALLET">Wallet</option>
+                  <option value="DEBIT_CARD">Debit Card</option>
+                  <option value="CREDIT_CARD">Credit Card</option>
+                  <option value="NET_BANKING">Bank Transfer</option>
+                  <option value="WALLET">Wallet</option>
+                  <option value="EMANDATE">E-Mandate</option>
+                  <option value="OTHERS">Others</option>
                 </select>
               </div>
             )}

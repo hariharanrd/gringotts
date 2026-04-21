@@ -46,7 +46,7 @@ const Badge: React.FC<{ className?: string; children: React.ReactNode }> = ({ cl
 );
 
 const PAYMENT_LABELS: Record<string, string> = {
-  CASH: 'Cash', CREDIT_CARD: 'Credit Card', DEBIT_CARD: 'Debit Card', UPI: 'UPI / Online',
+  CASH: 'Cash', CREDIT_CARD: 'Credit Card', DEBIT_CARD: 'Debit Card', UPI: 'UPI / Online', NET_BANKING: 'Bank Transfer', WALLET: 'Wallet', EMANDATE: 'E-Mandate', OTHERS: 'Others',
 };
 
 /* ════════════════════════════════════════════════════════════ */

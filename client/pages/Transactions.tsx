@@ -304,10 +304,10 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
 
   const handleRowClick = (e: React.MouseEvent, transaction: Transaction) => {
     if ((e.target as HTMLElement).closest('button') || (e.target as HTMLElement).closest('input')) return;
-    
+
     if (isSelectionMode || selectedIds.size > 0) {
       const next = new Set(selectedIds);
-      if (next.has(transaction.id)) next.delete(transaction.id); 
+      if (next.has(transaction.id)) next.delete(transaction.id);
       else next.add(transaction.id);
       setSelectedIds(next);
       return;
