@@ -60,8 +60,8 @@ export const api = {
     return handleResponse(response);
   },
 
-  getTransactions: async (currentPage: number, filters?: {field: string, condition: string, value: string}[]): Promise<ResponseProps> => {
-    let url = `${BASE_URL}/transactions?page=${currentPage}`;
+  getTransactions: async (currentPage: number, filters?: {field: string, condition: string, value: string}[], direction: 'ASC' | 'DESC' = 'DESC'): Promise<ResponseProps> => {
+    let url = `${BASE_URL}/transactions?page=${currentPage}&direction=${direction}`;
     if (filters && filters.length > 0) url += `&filters=${encodeURIComponent(JSON.stringify(filters))}`;
     const response = await fetchWithCredentials(url);
     const data = await handleResponse(response);
@@ -70,8 +70,8 @@ export const api = {
     return data;
   },
 
-  getExpenses: async (currentPage: number, filters?: {field: string, condition: string, value: string}[]): Promise<ResponseProps> => {
-    let url = `${BASE_URL}/expenses?page=${currentPage}`;
+  getExpenses: async (currentPage: number, filters?: {field: string, condition: string, value: string}[], direction: 'ASC' | 'DESC' = 'DESC'): Promise<ResponseProps> => {
+    let url = `${BASE_URL}/expenses?page=${currentPage}&direction=${direction}`;
     if (filters && filters.length > 0) url += `&filters=${encodeURIComponent(JSON.stringify(filters))}`;
     const response = await fetchWithCredentials(url);
     const data = await handleResponse(response);
@@ -79,8 +79,8 @@ export const api = {
     return data;
   },
 
-  getIncomes: async (currentPage: number, filters?: {field: string, condition: string, value: string}[]): Promise<ResponseProps> => {
-    let url = `${BASE_URL}/incomes?page=${currentPage}`;
+  getIncomes: async (currentPage: number, filters?: {field: string, condition: string, value: string}[], direction: 'ASC' | 'DESC' = 'DESC'): Promise<ResponseProps> => {
+    let url = `${BASE_URL}/incomes?page=${currentPage}&direction=${direction}`;
     if (filters && filters.length > 0) url += `&filters=${encodeURIComponent(JSON.stringify(filters))}`;
     const response = await fetchWithCredentials(url);
     const data = await handleResponse(response);
@@ -88,8 +88,8 @@ export const api = {
     return data;
   },
 
-  getSavings: async (currentPage: number, filters?: {field: string, condition: string, value: string}[]): Promise<ResponseProps> => {
-    let url = `${BASE_URL}/savings?page=${currentPage}`;
+  getSavings: async (currentPage: number, filters?: {field: string, condition: string, value: string}[], direction: 'ASC' | 'DESC' = 'DESC'): Promise<ResponseProps> => {
+    let url = `${BASE_URL}/savings?page=${currentPage}&direction=${direction}`;
     if (filters && filters.length > 0) url += `&filters=${encodeURIComponent(JSON.stringify(filters))}`;
     const response = await fetchWithCredentials(url);
     const data = await handleResponse(response);
@@ -97,8 +97,8 @@ export const api = {
     return data;
   },
 
-  getRevolvings: async (currentPage: number, filters?: {field: string, condition: string, value: string}[]): Promise<ResponseProps> => {
-    let url = `${BASE_URL}/revolvings?page=${currentPage}`;
+  getRevolvings: async (currentPage: number, filters?: {field: string, condition: string, value: string}[], direction: 'ASC' | 'DESC' = 'DESC'): Promise<ResponseProps> => {
+    let url = `${BASE_URL}/revolvings?page=${currentPage}&direction=${direction}`;
     if (filters && filters.length > 0) url += `&filters=${encodeURIComponent(JSON.stringify(filters))}`;
     const response = await fetchWithCredentials(url);
     const data = await handleResponse(response);

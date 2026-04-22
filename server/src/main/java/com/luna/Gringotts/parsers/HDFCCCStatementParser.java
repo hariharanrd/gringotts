@@ -8,9 +8,7 @@ import com.luna.Gringotts.utils.GTTable;
 import org.apache.commons.lang3.math.NumberUtils;
 
 import java.text.ParseException;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.Iterator;
@@ -19,7 +17,8 @@ import java.util.logging.Level;
 
 public class HDFCCCStatementParser extends StatementParser {
 
-    private static final String[] DATE_FORMATS = new String[]{"dd/MM/yyyy HH:mm:ss","dd/MM/yyyy / HH:mm","dd/MM/yyyy"};
+    private static final String[] DATE_FORMATS = new String[] { "dd/MM/yyyy HH:mm:ss", "dd/MM/yyyy / HH:mm",
+            "dd/MM/yyyy" };
 
     String identifiedDateFormat = null;
 
@@ -33,16 +32,16 @@ public class HDFCCCStatementParser extends StatementParser {
             GTTable table = FileUtil.readSheet(this.statementFile);
             Iterator<List<Object>> rowItr = table.getRows();
             boolean start = false;
-            while(rowItr.hasNext()){
+            while (rowItr.hasNext()) {
                 List<Object> row = rowItr.next();
-                if(!start && row.stream().anyMatch("Transaction type"::equals)){
+                if (!start && row.stream().anyMatch("Transaction type"::equals)) {
                     start = true;
                     continue;
                 }
-                if(start){
+                if (start) {
                     try {
-                        for(int col=0; col < row.size(); col++){
-                            if(isValidDate(row.get(col).toString())){
+                        for (int col = 0; col < row.size(); col++) {
+                            if (isValidDate(row.get(col).toString())) {
                                 transactions.add(getTransaction(col, row));
                             }
                         }
@@ -60,7 +59,7 @@ public class HDFCCCStatementParser extends StatementParser {
 
     private Transaction getTransaction(int datCol, List<Object> row) throws ParseException {
         LocalDateTime date = null;
-        for (String format : DATE_FORMATS){
+        for (String format : DATE_FORMATS) {
             try {
                 date = LocalDateTime.parse(row.get(datCol).toString().trim(), DateTimeFormatter.ofPattern(format));
                 identifiedDateFormat = format;
@@ -70,47 +69,46 @@ public class HDFCCCStatementParser extends StatementParser {
         }
         int nextCol = datCol + 1;
         String description = "", valueStr = "-1";
-        for (; nextCol < row.size(); nextCol++){
+        for (; nextCol < row.size(); nextCol++) {
             String temp = row.get(nextCol).toString();
-            if(!"-".equals(temp) && !temp.isEmpty()) {
+            if (!"-".equals(temp) && !temp.isEmpty()) {
                 description = row.get(nextCol).toString() + "-(HDFC Millenia CC)";
                 break;
             }
         }
-        for(; nextCol < row.size(); nextCol++) {
-            String temp = row.get(nextCol).toString().replace(",","");
-            if(!"-".equals(temp) && !temp.isEmpty() && NumberUtils.isParsable(temp)) {
+        for (; nextCol < row.size(); nextCol++) {
+            String temp = row.get(nextCol).toString().replace(",", "");
+            if (!"-".equals(temp) && !temp.isEmpty() && NumberUtils.isParsable(temp)) {
                 valueStr = row.get(nextCol).toString();
                 break;
             }
         }
-        Double value = Double.parseDouble(valueStr.trim().replace(",",""));
+        Double value = Double.parseDouble(valueStr.trim().replace(",", ""));
         boolean isDebit = true;
-        for(; nextCol < row.size(); nextCol++) {
+        for (; nextCol < row.size(); nextCol++) {
             String temp = row.get(nextCol).toString();
-            if("Cr".equals(temp)){
+            if ("Cr".equals(temp)) {
                 isDebit = false;
                 break;
             }
         }
         Transaction t;
-        if(isDebit) {
+        if (isDebit) {
             t = new Expense("-", date, description, value, Expense.ExpenseMode.CREDIT_CARD);
-        } else{
+        } else {
             t = new Income("-", date, description, value);
-            Income.IncomeMode mode  = Income.IncomeMode.OTHERS;
-            if(!description.contains("NETBANKING TRANSFER")) {
+            if (!description.contains("CREDIT CARD PAYMENT Net Banking")) {
                 t.setNotes("From HDFC Credit card");
             }
-            ((Income)t).setSource(Income.IncomeMode.OTHERS.toString());
+            ((Income) t).setSource(Income.IncomeMode.OTHERS.toString());
         }
         return t;
     }
 
     @Override
     protected String getDateFormat(String date) {
-        if(identifiedDateFormat == null){
-            for(String format : DATE_FORMATS){
+        if (identifiedDateFormat == null) {
+            for (String format : DATE_FORMATS) {
                 try {
                     LocalDateTime.parse(date.trim(), DateTimeFormatter.ofPattern(format));
                     identifiedDateFormat = format;

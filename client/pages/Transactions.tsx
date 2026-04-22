@@ -13,7 +13,9 @@ import {
   Trash2,
   Columns,
   ChevronDown,
-  ListChecks
+  ListChecks,
+  ArrowUp,
+  ArrowDown
 } from 'lucide-react';
 import { useToast } from '../components/ToastContext';
 import Pagination from '../components/Pagination';
@@ -69,6 +71,7 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
+  const [sortDirection, setSortDirection] = useState<'ASC' | 'DESC'>('DESC');
   const [totalPages, setTotalPages] = useState(1);
   const [hasMore, setHasMore] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
@@ -123,11 +126,11 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
     try {
       let response;
       switch (currentTab) {
-        case 'expense': response = await api.getExpenses(page, currentFilters); break;
-        case 'income': response = await api.getIncomes(page, currentFilters); break;
-        case 'saving': response = await api.getSavings(page, currentFilters); break;
-        case 'revolving': response = await api.getRevolvings(page, currentFilters); break;
-        default: response = await api.getTransactions(page, currentFilters); break;
+        case 'expense': response = await api.getExpenses(page, currentFilters, sortDirection); break;
+        case 'income': response = await api.getIncomes(page, currentFilters, sortDirection); break;
+        case 'saving': response = await api.getSavings(page, currentFilters, sortDirection); break;
+        case 'revolving': response = await api.getRevolvings(page, currentFilters, sortDirection); break;
+        default: response = await api.getTransactions(page, currentFilters, sortDirection); break;
       }
       setTransactions(response.data);
       setTotalPages(Math.ceil(response.total_count / 10));
@@ -143,7 +146,7 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
   useEffect(() => {
     fetchTransactions(currentPage, filters);
     setSelectedIds(new Set());
-  }, [currentPage, filters, refreshTrigger, currentTab]);
+  }, [currentPage, filters, refreshTrigger, currentTab, sortDirection]);
 
   // Persist filters to localStorage
   useEffect(() => {
@@ -304,10 +307,10 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
 
   const handleRowClick = (e: React.MouseEvent, transaction: Transaction) => {
     if ((e.target as HTMLElement).closest('button') || (e.target as HTMLElement).closest('input')) return;
-    
+
     if (isSelectionMode || selectedIds.size > 0) {
       const next = new Set(selectedIds);
-      if (next.has(transaction.id)) next.delete(transaction.id); 
+      if (next.has(transaction.id)) next.delete(transaction.id);
       else next.add(transaction.id);
       setSelectedIds(next);
       return;
@@ -437,6 +440,24 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
               </div>
             )}
           </div>
+
+          <button
+            onClick={() => {
+              setSortDirection(prev => prev === 'ASC' ? 'DESC' : 'ASC');
+              setCurrentPage(1);
+            }}
+            className="p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/60 rounded-xl shadow-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-slate-500 flex items-center gap-2 group"
+            title={`Sort by Date: ${sortDirection === 'DESC' ? 'Newest First' : 'Oldest First'}`}
+          >
+            {sortDirection === 'DESC' ? (
+              <ArrowDown className="w-5 h-5 text-cyan-500 group-hover:scale-110 transition-transform" />
+            ) : (
+              <ArrowUp className="w-5 h-5 text-cyan-500 group-hover:scale-110 transition-transform" />
+            )}
+            <span className="hidden sm:inline text-[10px] font-bold uppercase tracking-widest text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-200 transition-colors">
+              {sortDirection === 'DESC' ? 'Newest' : 'Oldest'}
+            </span>
+          </button>
 
           <FilterMenu
             activeFilters={filters}

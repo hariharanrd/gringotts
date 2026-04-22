@@ -65,38 +65,46 @@ public class TransactionService {
         return transactionRepository.findById(id).orElse(null);
     }
 
-    public Expense getExpenseById(Long id){
+    public Expense getExpenseById(Long id) {
         return expenseRepository.findById(id).orElse(null);
     }
 
-    public Income getIncomeById(Long id){
+    public Income getIncomeById(Long id) {
         return incomeRepository.findById(id).orElse(null);
     }
 
-    public Saving getSavingById(Long id){
+    public Saving getSavingById(Long id) {
         return savingRepository.findById(id).orElse(null);
     }
 
-    public Revolving getRevolvingById(Long id){
+    public Revolving getRevolvingById(Long id) {
         return revolvingRepository.findById(id).orElse(null);
     }
 
-    public void saveExpense(Expense e){
+    public void saveExpense(Expense e) {
+        if (e.getPaymentMode() == null) {
+            e.setPaymentMode(Expense.ExpenseMode.OTHERS.name());
+        }
+        try {
+            Expense.ExpenseMode.valueOf(e.getPaymentMode());
+        } catch (IllegalArgumentException ex) {
+            e.setPaymentMode(Expense.ExpenseMode.OTHERS.name());
+        }
         e.setUser(iamService.getCurrentUser());
         expenseRepository.save(e);
     }
 
-    public void saveIncome(Income i){
+    public void saveIncome(Income i) {
         i.setUser(iamService.getCurrentUser());
         incomeRepository.save(i);
     }
 
-    public void saveSaving(Saving s){
+    public void saveSaving(Saving s) {
         s.setUser(iamService.getCurrentUser());
         savingRepository.save(s);
     }
 
-    public void saveRevolving(Revolving r){
+    public void saveRevolving(Revolving r) {
         r.setUser(iamService.getCurrentUser());
         revolvingRepository.save(r);
     }
@@ -113,31 +121,31 @@ public class TransactionService {
         return transactionRepository.findAll(spec, pageable);
     }
 
-    public Page<Expense> getExpenses(List<SearchCriteria> filters, Pageable pageable){
+    public Page<Expense> getExpenses(List<SearchCriteria> filters, Pageable pageable) {
         User user = iamService.getCurrentUser();
         Specification<Expense> spec = TransactionSpecification.forUser(user, filters);
         return expenseRepository.findAll(spec, pageable);
     }
 
-    public Page<Income> getIncomes(List<SearchCriteria> filters, Pageable pageable){
+    public Page<Income> getIncomes(List<SearchCriteria> filters, Pageable pageable) {
         User user = iamService.getCurrentUser();
         Specification<Income> spec = TransactionSpecification.forUser(user, filters);
         return incomeRepository.findAll(spec, pageable);
     }
 
-    public Page<Saving> getSavings(List<SearchCriteria> filters, Pageable pageable){
+    public Page<Saving> getSavings(List<SearchCriteria> filters, Pageable pageable) {
         User user = iamService.getCurrentUser();
         Specification<Saving> spec = TransactionSpecification.forUser(user, filters);
         return savingRepository.findAll(spec, pageable);
     }
 
-    public Page<Revolving> getRevolvings(List<SearchCriteria> filters, Pageable pageable){
+    public Page<Revolving> getRevolvings(List<SearchCriteria> filters, Pageable pageable) {
         User user = iamService.getCurrentUser();
         Specification<Revolving> spec = TransactionSpecification.forUser(user, filters);
         return revolvingRepository.findAll(spec, pageable);
     }
 
-    public void deleteTransaction(Long id){
+    public void deleteTransaction(Long id) {
         transactionRepository.deleteById(id);
     }
 
@@ -157,19 +165,19 @@ public class TransactionService {
         revolvingRepository.deleteById(id);
     }
 
-    public void updateExpense(Expense e){
+    public void updateExpense(Expense e) {
         expenseRepository.save(e);
     }
 
-    public void updateIncome(Income i){
+    public void updateIncome(Income i) {
         incomeRepository.save(i);
     }
 
-    public void updateSaving(Saving s){
+    public void updateSaving(Saving s) {
         savingRepository.save(s);
     }
 
-    public void updateRevolving(Revolving r){
+    public void updateRevolving(Revolving r) {
         revolvingRepository.save(r);
     }
 
@@ -188,10 +196,14 @@ public class TransactionService {
 
     /** Returns the child-table name for a given entity type. */
     private String childTableOf(Transaction t) {
-        if (t instanceof Expense)   return "expense";
-        if (t instanceof Income)    return "income";
-        if (t instanceof Saving)    return "saving";
-        if (t instanceof Revolving) return "revolving";
+        if (t instanceof Expense)
+            return "expense";
+        if (t instanceof Income)
+            return "income";
+        if (t instanceof Saving)
+            return "saving";
+        if (t instanceof Revolving)
+            return "revolving";
         throw new IllegalStateException("Unknown transaction type: " + t.getClass().getSimpleName());
     }
 
@@ -200,12 +212,11 @@ public class TransactionService {
      * type, retaining the base transaction row (and therefore its ID).
      */
     private void swapChildTable(Long id, String oldTable, String newInsertSQL,
-                                Object... params) {
+            Object... params) {
         entityManager.createNativeQuery(
                 "DELETE FROM public." + oldTable + " WHERE id = :id")
                 .setParameter("id", id).executeUpdate();
-        jakarta.persistence.Query q =
-                entityManager.createNativeQuery(newInsertSQL);
+        jakarta.persistence.Query q = entityManager.createNativeQuery(newInsertSQL);
         q.setParameter("id", id);
         // bind name=param pairs passed in as (name, value) pairs
         for (int i = 0; i < params.length; i += 2) {
@@ -287,26 +298,26 @@ public class TransactionService {
         entityManager.flush();
         swapChildTable(id, childTableOf(existing),
                 "INSERT INTO public.revolving (id, is_give, closed) VALUES (:id, :isGive, :closed)",
-                "isGive",  incoming.getIsGive()  != null ? incoming.getIsGive()  : Boolean.TRUE,
-                "closed",  incoming.getClosed()   != null ? incoming.getClosed()  : Boolean.FALSE);
+                "isGive", incoming.getIsGive() != null ? incoming.getIsGive() : Boolean.TRUE,
+                "closed", incoming.getClosed() != null ? incoming.getClosed() : Boolean.FALSE);
         entityManager.flush();
         entityManager.clear();
         return revolvingRepository.findById(id).orElseThrow();
     }
 
-    public List<Expense> getExpense(Example<Expense> example){
+    public List<Expense> getExpense(Example<Expense> example) {
         return expenseRepository.findAll(example);
     }
 
-    public List<Income> getIncome(Example<Income> example){
+    public List<Income> getIncome(Example<Income> example) {
         return incomeRepository.findAll(example);
     }
 
-    public List<Saving> getSaving(Example<Saving> example){
+    public List<Saving> getSaving(Example<Saving> example) {
         return savingRepository.findAll(example);
     }
 
-    public List<Revolving> getRevolving(Example<Revolving> example){
+    public List<Revolving> getRevolving(Example<Revolving> example) {
         return revolvingRepository.findAll(example);
     }
 
@@ -328,22 +339,21 @@ public class TransactionService {
         Map<String, Double> categoryBreakdown = expenses.stream()
                 .collect(Collectors.groupingBy(
                         e -> e.getCategory() != null ? e.getCategory().getName() : "Uncategorized",
-                        Collectors.summingDouble(Transaction::getValue)
-                ));
+                        Collectors.summingDouble(Transaction::getValue)));
 
         // Category breakdown for savings
         Map<String, Double> savingsBreakdown = savings.stream()
                 .collect(Collectors.groupingBy(
                         s -> s.getCategory() != null ? s.getCategory().getName() : "Uncategorized",
-                        Collectors.summingDouble(s -> (s.getIsIn() != null && s.getIsIn()) ? s.getValue() : -s.getValue())
-                ));
+                        Collectors.summingDouble(
+                                s -> (s.getIsIn() != null && s.getIsIn()) ? s.getValue() : -s.getValue())));
 
         // Recent transactions (all types, sorted by date desc, limit 10)
         List<Transaction> allTransactions = new ArrayList<>();
         allTransactions.addAll(expenses);
         allTransactions.addAll(incomes);
         allTransactions.addAll(savings);
-        
+
         List<Revolving> revolvings = revolvingRepository.findByUserAndTransactionTimeAfter(user, since);
         allTransactions.addAll(revolvings);
 

@@ -40,6 +40,6 @@ public class Expense extends Transaction {
     }
 
     public enum ExpenseMode {
-        UPI, DEBIT_CARD, ATM, CREDIT_CARD, NET_BANKING, WALLET, EMANDATE, OTHERS;
+        UPI, DEBIT_CARD, CREDIT_CARD, CASH, NET_BANKING, WALLET, EMANDATE, OTHERS;
     }
 }

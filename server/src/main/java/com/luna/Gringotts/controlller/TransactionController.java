@@ -64,8 +64,9 @@ public class TransactionController {
     @GetMapping("/transactions")
     public ResponseEntity<Map<String, Object>> getTransactions(
             @RequestParam("page") int page,
-            @RequestParam(value = "filters", required = false) String filtersJson) {
-        Pageable pageable = PageRequest.of(page - 1, 10, Sort.by(Sort.Direction.DESC, "transactionTime"));
+            @RequestParam(value = "filters", required = false) String filtersJson,
+            @RequestParam(value = "direction", defaultValue = "DESC") String direction) {
+        Pageable pageable = PageRequest.of(page - 1, 10, Sort.by(Sort.Direction.fromString(direction), "transactionTime"));
         List<com.luna.Gringotts.records.SearchCriteria> filters = parseFilters(filtersJson);
         Page<Transaction> result = transactionService.getTransactions(filters, pageable);
         HashMap<String, Object> map = new HashMap<>();
@@ -79,8 +80,9 @@ public class TransactionController {
     @GetMapping("/expenses")
     public ResponseEntity<Map<String, Object>> getExpenses(
             @RequestParam("page") int page,
-            @RequestParam(value = "filters", required = false) String filtersJson){
-        Pageable pageable = PageRequest.of(page - 1, 10, Sort.by(Sort.Direction.DESC, "transactionTime"));
+            @RequestParam(value = "filters", required = false) String filtersJson,
+            @RequestParam(value = "direction", defaultValue = "DESC") String direction){
+        Pageable pageable = PageRequest.of(page - 1, 10, Sort.by(Sort.Direction.fromString(direction), "transactionTime"));
         List<com.luna.Gringotts.records.SearchCriteria> filters = parseFilters(filtersJson);
         Page<Expense> result = transactionService.getExpenses(filters, pageable);
         HashMap<String,Object> map = new HashMap<>();
@@ -134,8 +136,9 @@ public class TransactionController {
     @GetMapping("/incomes")
     public ResponseEntity<Map<String, Object>> getIncomes(
             @RequestParam("page") int page,
-            @RequestParam(value = "filters", required = false) String filtersJson) {
-        Pageable pageable = PageRequest.of(page-1, 10, Sort.by(Sort.Direction.DESC, "transactionTime"));
+            @RequestParam(value = "filters", required = false) String filtersJson,
+            @RequestParam(value = "direction", defaultValue = "DESC") String direction) {
+        Pageable pageable = PageRequest.of(page-1, 10, Sort.by(Sort.Direction.fromString(direction), "transactionTime"));
         List<com.luna.Gringotts.records.SearchCriteria> filters = parseFilters(filtersJson);
         Page<Income> result = transactionService.getIncomes(filters, pageable);
         HashMap<String, Object> map = new HashMap<>();
@@ -162,8 +165,9 @@ public class TransactionController {
     @GetMapping("/savings")
     public ResponseEntity<Map<String, Object>> getSavings(
             @RequestParam("page") int page,
-            @RequestParam(value = "filters", required = false) String filtersJson) {
-        Pageable pageable = PageRequest.of(page-1, 10, Sort.by(Sort.Direction.DESC, "transactionTime"));
+            @RequestParam(value = "filters", required = false) String filtersJson,
+            @RequestParam(value = "direction", defaultValue = "DESC") String direction) {
+        Pageable pageable = PageRequest.of(page-1, 10, Sort.by(Sort.Direction.fromString(direction), "transactionTime"));
         List<com.luna.Gringotts.records.SearchCriteria> filters = parseFilters(filtersJson);
         Page<Saving> result = transactionService.getSavings(filters, pageable);
         HashMap<String, Object> map = new HashMap<>();
@@ -190,8 +194,9 @@ public class TransactionController {
     @GetMapping("/revolvings")
     public ResponseEntity<Map<String, Object>> getRevolvings(
             @RequestParam("page") int page,
-            @RequestParam(value = "filters", required = false) String filtersJson) {
-        Pageable pageable = PageRequest.of(page-1, 10, Sort.by(Sort.Direction.DESC, "transactionTime"));
+            @RequestParam(value = "filters", required = false) String filtersJson,
+            @RequestParam(value = "direction", defaultValue = "DESC") String direction) {
+        Pageable pageable = PageRequest.of(page-1, 10, Sort.by(Sort.Direction.fromString(direction), "transactionTime"));
         List<com.luna.Gringotts.records.SearchCriteria> filters = parseFilters(filtersJson);
         Page<Revolving> result = transactionService.getRevolvings(filters, pageable);
         HashMap<String, Object> map = new HashMap<>();
