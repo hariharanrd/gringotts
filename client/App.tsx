@@ -8,6 +8,7 @@ import Dashboard from './pages/Dashboard';
 import Transactions from './pages/Transactions';
 import Configuration from './pages/Configuration';
 import Budget from './pages/Budget';
+import InvestmentPlanner from './pages/InvestmentPlanner';
 import TransactionDetails from './pages/TransactionDetails';
 import { Login } from './pages/Login';
 import { Register } from './pages/Register';
@@ -125,7 +126,7 @@ const GringottsApp: React.FC = () => {
   const handleEditTransaction = async (transaction: Transaction) => {
     setSelectedTransaction(transaction);
     setModalDefaultType(undefined);
-    setIsModalOpen(true); 
+    setIsModalOpen(true);
   }
 
   const handleAddTransaction = (type?: TransactionType) => {
@@ -158,7 +159,7 @@ const GringottsApp: React.FC = () => {
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="/*" element={
           <PrivateRoute isAuthenticated={isAuthenticated}>
-            <Layout 
+            <Layout
               userName={username}
               onLogout={handleLogout}
               onImport={() => setIsImportModalOpen(true)}
@@ -172,6 +173,7 @@ const GringottsApp: React.FC = () => {
                   <Route path="/transaction/:id" element={<TransactionDetails />} />
                   <Route path="/configuration" element={<Configuration />} />
                   <Route path="/budget" element={<Budget />} />
+                  <Route path="/goals" element={<InvestmentPlanner />} />
                   <Route path="/logout" element={<Logout onLogout={handleLogout} />} />
                   <Route path="*" element={
                     <div className="flex flex-col items-center justify-center min-h-[60vh]">

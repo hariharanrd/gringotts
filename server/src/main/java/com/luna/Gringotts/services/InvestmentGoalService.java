@@ -1,0 +1,281 @@
+package com.luna.Gringotts.services;
+
+import com.luna.Gringotts.records.*;
+import com.luna.Gringotts.repository.InvestmentGoalTagRepository;
+import com.luna.Gringotts.repository.InvestmentGoalRepository;
+import com.luna.Gringotts.repository.ItemRepository;
+import com.luna.Gringotts.repository.CategoryRepository;
+import com.luna.Gringotts.repository.SubCategoryRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.*;
+
+@Service
+public class InvestmentGoalService {
+
+    @Autowired
+    private InvestmentGoalRepository goalRepository;
+
+    @Autowired
+    private InvestmentGoalTagRepository tagRepository;
+
+    @Autowired
+    private ItemRepository itemRepository;
+
+    @Autowired
+    private CategoryRepository categoryRepository;
+
+    @Autowired
+    private SubCategoryRepository subCategoryRepository;
+
+    @Autowired
+    private IAMService iamService;
+
+    // ── Read ──────────────────────────────────────────────────────────────────
+
+    public List<Map<String, Object>> getAllGoals() {
+        User user = iamService.getCurrentUser();
+        List<InvestmentGoal> goals = goalRepository.findAllByUserOrderByCreatedAtDesc(user);
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (InvestmentGoal goal : goals) {
+            result.add(toDto(goal));
+        }
+        return result;
+    }
+
+    public Map<String, Object> getGoalById(Long id) {
+        InvestmentGoal goal = requireGoal(id);
+        return toDto(goal);
+    }
+
+    // ── Create ────────────────────────────────────────────────────────────────
+
+    @Transactional
+    public Map<String, Object> createGoal(InvestmentGoal incoming) {
+        User user = iamService.getCurrentUser();
+        incoming.setUser(user);
+        incoming.setTags(new ArrayList<>());
+        if (incoming.getCurrentAmount() == null) incoming.setCurrentAmount(0.0);
+        if (incoming.getMonthlyContribution() == null) incoming.setMonthlyContribution(0.0);
+        if (incoming.getAnnualRate() == null) incoming.setAnnualRate(8.0);
+        if (incoming.getIcon() == null || incoming.getIcon().isBlank()) incoming.setIcon("🎯");
+        if (incoming.getColor() == null || incoming.getColor().isBlank()) incoming.setColor("#6366f1");
+        InvestmentGoal saved = goalRepository.save(incoming);
+        if (incoming.getTagsPayload() != null) {
+            syncTags(saved, incoming.getTagsPayload());
+            saved = goalRepository.save(saved);
+        }
+        return toDto(saved);
+    }
+
+    // ── Update ────────────────────────────────────────────────────────────────
+
+    @Transactional
+    public Map<String, Object> updateGoal(Long id, InvestmentGoal incoming) {
+        InvestmentGoal existing = requireGoal(id);
+        existing.setName(incoming.getName());
+        existing.setIcon(incoming.getIcon() != null ? incoming.getIcon() : existing.getIcon());
+        existing.setColor(incoming.getColor() != null ? incoming.getColor() : existing.getColor());
+        existing.setTargetAmount(incoming.getTargetAmount());
+        existing.setCurrentAmount(incoming.getCurrentAmount() != null ? incoming.getCurrentAmount() : existing.getCurrentAmount());
+        existing.setMonthlyContribution(incoming.getMonthlyContribution() != null ? incoming.getMonthlyContribution() : existing.getMonthlyContribution());
+        existing.setAnnualRate(incoming.getAnnualRate() != null ? incoming.getAnnualRate() : existing.getAnnualRate());
+        existing.setNotes(incoming.getNotes());
+        
+        if (incoming.getTagsPayload() != null) {
+            syncTags(existing, incoming.getTagsPayload());
+        }
+        
+        return toDto(goalRepository.save(existing));
+    }
+
+    // ── Delete ────────────────────────────────────────────────────────────────
+
+    @Transactional
+    public void deleteGoal(Long id) {
+        requireGoal(id); // ownership check
+        goalRepository.deleteById(id);
+    }
+
+    private void syncTags(InvestmentGoal goal, List<InvestmentGoal.TagRequest> requests) {
+        if (requests == null) return;
+        
+        // Clear old tags that are not in the new list
+        goal.getTags().clear();
+        
+        for (InvestmentGoal.TagRequest req : requests) {
+            InvestmentGoalTag tag = new InvestmentGoalTag();
+            tag.setGoal(goal);
+            
+            if (req.type == InvestmentGoal.TagType.ITEM) {
+                Item item = itemRepository.findById(req.id)
+                        .orElseThrow(() -> new NoSuchElementException("Item not found: " + req.id));
+                tag.setItem(item);
+            } else if (req.type == InvestmentGoal.TagType.SUBCATEGORY) {
+                SubCategory sub = subCategoryRepository.findById(req.id)
+                        .orElseThrow(() -> new NoSuchElementException("SubCategory not found: " + req.id));
+                tag.setSubCategory(sub);
+            } else if (req.type == InvestmentGoal.TagType.CATEGORY) {
+                Category cat = categoryRepository.findById(req.id)
+                        .orElseThrow(() -> new NoSuchElementException("Category not found: " + req.id));
+                tag.setCategory(cat);
+            }
+            goal.getTags().add(tag);
+        }
+    }
+
+    // ── Auto-credit from savings transactions ─────────────────────────────────
+
+    /**
+     * Called by TransactionService when a SAVING transaction is created or updated.
+     * Finds all goals tagged with the item and adjusts current_amount by delta.
+     * delta > 0 = money flowing in (is_in=true); delta < 0 = withdrawal (is_in=false).
+     */
+    @Transactional
+    public void adjustGoalsForSaving(Saving saving, double delta) {
+        if (saving == null || delta == 0.0) return;
+        
+        Set<Long> updatedGoalIds = new HashSet<>();
+        
+        // 1. Check Item matches
+        if (saving.getItem() != null) {
+            List<InvestmentGoalTag> tags = tagRepository.findAllByItem(saving.getItem());
+            for (InvestmentGoalTag tag : tags) {
+                applyDelta(tag.getGoal(), delta, updatedGoalIds);
+            }
+        }
+        
+        // 2. Check SubCategory matches
+        if (saving.getSubCategory() != null) {
+            List<InvestmentGoalTag> tags = tagRepository.findAllBySubCategory(saving.getSubCategory());
+            for (InvestmentGoalTag tag : tags) {
+                applyDelta(tag.getGoal(), delta, updatedGoalIds);
+            }
+        }
+        
+        // 3. Check Category matches
+        if (saving.getCategory() != null) {
+            List<InvestmentGoalTag> tags = tagRepository.findAllByCategory(saving.getCategory());
+            for (InvestmentGoalTag tag : tags) {
+                applyDelta(tag.getGoal(), delta, updatedGoalIds);
+            }
+        }
+    }
+
+    private void applyDelta(InvestmentGoal goal, double delta, Set<Long> alreadyUpdated) {
+        if (alreadyUpdated.contains(goal.getId())) return;
+        double updated = goal.getCurrentAmount() + delta;
+        goal.setCurrentAmount(Math.max(0.0, updated));
+        goalRepository.save(goal);
+        alreadyUpdated.add(goal.getId());
+    }
+
+    // ── Projection helpers ────────────────────────────────────────────────────
+
+    /**
+     * How many years until goal is reached given:
+     *   - current (PV) already saved
+     *   - monthlyContribution (PMT) added each month
+     *   - annualRate (%) compound growth
+     *
+     * Uses Future Value of annuity formula:
+     *   FV = PV*(1+r_m)^n + PMT*((1+r_m)^n - 1)/r_m
+     * Solving for n:
+     *   let A = FV + PMT/r_m,  B = PV + PMT/r_m
+     *   (1+r_m)^n = A/B
+     *   n = log(A/B) / log(1+r_m)    (n in months)
+     *
+     * Falls back to simple compound-only if PMT=0.
+     * Returns null when projection is impossible (no contribution, no current amount).
+     */
+    private Double yearsToGoal(double current, double target, double annualRate, double monthlyContribution) {
+        if (target <= 0) return null;
+        if (current >= target) return 0.0;
+
+        double r_m = annualRate / 12.0 / 100.0;
+        double pmt = monthlyContribution;
+
+        if (r_m <= 0) {
+            // No growth — purely PMT-based
+            if (pmt <= 0) return null;
+            double months = (target - current) / pmt;
+            return Math.round(months / 12.0 * 10.0) / 10.0;
+        }
+
+        if (pmt <= 0) {
+            // No contributions — pure compound growth on current
+            if (current <= 0) return null;
+            double months = Math.log(target / current) / Math.log(1 + r_m);
+            return Math.round(months / 12.0 * 10.0) / 10.0;
+        }
+
+        // General case: FV of annuity
+        double A = target + pmt / r_m;
+        double B = current + pmt / r_m;
+        if (A <= 0 || B <= 0 || A <= B) return null; // edge cases
+        double months = Math.log(A / B) / Math.log(1 + r_m);
+        return Math.round(months / 12.0 * 10.0) / 10.0;
+    }
+
+    // ── DTO builder ───────────────────────────────────────────────────────────
+
+    private Map<String, Object> toDto(InvestmentGoal goal) {
+        Map<String, Object> dto = new LinkedHashMap<>();
+        dto.put("id", goal.getId());
+        dto.put("name", goal.getName());
+        dto.put("icon", goal.getIcon());
+        dto.put("color", goal.getColor());
+        dto.put("target_amount", goal.getTargetAmount());
+        dto.put("current_amount", goal.getCurrentAmount());
+        dto.put("monthly_contribution", goal.getMonthlyContribution());
+        dto.put("annual_rate", goal.getAnnualRate());
+        dto.put("notes", goal.getNotes());
+        dto.put("created_at", goal.getCreatedAt());
+
+        // Tags: strip back-reference to goal to avoid cycles
+        List<Map<String, Object>> tagDtos = new ArrayList<>();
+        for (InvestmentGoalTag tag : goal.getTags()) {
+            Map<String, Object> tagDto = new LinkedHashMap<>();
+            tagDto.put("id", tag.getId());
+            if (tag.getItem() != null) {
+                tagDto.put("type", "ITEM");
+                tagDto.put("item", tag.getItem());
+            } else if (tag.getSubCategory() != null) {
+                tagDto.put("type", "SUBCATEGORY");
+                tagDto.put("subcategory", tag.getSubCategory());
+            } else if (tag.getCategory() != null) {
+                tagDto.put("type", "CATEGORY");
+                tagDto.put("category", tag.getCategory());
+            }
+            tagDtos.add(tagDto);
+        }
+        dto.put("tags", tagDtos);
+
+        // Projection using FV-of-annuity formula
+        Double years = yearsToGoal(
+                goal.getCurrentAmount(), goal.getTargetAmount(),
+                goal.getAnnualRate(), goal.getMonthlyContribution());
+        dto.put("years_to_goal", years);
+
+        double pct = goal.getTargetAmount() > 0
+                ? (goal.getCurrentAmount() / goal.getTargetAmount()) * 100.0
+                : 0.0;
+        dto.put("percent_achieved", Math.min(Math.round(pct * 10.0) / 10.0, 100.0));
+
+        return dto;
+    }
+
+    // ── Guard ─────────────────────────────────────────────────────────────────
+
+    private InvestmentGoal requireGoal(Long id) {
+        User user = iamService.getCurrentUser();
+        InvestmentGoal goal = goalRepository.findById(id)
+                .orElseThrow(() -> new NoSuchElementException("Goal not found: " + id));
+        if (!goal.getUser().getId().equals(user.getId())) {
+            throw new SecurityException("Access denied to goal: " + id);
+        }
+        return goal;
+    }
+}

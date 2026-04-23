@@ -1,5 +1,5 @@
 
-import { Transaction, Expense, Income, Saving, Revolving, Category, SubCategory, Item, TransactionType, Budget, BudgetUtilization } from '../types';
+import { Transaction, Expense, Income, Saving, Revolving, Category, SubCategory, Item, TransactionType, Budget, BudgetUtilization, InvestmentGoal } from '../types';
 
 const BASE_URL = "/api/v1";
 
@@ -60,7 +60,7 @@ export const api = {
     return handleResponse(response);
   },
 
-  getTransactions: async (currentPage: number, filters?: {field: string, condition: string, value: string}[], direction: 'ASC' | 'DESC' = 'DESC'): Promise<ResponseProps> => {
+  getTransactions: async (currentPage: number, filters?: { field: string, condition: string, value: string }[], direction: 'ASC' | 'DESC' = 'DESC'): Promise<ResponseProps> => {
     let url = `${BASE_URL}/transactions?page=${currentPage}&direction=${direction}`;
     if (filters && filters.length > 0) url += `&filters=${encodeURIComponent(JSON.stringify(filters))}`;
     const response = await fetchWithCredentials(url);
@@ -70,7 +70,7 @@ export const api = {
     return data;
   },
 
-  getExpenses: async (currentPage: number, filters?: {field: string, condition: string, value: string}[], direction: 'ASC' | 'DESC' = 'DESC'): Promise<ResponseProps> => {
+  getExpenses: async (currentPage: number, filters?: { field: string, condition: string, value: string }[], direction: 'ASC' | 'DESC' = 'DESC'): Promise<ResponseProps> => {
     let url = `${BASE_URL}/expenses?page=${currentPage}&direction=${direction}`;
     if (filters && filters.length > 0) url += `&filters=${encodeURIComponent(JSON.stringify(filters))}`;
     const response = await fetchWithCredentials(url);
@@ -79,7 +79,7 @@ export const api = {
     return data;
   },
 
-  getIncomes: async (currentPage: number, filters?: {field: string, condition: string, value: string}[], direction: 'ASC' | 'DESC' = 'DESC'): Promise<ResponseProps> => {
+  getIncomes: async (currentPage: number, filters?: { field: string, condition: string, value: string }[], direction: 'ASC' | 'DESC' = 'DESC'): Promise<ResponseProps> => {
     let url = `${BASE_URL}/incomes?page=${currentPage}&direction=${direction}`;
     if (filters && filters.length > 0) url += `&filters=${encodeURIComponent(JSON.stringify(filters))}`;
     const response = await fetchWithCredentials(url);
@@ -88,7 +88,7 @@ export const api = {
     return data;
   },
 
-  getSavings: async (currentPage: number, filters?: {field: string, condition: string, value: string}[], direction: 'ASC' | 'DESC' = 'DESC'): Promise<ResponseProps> => {
+  getSavings: async (currentPage: number, filters?: { field: string, condition: string, value: string }[], direction: 'ASC' | 'DESC' = 'DESC'): Promise<ResponseProps> => {
     let url = `${BASE_URL}/savings?page=${currentPage}&direction=${direction}`;
     if (filters && filters.length > 0) url += `&filters=${encodeURIComponent(JSON.stringify(filters))}`;
     const response = await fetchWithCredentials(url);
@@ -97,7 +97,7 @@ export const api = {
     return data;
   },
 
-  getRevolvings: async (currentPage: number, filters?: {field: string, condition: string, value: string}[], direction: 'ASC' | 'DESC' = 'DESC'): Promise<ResponseProps> => {
+  getRevolvings: async (currentPage: number, filters?: { field: string, condition: string, value: string }[], direction: 'ASC' | 'DESC' = 'DESC'): Promise<ResponseProps> => {
     let url = `${BASE_URL}/revolvings?page=${currentPage}&direction=${direction}`;
     if (filters && filters.length > 0) url += `&filters=${encodeURIComponent(JSON.stringify(filters))}`;
     const response = await fetchWithCredentials(url);
@@ -158,7 +158,7 @@ export const api = {
     return handleResponseAndGetData(response);
   },
 
-  deleteTransaction: async (id: number)     => {
+  deleteTransaction: async (id: number) => {
     const response = await fetchWithCredentials(`${BASE_URL}/transactions/${id}`, {
       method: 'DELETE',
     });
@@ -183,32 +183,32 @@ export const api = {
 
   updateExpense: async (data: Partial<Expense>) => {
     const response = await fetchWithCredentials(`${BASE_URL}/expenses/${data.id}`, {
-        method: 'PUT',
-        body: JSON.stringify({ ...data, type: TransactionType.EXPENSE }),
+      method: 'PUT',
+      body: JSON.stringify({ ...data, type: TransactionType.EXPENSE }),
     });
     return handleResponseAndGetData(response);
   },
 
   updateIncome: async (data: Partial<Income>) => {
     const response = await fetchWithCredentials(`${BASE_URL}/incomes/${data.id}`, {
-        method: 'PUT',
-        body: JSON.stringify({ ...data, type: TransactionType.INCOME }),
+      method: 'PUT',
+      body: JSON.stringify({ ...data, type: TransactionType.INCOME }),
     });
     return handleResponseAndGetData(response);
   },
 
   updateSaving: async (data: Partial<Saving>) => {
     const response = await fetchWithCredentials(`${BASE_URL}/savings/${data.id}`, {
-        method: 'PUT',
-        body: JSON.stringify({ ...data, type: TransactionType.SAVING }),
+      method: 'PUT',
+      body: JSON.stringify({ ...data, type: TransactionType.SAVING }),
     });
     return handleResponseAndGetData(response);
   },
 
   updateRevolving: async (data: Partial<Revolving>) => {
     const response = await fetchWithCredentials(`${BASE_URL}/revolvings/${data.id}`, {
-        method: 'PUT',
-        body: JSON.stringify({ ...data, type: TransactionType.REVOLVING }),
+      method: 'PUT',
+      body: JSON.stringify({ ...data, type: TransactionType.REVOLVING }),
     });
     return handleResponseAndGetData(response);
   },
@@ -304,7 +304,7 @@ export const api = {
 
   deleteSubCategory: async (id: number) => {
     const response = await fetchWithCredentials(`${BASE_URL}/subcategories/${id}`, {
-      method : 'DELETE',
+      method: 'DELETE',
     });
     if (!response.ok) throw new Error('Failed to delete subcategory');
   },
@@ -312,7 +312,7 @@ export const api = {
 
   deleteItem: async (id: number) => {
     const response = await fetchWithCredentials(`${BASE_URL}/items/${id}`, {
-      method : 'DELETE',
+      method: 'DELETE',
     });
     if (!response.ok) throw new Error('Failed to delete item');
   },
@@ -379,7 +379,42 @@ export const api = {
     });
     if (!response.ok) throw new Error('Failed to delete budget');
     return handleResponse(response);
-  }
+  },
   // Budget API End
+
+  // Investment Goals API Start
+  getGoals: async (): Promise<{ data: InvestmentGoal[], total_count: number }> => {
+    const response = await fetchWithCredentials(`${BASE_URL}/investment-goals`);
+    return handleResponse(response);
+  },
+
+  getGoalById: async (id: number): Promise<InvestmentGoal> => {
+    const response = await fetchWithCredentials(`${BASE_URL}/investment-goals/${id}`);
+    return handleResponseAndGetData(response);
+  },
+
+  createGoal: async (data: Partial<InvestmentGoal>) => {
+    const response = await fetchWithCredentials(`${BASE_URL}/investment-goals`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    return handleResponseAndGetData(response);
+  },
+
+  updateGoal: async (id: number, data: Partial<InvestmentGoal>) => {
+    const response = await fetchWithCredentials(`${BASE_URL}/investment-goals/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+    return handleResponseAndGetData(response);
+  },
+
+  deleteGoal: async (id: number) => {
+    const response = await fetchWithCredentials(`${BASE_URL}/investment-goals/${id}`, {
+      method: 'DELETE',
+    });
+    if (!response.ok) throw new Error('Failed to delete goal');
+  }
+  // Investment Goals API End
 };
 

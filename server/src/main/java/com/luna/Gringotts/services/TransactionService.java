@@ -61,6 +61,9 @@ public class TransactionService {
     @Autowired
     IAMService iamService;
 
+    @Autowired
+    InvestmentGoalService investmentGoalService;
+
     public Transaction getTransactionById(Long id) {
         return transactionRepository.findById(id).orElse(null);
     }
@@ -102,6 +105,9 @@ public class TransactionService {
     public void saveSaving(Saving s) {
         s.setUser(iamService.getCurrentUser());
         savingRepository.save(s);
+        // Auto-credit linked investment goals.
+        double delta = Boolean.TRUE.equals(s.getIsIn()) ? s.getValue() : -s.getValue();
+        investmentGoalService.adjustGoalsForSaving(s, delta);
     }
 
     public void saveRevolving(Revolving r) {
@@ -146,7 +152,16 @@ public class TransactionService {
     }
 
     public void deleteTransaction(Long id) {
-        transactionRepository.deleteById(id);
+        Transaction t = transactionRepository.findById(id).get();
+        if(t instanceof Expense) {
+            deleteExpense(id);
+        }else if(t instanceof Income) {
+            deleteIncome(id);
+        }else if(t instanceof Saving) {
+            deleteSaving(id);
+        }else if(t instanceof Revolving) {
+            deleteRevolving(id);
+        }
     }
 
     public void deleteExpense(Long id) {
@@ -158,6 +173,12 @@ public class TransactionService {
     }
 
     public void deleteSaving(Long id) {
+        // Reverse the goal credit before deleting
+        Saving existing = savingRepository.findById(id).orElse(null);
+        if (existing != null) {
+            double reversal = Boolean.TRUE.equals(existing.getIsIn()) ? -existing.getValue() : existing.getValue();
+            investmentGoalService.adjustGoalsForSaving(existing, reversal);
+        }
         savingRepository.deleteById(id);
     }
 
@@ -269,19 +290,33 @@ public class TransactionService {
     public Saving updateToSaving(Long id, Saving incoming) {
         Transaction existing = transactionRepository.findById(id).orElseThrow();
         if (existing instanceof Saving current) {
+            // Reverse old contribution then apply new one
+            double oldDelta = Boolean.TRUE.equals(current.getIsIn()) ? current.getValue() : -current.getValue();
+            investmentGoalService.adjustGoalsForSaving(current, -oldDelta);
+
             applyBaseFields(current, incoming);
             current.setIsIn(incoming.getIsIn());
-            return savingRepository.save(current);
+            Saving saved = savingRepository.save(current);
+
+            double newDelta = Boolean.TRUE.equals(saved.getIsIn()) ? saved.getValue() : -saved.getValue();
+            investmentGoalService.adjustGoalsForSaving(saved, newDelta);
+            return saved;
         }
+        // Type switch: existing is NOT a Saving — no goal adjustment needed for old row
         applyBaseFields(existing, incoming);
         transactionRepository.save(existing);
         entityManager.flush();
+        boolean isIn = incoming.getIsIn() != null ? incoming.getIsIn() : Boolean.TRUE;
         swapChildTable(id, childTableOf(existing),
                 "INSERT INTO public.saving (id, is_in) VALUES (:id, :isIn)",
-                "isIn", incoming.getIsIn() != null ? incoming.getIsIn() : Boolean.TRUE);
+                "isIn", isIn);
         entityManager.flush();
         entityManager.clear();
-        return savingRepository.findById(id).orElseThrow();
+        Saving saved = savingRepository.findById(id).orElseThrow();
+        // Apply goal credit for newly created saving
+        double delta = Boolean.TRUE.equals(saved.getIsIn()) ? saved.getValue() : -saved.getValue();
+        investmentGoalService.adjustGoalsForSaving(saved, delta);
+        return saved;
     }
 
     @Transactional

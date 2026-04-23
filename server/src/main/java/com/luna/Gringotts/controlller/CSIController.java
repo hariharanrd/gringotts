@@ -107,7 +107,7 @@ public class CSIController {
     @PostMapping("/categories")
     public ResponseEntity<Map<String,Object>> addCategory(@RequestBody Category category){
         if (category.getType() == null || !VALID_CATEGORY_TYPES.contains(category.getType())) {
-            return ResponseEntity.badRequest().body(Map.of("message", "Category type must be one of: EXPENSE, INCOME, SAVING", "status", "error"));
+            return ResponseEntity.badRequest().body(Map.of("message", "Category type must be one of: EXPENSE, INCOME, SAVING, REVOLVING", "status", "error"));
         }
         Category added = CSIService.addCategory(category);
         return ResponseEntity.ok(Map.of("category",added,"status","success"));
