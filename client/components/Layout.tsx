@@ -33,6 +33,7 @@ const navItems = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },
   { id: 'transactions', label: 'Transactions', icon: Landmark, path: '/transactions' },
   { id: 'budget', label: 'Budget', icon: Target, path: '/budget' },
+  { id: 'goals', label: 'Goals', icon: TrendingUp, path: '/goals' },
   { id: 'configuration', label: 'Settings', icon: Settings, path: '/configuration' },
 ];
 

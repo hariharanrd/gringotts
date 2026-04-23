@@ -1,5 +1,54 @@
 # 🚀 Release Notes
 
+## [April 23, 2026] Investment Planner & Hierarchical Auto-Crediting
+
+A comprehensive upgrade to the long-term financial planning capabilities of Gringotts, featuring a sophisticated investment goal tracking system with automated progress updates and complex growth modeling.
+
+### 📈 Investment Planner
+
+Visualize and track your journey toward financial freedom with our most advanced module yet.
+
+- **Sophisticated Goal Tracking**: Set specific milestones like Emergency Funds, Home Purchases, or Retirement with custom icons and colors.
+- **Compound Growth Projections**: Integrated a high-precision financial calculator (FV of Annuity) to estimate goal achievement dates based on your monthly contributions and expected annual return rate.
+- **Achievement Dashboard**: A high-level summary of your total targets, overall progress, and specific goal completion metrics.
+
+### 🏷️ Hierarchical CSI Auto-Crediting
+
+Financial automation has been expanded to the entire Category Hierarchy.
+
+- **Multi-Level Tagging**: You can now tag goals with an entire **Category**, a **Subcategory**, or a specific **Item** (CSI).
+- **Smart Progress Tracking**: Any saving transaction that matches your goal's tags is automatically credited to that goal's balance, ensuring your progress is always up-to-date without manual entry.
+- **Conflict-Free Synchronization**: Refactored the internal tagging architecture to handle bulk updates and prevent duplicate matching, ensuring data integrity across multi-level hierarchies.
+
+### 🎨 Refined Goal UX
+
+- **Arc Progress Visualization**: Each goal features a custom-colored arc progress bar for instant visual feedback.
+- **Consolidated Goal Management**: Created a unified "Single Source of Truth" payload system for goal creation and updates, reducing API overhead and improving reliability.
+- **Market Growth Tracking**: Added clear disclaimers to ensure users are aware that market gains must be manually updated to reflect actual portfolio performance.
+
+---
+
+## [April 22, 2026] Stability & Precision Sorting
+
+Refining the transaction experience with improved data consistency and flexible sorting options.
+
+### 📶 Advanced Sorting
+
+- **Date-Based Ordering**: You can now sort your transaction list by date (ascending/descending) across all views.
+- **Persistent State**: The system remembers your preferred sort order while navigating between different transaction types.
+
+### 💳 Standardized Payment Modes
+
+- **Fixed Mode Selection**: Transitioned from free-form text to a curated, fixed set of payment modes (UPI, Credit Card, Debit Card, Net Banking, Cash).
+- **Data Integrity**: Enforced backend validation ensures all transactions adhere to these standard modes, providing cleaner analytics and reporting.
+
+### 🔍 Filter Persistence & Reliability
+
+- **State Preservation**: Fixed a issue where active filters were lost when performing updates or deletions in the list view.
+- **Criteria Mapping**: Standardized subcategory filtering logic to use consistent JSON property names, resolving mapping errors in advanced search.
+
+---
+
 ## [April 18, 2026] Unified Transaction Views & Improved User Registration
 
 A major architectural consolidation that brings all transaction types into a single, high-performance hub while drastically improving UI efficiency. Improvements made to the registration and login experience, focusing on security and a seamless first-run experience.
@@ -34,7 +83,9 @@ We've introduced a gated registration process to ensure all accounts are properl
 - **Gated Authentication**: Only fully confirmed users can access the system, preventing incomplete or insecure registrations.
 
 ### 🏠 Smart Account Initialization
+
 No more starting from scratch! New users now land on a fully prepared system.
+
 - **Pre-populated Categories**: Upon account activation, the system automatically creates a essential set of categories (Home, Utilities, Work, etc.) for Expenses, Income, Savings, and Revolvings.
 - **Design Consistent Defaults**: Initialization is driven by a customizable JSON configuration and uses the project's standard icon and color palettes.
 

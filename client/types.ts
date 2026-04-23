@@ -105,3 +105,27 @@ export interface BudgetUtilization {
   period_month: number;
   period_year: number;
 }
+
+export interface InvestmentGoalTag {
+  id: number;
+  type: 'CATEGORY' | 'SUBCATEGORY' | 'ITEM';
+  category?: Category;
+  subcategory?: SubCategory;
+  item?: Item;
+}
+
+export interface InvestmentGoal {
+  id?: number;
+  name: string;
+  icon?: string;
+  color?: string;
+  target_amount: number;
+  current_amount: number;
+  monthly_contribution: number;
+  annual_rate: number;
+  notes?: string;
+  created_at?: string;
+  tags?: InvestmentGoalTag[];
+  years_to_goal?: number | null;
+  percent_achieved?: number;
+}
