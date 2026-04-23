@@ -75,6 +75,30 @@ public class CSIController {
         return ResponseEntity.ok(response);
     }
 
+    @GetMapping("/subcategories/all")
+    public ResponseEntity<Map<String,Object>> getAllUserSubCategories(@RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "50") int size){
+        Pageable pageable = Pageable.ofSize(size).withPage(page);
+        Page<SubCategory> result = CSIService.getAllUserSubCategories(pageable);
+        HashMap<String,Object> response = new HashMap<>();
+        response.put("data",result.getContent());
+        response.put("total_count",result.getTotalElements());
+        response.put("page",pageable.getPageNumber());
+        response.put("has_more",result.hasNext());
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/items/all")
+    public ResponseEntity<Map<String,Object>> getAllUserItems(@RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "50") int size){
+        Pageable pageable = Pageable.ofSize(size).withPage(page);
+        Page<Item> result = CSIService.getAllUserItems(pageable);
+        HashMap<String,Object> response = new HashMap<>();
+        response.put("data",result.getContent());
+        response.put("total_count",result.getTotalElements());
+        response.put("page",pageable.getPageNumber());
+        response.put("has_more",result.hasNext());
+        return ResponseEntity.ok(response);
+    }
+
     @GetMapping("/categories/{id}")
     public ResponseEntity<Map<String,Object>> getCategoryById(@PathVariable Long id){
         Category category = CSIService.getCategoryById(id);

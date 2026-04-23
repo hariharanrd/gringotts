@@ -48,7 +48,6 @@ export interface Expense extends Transaction {
 }
 
 export interface Income extends Transaction {
-  source? : string
   type: TransactionType.INCOME
 }
 

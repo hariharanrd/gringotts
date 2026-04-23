@@ -4,6 +4,7 @@ import { X, Save, TrendingDown, TrendingUp, PiggyBank, RefreshCw } from 'lucide-
 import { api } from '../services/api';
 import { Category, SubCategory, Item, TransactionType, Expense, Income, Saving, Revolving, Transaction } from '../types';
 import { useToast } from '../components/ToastContext';
+import { PAYMENT_MODES } from '../constants';
 
 interface TransactionModalProps {
   isOpen: boolean;
@@ -16,7 +17,6 @@ interface TransactionModalProps {
 type TransactionFormState = Omit<Partial<Transaction>, 'value'> & {
   value: string | number;
   payment_mode?: string;
-  source?: string;
   is_in?: boolean;
   is_give?: boolean;
   closed?: boolean;
@@ -42,7 +42,6 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, on
     item: undefined,
     transaction_time: new Date().toISOString().slice(0, 16),
     payment_mode: 'UPI',
-    source: '',
     is_in: true,
     is_give: true,
     closed: false,
@@ -60,7 +59,6 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, on
       item: undefined,
       transaction_time: new Date().toISOString().slice(0, 16),
       payment_mode: 'UPI',
-      source: '',
       is_in: true,
       is_give: true,
       closed: false,
@@ -176,7 +174,7 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, on
       if (type === TransactionType.EXPENSE) {
         savedResponse = await apiCall({ ...commonPayload, payment_mode: formData.payment_mode, type: TransactionType.EXPENSE } as any);
       } else if (type === TransactionType.INCOME) {
-        savedResponse = await apiCall({ ...commonPayload, source: formData.source, type: TransactionType.INCOME } as any);
+        savedResponse = await apiCall({ ...commonPayload, type: TransactionType.INCOME } as any);
       } else if (type === TransactionType.SAVING) {
         savedResponse = await apiCall({ ...commonPayload, is_in: formData.is_in, type: TransactionType.SAVING } as any);
       } else if (type === TransactionType.REVOLVING) {
@@ -340,28 +338,9 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, on
                   value={formData.payment_mode}
                   onChange={(e) => setFormData(prev => ({ ...prev, payment_mode: e.target.value }))}
                 >
-                  <option value="CASH">Cash</option>
-                  <option value="UPI">UPI</option>
-                  <option value="DEBIT_CARD">Debit Card</option>
-                  <option value="CREDIT_CARD">Credit Card</option>
-                  <option value="NET_BANKING">Bank Transfer</option>
-                  <option value="WALLET">Wallet</option>
-                  <option value="EMANDATE">E-Mandate</option>
-                  <option value="OTHERS">Others</option>
+                  <option value="">Select Payment Mode</option>
+                  {PAYMENT_MODES.map(pm => <option key={pm.value} value={pm.value}>{pm.label}</option>)}
                 </select>
-              </div>
-            )}
-
-            {type === TransactionType.INCOME && (
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium text-slate-600 dark:text-slate-300">Income Source</label>
-                <input
-                  type="text"
-                  placeholder="e.g. Salary, Freelance"
-                  className="w-full px-4 py-2.5 bg-slate-100 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 rounded-xl focus:ring-2 focus:ring-cyan-500/40 outline-none transition-all text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600"
-                  value={formData.source}
-                  onChange={(e) => setFormData(prev => ({ ...prev, source: e.target.value }))}
-                />
               </div>
             )}
 

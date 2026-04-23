@@ -1,14 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import {
-  Target,
+  HandCoins,
   Plus,
   Trash2,
   Edit2,
   Copy,
-  ChevronRight,
   AlertCircle,
   Save,
-  X,
   PlusCircle,
   CheckCircle2
 } from 'lucide-react';
@@ -218,10 +216,10 @@ const BudgetPage: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-3">
-            <Target className="w-7 h-7 text-cyan-500" />
+            <HandCoins className="w-7 h-7 text-cyan-500" />
             Budget Management
           </h1>
-          <p className="text-slate-500 dark:text-slate-400 mt-1">Set goals and track your spending limits</p>
+          <p className="text-slate-500 dark:text-slate-400 mt-1">Plan your budget and stay in your spending limits</p>
         </div>
         {!isEditing && (
           <div className="flex flex-col sm:flex-row gap-3 mt-4 sm:mt-0">
@@ -264,7 +262,7 @@ const BudgetPage: React.FC = () => {
               >
                 {budget.is_master && (
                   <div className="absolute top-0 right-0 p-1.5 bg-cyan-500 text-white transform rotate-0 rounded-bl-xl shadow-lg">
-                    <Target className="w-3 h-3" />
+                    <HandCoins className="w-3 h-3" />
                   </div>
                 )}
                 <div className="flex items-center justify-between mb-2">
@@ -502,7 +500,7 @@ const BudgetPage: React.FC = () => {
                     </div>
                   </div>
                   <div className="p-6 bg-emerald-500/5 dark:bg-emerald-500/10 rounded-3xl border border-emerald-500/10">
-                    <p className="text-xs font-bold text-emerald-600/60 dark:text-emerald-400/60 uppercase tracking-widest mb-1">Savings Objective</p>
+                    <p className="text-xs font-bold text-emerald-600/60 dark:text-emerald-400/60 uppercase tracking-widest mb-1">Monthly Savings Objective</p>
                     <div className="flex items-baseline gap-2">
                       <span className="text-3xl font-black text-emerald-600 dark:text-emerald-400">₹{selectedBudget.estimated_savings.toLocaleString()}</span>
                       <span className="text-sm font-medium text-emerald-500/60 font-bold">🎯</span>
@@ -545,7 +543,7 @@ const BudgetPage: React.FC = () => {
           ) : (
             <div className="flex flex-col items-center justify-center min-h-[50vh] text-center p-12 bg-white/30 dark:bg-slate-900/10 rounded-3xl border-2 border-dashed border-slate-200 dark:border-slate-800/50 mt-9">
               <div className="w-20 h-20 bg-slate-100 dark:bg-slate-800/50 rounded-full flex items-center justify-center mb-6">
-                <Target className="w-10 h-10 text-slate-400" />
+                <HandCoins className="w-10 h-10 text-slate-400" />
               </div>
               <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Select a context to begin</h3>
               <p className="text-slate-500 dark:text-slate-400 max-w-sm">Choose a budget from the list or create a fresh monthly version to manage your financial limits.</p>

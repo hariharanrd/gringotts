@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
-  Plus, Target, TrendingUp, Edit2, Trash2, Tag, X, Check,
-  ChevronDown, ChevronUp, AlertCircle, Search, Sparkles, Folder, Layers
+  Plus, Target, TrendingUp, Edit2, Trash2, Tag, X, Check, Goal,
+  Search, Sparkles, Folder, Layers
 } from 'lucide-react';
 import { api } from '../services/api';
 import { InvestmentGoal, Item, Category } from '../types';
@@ -164,7 +164,7 @@ const GoalCard: React.FC<GoalCardProps> = ({ goal, onEdit, onDelete }) => {
 
         {/* Monthly Contribution */}
         <div className="mt-1 flex items-center justify-between text-sm">
-          <span className="text-slate-400 dark:text-slate-500 text-xs">Monthly Save</span>
+          <span className="text-slate-400 dark:text-slate-500 text-xs">Monthly Contribution</span>
           <span className="font-semibold text-slate-700 dark:text-slate-200 tabular-nums">{fmt(goal.monthly_contribution)}</span>
         </div>
 
@@ -632,6 +632,7 @@ const InvestmentPlanner: React.FC = () => {
   // Summary stats
   const totalTarget = goals.reduce((s, g) => s + g.target_amount, 0);
   const totalSaved = goals.reduce((s, g) => s + g.current_amount, 0);
+  const totalMonthly = goals.reduce((s, g) => s + g.monthly_contribution, 0);
   const overallPct = totalTarget > 0 ? Math.min(Math.round(totalSaved / totalTarget * 100), 100) : 0;
   const achievedCount = goals.filter(g => g.current_amount >= g.target_amount).length;
 
@@ -658,10 +659,11 @@ const InvestmentPlanner: React.FC = () => {
 
         {/* Stats bar */}
         {goals.length > 0 && (
-          <div className="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <div className="mt-6 grid grid-cols-2 sm:grid-cols-5 gap-4">
             {[
               { label: 'Total Target', value: fmt(totalTarget), icon: '🎯', color: 'violet' },
               { label: 'Total Achieved', value: fmt(totalSaved), icon: '💰', color: 'cyan' },
+              { label: 'Monthly Contribution', value: fmt(totalMonthly), icon: '📆', color: 'emerald' },
               { label: 'Overall Progress', value: `${overallPct}%`, icon: '📈', color: 'emerald' },
               { label: 'Goals Achieved', value: `${achievedCount} / ${goals.length}`, icon: '🏆', color: 'amber' },
             ].map(stat => (

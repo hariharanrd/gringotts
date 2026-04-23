@@ -7,17 +7,17 @@ import {
   Menu,
   X,
   LogOut,
-  TrendingDown,
-  TrendingUp,
-  PiggyBank,
+  Goal,
   Landmark,
   Upload,
   Sun,
   Moon,
   RefreshCw,
-  Target,
+  HandCoins,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  ReceiptIndianRupee,
+  ReceiptText
 } from 'lucide-react';
 
 import { useTheme } from './ThemeContext';
@@ -31,10 +31,10 @@ interface LayoutProps {
 
 const navItems = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },
-  { id: 'transactions', label: 'Transactions', icon: Landmark, path: '/transactions' },
-  { id: 'budget', label: 'Budget', icon: Target, path: '/budget' },
-  { id: 'goals', label: 'Goals', icon: TrendingUp, path: '/goals' },
-  { id: 'configuration', label: 'Settings', icon: Settings, path: '/configuration' },
+  { id: 'transactions', label: 'Transactions', icon: ReceiptText, path: '/transactions' },
+  { id: 'budget', label: 'Budget', icon: HandCoins, path: '/budget' },
+  { id: 'goals', label: 'Goals', icon: Goal, path: '/goals' },
+  { id: 'configuration', label: 'Configuration', icon: Settings, path: '/configuration' },
 ];
 
 

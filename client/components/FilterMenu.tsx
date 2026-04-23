@@ -7,10 +7,105 @@ export interface FilterCriteria {
   value: string;
 }
 
+export interface FilterFieldDef {
+  label: string;
+  value: string;
+  type?: 'string' | 'number' | 'date' | 'boolean';
+  options?: { label: string; value: string }[];
+  fetchOptions?: (page: number) => Promise<{ data: { label: string; value: string }[], hasMore: boolean }>;
+}
+
+const InfiniteSelect = ({ fetchOptions, value, onChange }: { fetchOptions: (page: number) => Promise<{ data: { label: string; value: string }[], hasMore: boolean }>, value: string, onChange: (val: string) => void }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [options, setOptions] = useState<{ label: string; value: string }[]>([]);
+  const [page, setPage] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const observerTarget = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const loadOptions = async () => {
+      if (loading || !hasMore) return;
+      setLoading(true);
+      try {
+        const res = await fetchOptions(page);
+        setOptions(prev => {
+          const newOpts = res.data.filter(d => !prev.find(p => p.value === d.value));
+          return [...prev, ...newOpts];
+        });
+        setHasMore(res.hasMore);
+      } catch (e) { }
+      setLoading(false);
+    };
+    loadOptions();
+  }, [page, isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const observer = new IntersectionObserver(
+      entries => {
+        if (entries[0].isIntersecting && hasMore && !loading) {
+          setPage(p => p + 1);
+        }
+      },
+      { threshold: 0.1 }
+    );
+    if (observerTarget.current) observer.observe(observerTarget.current);
+    return () => observer.disconnect();
+  }, [hasMore, loading, isOpen]);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const selectedLabel = options.find(o => o.value === value)?.label || value || 'Select Value...';
+
+  return (
+    <div className="relative flex-1" ref={containerRef}>
+      <button
+        type="button"
+        className="w-full text-left text-sm sm:text-xs px-3 py-2 sm:py-1.5 rounded-lg bg-white dark:bg-slate-800 border shadow-sm border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-cyan-500/50 outline-none dark:text-slate-200"
+        onClick={() => setIsOpen(!isOpen)}
+      >
+        <span className="block truncate text-slate-700 dark:text-slate-200">{selectedLabel}</span>
+      </button>
+      {isOpen && (
+        <div className="absolute z-[60] w-full mt-1 max-h-48 overflow-y-auto bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg">
+          <div
+            className="px-3 py-2 text-sm sm:text-xs hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer text-slate-500 dark:text-slate-400"
+            onClick={() => { onChange(''); setIsOpen(false); }}
+          >
+            Select Value...
+          </div>
+          {options.map(opt => (
+            <div
+              key={opt.value}
+              className="px-3 py-2 text-sm sm:text-xs hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer text-slate-700 dark:text-slate-200"
+              onClick={() => { onChange(opt.value); setIsOpen(false); }}
+            >
+              {opt.label}
+            </div>
+          ))}
+          {loading && <div className="px-3 py-2 text-sm text-slate-500">Loading...</div>}
+          <div ref={observerTarget} className="h-1" />
+        </div>
+      )}
+    </div>
+  );
+};
+
 interface FilterMenuProps {
   activeFilters: FilterCriteria[];
   onApplyFilters: (filters: FilterCriteria[]) => void;
-  availableFields: { label: string; value: string; type?: 'string' | 'number' | 'date' | 'boolean' }[];
+  availableFields: FilterFieldDef[];
 }
 
 export const FilterMenu: React.FC<FilterMenuProps> = ({ activeFilters, onApplyFilters, availableFields }) => {
@@ -200,25 +295,58 @@ export const FilterMenu: React.FC<FilterMenuProps> = ({ activeFilters, onApplyFi
                     </select>
                   </div>
                   <div className="flex gap-2 w-full">
-                    {availableFields.find(f => f.value === filter.field)?.type === 'boolean' ? (
-                      <select
-                        className="flex-1 text-sm sm:text-xs px-3 py-2 sm:py-1.5 rounded-lg bg-white dark:bg-slate-800 border shadow-sm border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-cyan-500/50 outline-none dark:text-slate-200"
-                        value={filter.value}
-                        onChange={e => updateFilter(index, 'value', e.target.value)}
-                      >
-                        <option value="">Select Value...</option>
-                        <option value="true">True</option>
-                        <option value="false">False</option>
-                      </select>
-                    ) : (
-                      <input
-                        type={availableFields.find(f => f.value === filter.field)?.type === 'date' ? 'date' : 'text'}
-                        className="flex-1 text-sm sm:text-xs px-3 py-2 sm:py-1.5 rounded-lg bg-white dark:bg-slate-800 border shadow-sm border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-cyan-500/50 outline-none dark:text-slate-200"
-                        value={filter.value}
-                        onChange={e => updateFilter(index, 'value', e.target.value)}
-                        placeholder="Value"
-                      />
-                    )}
+                    {(() => {
+                      const fieldDef = availableFields.find(f => f.value === filter.field);
+
+                      if (fieldDef?.fetchOptions && filter.condition === 'eq') {
+                        return (
+                          <InfiniteSelect
+                            fetchOptions={fieldDef.fetchOptions}
+                            value={filter.value}
+                            onChange={val => updateFilter(index, 'value', val)}
+                          />
+                        );
+                      }
+
+                      if (fieldDef?.options && (filter.condition === 'eq' || fieldDef.type === 'boolean')) {
+                        return (
+                          <select
+                            className="flex-1 text-sm sm:text-xs px-3 py-2 sm:py-1.5 rounded-lg bg-white dark:bg-slate-800 border shadow-sm border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-cyan-500/50 outline-none dark:text-slate-200"
+                            value={filter.value}
+                            onChange={e => updateFilter(index, 'value', e.target.value)}
+                          >
+                            <option value="">Select Value...</option>
+                            {fieldDef.options.map(opt => (
+                              <option key={opt.value} value={opt.value}>{opt.label}</option>
+                            ))}
+                          </select>
+                        );
+                      }
+
+                      if (fieldDef?.type === 'boolean') {
+                        return (
+                          <select
+                            className="flex-1 text-sm sm:text-xs px-3 py-2 sm:py-1.5 rounded-lg bg-white dark:bg-slate-800 border shadow-sm border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-cyan-500/50 outline-none dark:text-slate-200"
+                            value={filter.value}
+                            onChange={e => updateFilter(index, 'value', e.target.value)}
+                          >
+                            <option value="">Select Value...</option>
+                            <option value="true">True</option>
+                            <option value="false">False</option>
+                          </select>
+                        );
+                      }
+
+                      return (
+                        <input
+                          type={fieldDef?.type === 'date' ? 'date' : 'text'}
+                          className="flex-1 text-sm sm:text-xs px-3 py-2 sm:py-1.5 rounded-lg bg-white dark:bg-slate-800 border shadow-sm border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-cyan-500/50 outline-none dark:text-slate-200"
+                          value={filter.value}
+                          onChange={e => updateFilter(index, 'value', e.target.value)}
+                          placeholder="Value"
+                        />
+                      );
+                    })()}
                     <button
                       onClick={() => removeDraftFilter(index)}
                       className="flex items-center justify-center w-9 sm:w-auto px-2 text-rose-400 hover:text-white hover:bg-rose-500 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 sm:border-transparent sm:bg-transparent rounded-lg transition-colors"

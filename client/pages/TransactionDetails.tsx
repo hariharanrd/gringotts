@@ -37,7 +37,6 @@ const Field: React.FC<{ icon: React.ElementType; label: string; value: React.Rea
     <div className="text-sm font-medium text-slate-800 dark:text-white">{value}</div>
   </div>
 );
-
 /* ─── badge helper ─── */
 const Badge: React.FC<{ className?: string; children: React.ReactNode }> = ({ className = '', children }) => (
   <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold ${className}`}>
@@ -45,9 +44,7 @@ const Badge: React.FC<{ className?: string; children: React.ReactNode }> = ({ cl
   </span>
 );
 
-const PAYMENT_LABELS: Record<string, string> = {
-  CASH: 'Cash', CREDIT_CARD: 'Credit Card', DEBIT_CARD: 'Debit Card', UPI: 'UPI / Online', NET_BANKING: 'Bank Transfer', WALLET: 'Wallet', EMANDATE: 'E-Mandate', OTHERS: 'Others',
-};
+import { PAYMENT_MODE_MAP, SAVING_DIRECTION_MAP, REVOLVING_DIRECTION_MAP, REVOLVING_STATUS_MAP } from '../constants';
 
 /* ════════════════════════════════════════════════════════════ */
 
@@ -248,16 +245,13 @@ const TransactionDetails: React.FC = () => {
             <Field icon={CreditCard} label="Payment Mode"
               value={
                 <Badge className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
-                  {PAYMENT_LABELS[transaction.payment_mode] ?? transaction.payment_mode ?? '—'}
+                  {PAYMENT_MODE_MAP[transaction.payment_mode] ?? transaction.payment_mode ?? '—'}
                 </Badge>
               }
             />
           )}
 
-          {/* INCOME: source */}
-          {type === TransactionType.INCOME && transaction.source && (
-            <Field icon={Banknote} label="Income Source" value={transaction.source} />
-          )}
+          {/* INCOME: source (Removed per request) */}
 
           {/* SAVING: direction */}
           {type === TransactionType.SAVING && transaction.is_in !== undefined && (
@@ -266,7 +260,7 @@ const TransactionDetails: React.FC = () => {
                 <Badge className={transaction.is_in
                   ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400'
                   : 'bg-rose-100 dark:bg-rose-900/40 text-rose-600 dark:text-rose-400'}>
-                  {transaction.is_in ? 'IN (Deposit)' : 'OUT (Withdrawal)'}
+                  {SAVING_DIRECTION_MAP[String(transaction.is_in)] ?? (transaction.is_in ? 'IN (Deposit)' : 'OUT (Withdrawal)')}
                 </Badge>
               }
             />
@@ -280,7 +274,7 @@ const TransactionDetails: React.FC = () => {
                   <Badge className={transaction.is_give
                     ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400'
                     : 'bg-cyan-100 dark:bg-cyan-900/40 text-cyan-600 dark:text-cyan-400'}>
-                    {transaction.is_give ? 'Given (Lent)' : 'Received (Borrowed)'}
+                    {REVOLVING_DIRECTION_MAP[String(transaction.is_give)] ?? (transaction.is_give ? 'Given (Lent)' : 'Received (Borrowed)')}
                   </Badge>
                 }
               />
@@ -289,7 +283,7 @@ const TransactionDetails: React.FC = () => {
                   <Badge className={transaction.closed
                     ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400'
                     : 'bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400'}>
-                    {transaction.closed ? 'Settled' : 'Open'}
+                    {REVOLVING_STATUS_MAP[String(transaction.closed)] ?? (transaction.closed ? 'Settled' : 'Open')}
                   </Badge>
                 }
               />
