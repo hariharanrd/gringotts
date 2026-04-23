@@ -41,6 +41,16 @@ Take control of your future with our advanced budgeting engine:
 - **Category Allocations**: Assign specific limits to granular categories and monitor variances.
 - **Estimated Savings**: Automatically calculate projected savings based on your budget vs. actuals.
 
+### 📈 Investment Planner
+
+Visualize and track your journey toward financial freedom with our sophisticated goal-tracking module.
+
+- **Goal-Based Tracking**: Set targets for specific milestones like Emergency Funds, Home Purchases, or Retirement.
+- **Hierarchical Auto-Crediting**: Link goals to specific Categories, Subcategories, or Items (CSI). Any matching saving transaction is automatically credited to your goal's progress.
+- **Compound Growth Projections**: Advanced financial math (FV of Annuity) calculates exactly when you will reach your goal based on your monthly contributions and expected annual return rate.
+- **Visual Progress**: Real-time arc progress bars and achievement metrics keep you motivated.
+- **Manual Balance Maintenance**: While the system projects future growth, you maintain full control by manually updating your "Already Achieved" balance to reflect actual market gains.
+
 ### 🏷️ Hierarchical Classification System (CSI)
 
 Organize your data exactly how you want it. Our three-tier system (**Category > SubCategory > Item**) ensures that every transaction is mapped to its most granular level for deep insights.
