@@ -165,18 +165,17 @@ export const api = {
     if (!response.ok) throw new Error('Failed to delete transaction');
   },
 
-  bulkUpdateCategory: async (transactionIds: number[], categoryId: number) => {
-    const response = await fetchWithCredentials(`${BASE_URL}/transactions/bulk-update-category`, {
-      method: 'PUT',
-      body: JSON.stringify({ transaction_ids: transactionIds, category_id: categoryId }),
+  bulkDelete: async (transactionIds: number[]) => {
+    const response = await fetchWithCredentials(`${BASE_URL}/transactions?ids=${transactionIds.join(',')}`, {
+      method: 'DELETE',
     });
-    return handleResponse(response);
+    if (!response.ok) throw new Error('Failed to bulk delete transactions');
   },
 
   bulkUpdate: async (transactionIds: number[], fields: Record<string, unknown>) => {
-    const response = await fetchWithCredentials(`${BASE_URL}/transactions/bulk-update`, {
+    const response = await fetchWithCredentials(`${BASE_URL}/transactions?ids=${transactionIds.join(',')}`, {
       method: 'PUT',
-      body: JSON.stringify({ transaction_ids: transactionIds, fields }),
+      body: JSON.stringify(fields),
     });
     return handleResponse(response);
   },
@@ -223,14 +222,31 @@ export const api = {
     return handleResponseAndGetData(response);
   },
 
+  getCategoriesPaginated: async (page: number = 0): Promise<{data: Category[], has_more: boolean}> => {
+    const response = await fetchWithCredentials(`${BASE_URL}/categories?page=${page}&size=50`);
+    return handleResponse(response);
+  },
+
   getSubCategories: async (categoryId: number): Promise<SubCategory[]> => {
     const response = await fetchWithCredentials(`${BASE_URL}/categories/${categoryId}/subcategories`);
-    return handleResponseAndGetData(response);
+    const data = await handleResponse(response);
+    return data.data;
+  },
+
+  getAllSubCategoriesPaginated: async (page: number = 0): Promise<{data: SubCategory[], has_more: boolean}> => {
+    const response = await fetchWithCredentials(`${BASE_URL}/subcategories/all?page=${page}&size=50`);
+    return handleResponse(response);
   },
 
   getItems: async (subCategoryId: number): Promise<Item[]> => {
     const response = await fetchWithCredentials(`${BASE_URL}/subcategories/${subCategoryId}/items`);
-    return handleResponseAndGetData(response);
+    const data = await handleResponse(response);
+    return data.data;
+  },
+
+  getAllItemsPaginated: async (page: number = 0): Promise<{data: Item[], has_more: boolean}> => {
+    const response = await fetchWithCredentials(`${BASE_URL}/items/all?page=${page}&size=50`);
+    return handleResponse(response);
   },
 
   addCategory: async (data: Partial<Category>) => {

@@ -107,6 +107,14 @@ public class CSIService {
         return itemRepository.findBySubCategoryId(subCategoryId,pageable);
     }
 
+    public Page<SubCategory> getAllUserSubCategories(Pageable pageable) {
+        return subCategoryRepository.findByCategoryUserOrderByNameAsc(iamService.getCurrentUser(), pageable);
+    }
+
+    public Page<Item> getAllUserItems(Pageable pageable) {
+        return itemRepository.findBySubCategoryCategoryUserOrderByNameAsc(iamService.getCurrentUser(), pageable);
+    }
+
     @Cacheable(value = "categoryById", key = "#id")
     public Category getCategoryById(Long id){
         return categoryRepository.findById(id).orElse(null);

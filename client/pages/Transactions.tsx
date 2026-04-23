@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
 import { Transaction, TransactionType, Category, SubCategory, Item } from '../types';
+import { PAYMENT_MODES, SAVING_DIRECTIONS, REVOLVING_DIRECTIONS, REVOLVING_STATUSES } from '../constants';
 import {
   Landmark,
   TrendingDown,
@@ -40,9 +41,9 @@ const TABS: { id: TabType; label: string; icon: any; color: string }[] = [
   { id: 'revolving', label: 'Revolving', icon: RefreshCw, color: 'from-blue-500 to-cyan-600' },
 ];
 
-type BulkField = 'category' | 'subcategory' | 'item' | 'notes' | 'payment_mode' | 'source' | 'is_in' | 'is_give' | 'closed';
+type BulkField = 'category' | 'subcategory' | 'item' | 'notes' | 'payment_mode' | 'is_in' | 'is_give' | 'closed';
 
-type ColumnKey = 'date' | 'description' | 'category' | 'subcategory' | 'item' | 'amount' | 'type' | 'payment_mode' | 'source' | 'is_in' | 'is_give' | 'closed' | 'notes';
+type ColumnKey = 'date' | 'description' | 'category' | 'subcategory' | 'item' | 'amount' | 'type' | 'payment_mode' | 'is_in' | 'is_give' | 'closed' | 'notes';
 
 const ALL_COLUMNS: { key: ColumnKey; label: string }[] = [
   { key: 'date', label: 'Date' },
@@ -52,7 +53,6 @@ const ALL_COLUMNS: { key: ColumnKey; label: string }[] = [
   { key: 'subcategory', label: 'Sub Category' },
   { key: 'item', label: 'Item' },
   { key: 'payment_mode', label: 'Payment Mode' },
-  { key: 'source', label: 'Income Source' },
   { key: 'is_in', label: 'In/Out' },
   { key: 'is_give', label: 'Give/Receive' },
   { key: 'closed', label: 'Status' },
@@ -84,7 +84,17 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
   const [deletingId, setDeletingId] = useState<number | null>(null);
 
   // Column visibility
-  const [visibleColumns, setVisibleColumns] = useState<Set<ColumnKey>>(new Set(['date', 'description', 'amount']));
+  const [visibleColumns, setVisibleColumns] = useState<Set<ColumnKey>>(() => {
+    const saved = localStorage.getItem(`gringotts_columns_${currentTab}`);
+    if (saved) {
+      try {
+        return new Set(JSON.parse(saved));
+      } catch (e) {
+        return new Set(['date', 'description', 'amount']);
+      }
+    }
+    return new Set(['date', 'description', 'amount']);
+  });
   const [isColumnChooserOpen, setIsColumnChooserOpen] = useState(false);
   const columnDropdownRef = useRef<HTMLDivElement>(null);
   const tabMenuRef = useRef<HTMLDivElement>(null);
@@ -100,26 +110,42 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
   const [bulkItemId, setBulkItemId] = useState<number | ''>('');
   const [bulkNotes, setBulkNotes] = useState('');
   const [bulkPaymentMode, setBulkPaymentMode] = useState('');
-  const [bulkSource, setBulkSource] = useState('');
-  const [bulkIsIn, setBulkIsIn] = useState<boolean>(true);
-  const [bulkIsGive, setBulkIsGive] = useState<boolean>(true);
-  const [bulkClosed, setBulkClosed] = useState<boolean>(false);
+  const [bulkIsIn, setBulkIsIn] = useState(true);
+  const [bulkIsGive, setBulkIsGive] = useState(true);
+  const [bulkClosed, setBulkClosed] = useState(false);
   const [bulkLoading, setBulkLoading] = useState(false);
+  const [isBulkEditDialogOpen, setIsBulkEditDialogOpen] = useState(false);
+  const [isBulkDeleteDialogOpen, setIsBulkDeleteDialogOpen] = useState(false);
 
-  // Set default columns based on tab
+
+
+  // Set default columns based on tab or load from memory
   useEffect(() => {
+    const saved = localStorage.getItem(`gringotts_columns_${currentTab}`);
+    if (saved) {
+      try {
+        setVisibleColumns(new Set(JSON.parse(saved)));
+      } catch (e) {
+        // Fallback to defaults
+        setDefaultColumns();
+      }
+    } else {
+      setDefaultColumns();
+    }
+    setCurrentPage(1);
+  }, [currentTab]);
+
+  const setDefaultColumns = () => {
     const cols = new Set<ColumnKey>(['date', 'description', 'category', 'amount']);
     if (currentTab === 'all') cols.add('type');
     if (currentTab === 'expense') cols.add('payment_mode');
-    if (currentTab === 'income') cols.add('source');
     if (currentTab === 'saving') cols.add('is_in');
     if (currentTab === 'revolving') {
       cols.add('is_give');
       cols.add('closed');
     }
     setVisibleColumns(cols);
-    setCurrentPage(1);
-  }, [currentTab]);
+  };
 
   const fetchTransactions = async (page: number, currentFilters: FilterCriteria[] = []) => {
     setIsLoading(true);
@@ -152,6 +178,13 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
   useEffect(() => {
     localStorage.setItem('gringotts_transaction_filters', JSON.stringify(filters));
   }, [filters]);
+
+  // Persist columns to localStorage
+  useEffect(() => {
+    if (visibleColumns.size > 0) {
+      localStorage.setItem(`gringotts_columns_${currentTab}`, JSON.stringify(Array.from(visibleColumns)));
+    }
+  }, [visibleColumns, currentTab]);
 
   // Click outside handlers
   useEffect(() => {
@@ -223,7 +256,6 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
       if (bulkField === 'item') fields['item_id'] = bulkItemId;
       if (bulkField === 'notes') fields['notes'] = bulkNotes;
       if (bulkField === 'payment_mode') fields['payment_mode'] = bulkPaymentMode;
-      if (bulkField === 'source') fields['source'] = bulkSource;
       if (bulkField === 'is_in') fields['is_in'] = bulkIsIn;
       if (bulkField === 'is_give') fields['is_give'] = bulkIsGive;
       if (bulkField === 'closed') fields['closed'] = bulkClosed;
@@ -232,6 +264,7 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
       showToast(`Updated ${bulkField.replace('_', ' ')} for ${selectedIds.size} transaction(s)`, 'success');
       setSelectedIds(new Set());
       setBulkField('');
+      setIsBulkEditDialogOpen(false);
       fetchTransactions(currentPage, filters);
     } catch (error) {
       showToast('Failed to bulk update.', 'error');
@@ -251,6 +284,22 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
     } finally {
       setIsDeleteDialogOpen(false);
       setDeletingId(null);
+    }
+  };
+
+  const confirmBulkDelete = async () => {
+    if (selectedIds.size === 0) return;
+    setBulkLoading(true);
+    try {
+      await api.bulkDelete(Array.from(selectedIds));
+      showToast(`Deleted ${selectedIds.size} transaction(s) successfully!`, 'success');
+      setSelectedIds(new Set());
+      fetchTransactions(currentPage, filters);
+    } catch (error) {
+      showToast('Failed to delete transactions.', 'error');
+    } finally {
+      setBulkLoading(false);
+      setIsBulkDeleteDialogOpen(false);
     }
   };
 
@@ -282,25 +331,44 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
   };
 
   const getAvailableFields = () => {
-    const baseFields: { label: string; value: string; type: 'string' | 'number' | 'date' | 'boolean' }[] = [
+    const baseFields: { label: string; value: string; type: 'string' | 'number' | 'date' | 'boolean'; options?: { label: string, value: string }[]; fetchOptions?: (page: number) => Promise<{ data: { label: string; value: string }[], hasMore: boolean }> }[] = [
       { label: 'Date', value: 'transaction_time', type: 'date' },
       { label: 'Description', value: 'description', type: 'string' },
       { label: 'Amount', value: 'value', type: 'number' },
-      { label: 'Category', value: 'category.name', type: 'string' },
-      { label: 'Sub-Category', value: 'subcategory.name', type: 'string' },
-      { label: 'Item', value: 'item.name', type: 'string' },
+      {
+        label: 'Category', value: 'category.name', type: 'string',
+        fetchOptions: async (page) => {
+          const res = await api.getCategoriesPaginated(page);
+          return { data: res.data.map(c => ({ label: c.name, value: c.name })), hasMore: res.has_more };
+        }
+      },
+      {
+        label: 'Sub-Category', value: 'subcategory.name', type: 'string',
+        fetchOptions: async (page) => {
+          const res = await api.getAllSubCategoriesPaginated(page);
+          return { data: res.data.map(sc => ({ label: sc.name, value: sc.name })), hasMore: res.has_more };
+        }
+      },
+      {
+        label: 'Item', value: 'item.name', type: 'string',
+        fetchOptions: async (page) => {
+          const res = await api.getAllItemsPaginated(page);
+          return { data: res.data.map(i => ({ label: i.name, value: i.name })), hasMore: res.has_more };
+        }
+      },
       { label: 'Notes', value: 'notes', type: 'string' },
     ];
 
     if (currentTab === 'expense') {
-      baseFields.push({ label: 'Payment Mode', value: 'payment_mode', type: 'string' });
-    } else if (currentTab === 'income') {
-      baseFields.push({ label: 'Income Source', value: 'source', type: 'string' });
+      baseFields.push({
+        label: 'Payment Mode', value: 'payment_mode', type: 'string',
+        options: PAYMENT_MODES
+      });
     } else if (currentTab === 'saving') {
-      baseFields.push({ label: 'Is In (Deposit)', value: 'is_in', type: 'boolean' });
+      baseFields.push({ label: 'Direction', value: 'is_in', type: 'boolean', options: SAVING_DIRECTIONS });
     } else if (currentTab === 'revolving') {
-      baseFields.push({ label: 'Is Give (Lent)', value: 'is_give', type: 'boolean' });
-      baseFields.push({ label: 'Is Closed', value: 'closed', type: 'boolean' });
+      baseFields.push({ label: 'Direction', value: 'is_give', type: 'boolean', options: REVOLVING_DIRECTIONS });
+      baseFields.push({ label: 'Status', value: 'closed', type: 'boolean', options: REVOLVING_STATUSES });
     }
     return baseFields;
   };
@@ -324,90 +392,63 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center gap-3 sm:gap-4 w-full justify-between">
-        {/* Dropdown Tab Selector */}
-        <div className="relative grow sm:grow-0 sm:min-w-[240px]" ref={tabMenuRef}>
-          <button
-            onClick={() => setIsTabMenuOpen(!isTabMenuOpen)}
-            className={`w-full flex items-center gap-3 px-5 py-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/60 shadow-sm hover:shadow-md transition-all ${isTabMenuOpen ? 'ring-2 ring-cyan-500/20 border-cyan-500/50' : ''}`}
-          >
-            <div className={`p-2 rounded-xl bg-gradient-to-br ${activeTabInfo.color} shadow-lg shadow-slate-500/10`}>
-              <activeTabInfo.icon className="w-5 h-5 text-white" />
-            </div>
-            <div className="text-left pr-8">
-              <p className="text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-widest font-bold">Viewing</p>
-              <p className="text-sm font-bold text-slate-900 dark:text-white">{activeTabInfo.label}</p>
-            </div>
-            <ChevronDown className={`absolute right-4 w-4 h-4 text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-200 transition-transform ${isTabMenuOpen ? 'rotate-180' : ''}`} />
-          </button>
+        <div className="flex items-center gap-3 w-full sm:w-auto">
+          {/* Dropdown Tab Selector */}
+          <div className="relative grow sm:grow-0 sm:min-w-[240px]" ref={tabMenuRef}>
+            <button
+              onClick={() => setIsTabMenuOpen(!isTabMenuOpen)}
+              className={`w-full flex items-center gap-3 px-5 py-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/60 shadow-sm hover:shadow-md transition-all ${isTabMenuOpen ? 'ring-2 ring-cyan-500/20 border-cyan-500/50' : ''}`}
+            >
+              <div className={`p-2 rounded-xl bg-gradient-to-br ${activeTabInfo.color} shadow-lg shadow-slate-500/10`}>
+                <activeTabInfo.icon className="w-5 h-5 text-white" />
+              </div>
+              <div className="text-left pr-8">
+                <p className="text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-widest font-bold">Viewing</p>
+                <p className="text-sm font-bold text-slate-900 dark:text-white">{activeTabInfo.label}</p>
+              </div>
+              <ChevronDown className={`absolute right-4 w-4 h-4 text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-200 transition-transform ${isTabMenuOpen ? 'rotate-180' : ''}`} />
+            </button>
 
-          {isTabMenuOpen && (
-            <div className="absolute top-full left-0 mt-2 w-64 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/60 rounded-2xl shadow-2xl z-50 py-2 p-1 overflow-hidden backdrop-blur-xl bg-white/90 dark:bg-slate-900/90 animate-in fade-in slide-in-from-top-2">
-              {TABS.map(tab => (
-                <button
-                  key={tab.id}
-                  onClick={() => handleTabChange(tab.id)}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors ${currentTab === tab.id ? 'bg-slate-100 dark:bg-slate-800 text-cyan-600 dark:text-cyan-400' : 'text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-slate-200'}`}
-                >
-                  <tab.icon className={`w-4 h-4 ${currentTab === tab.id ? 'text-cyan-500' : 'text-slate-400'}`} />
-                  {tab.label}
-                </button>
-              ))}
-            </div>
-          )}
+            {isTabMenuOpen && (
+              <div className="absolute top-full left-0 mt-2 w-64 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/60 rounded-2xl shadow-2xl z-50 py-2 p-1 overflow-hidden backdrop-blur-xl bg-white/90 dark:bg-slate-900/90 animate-in fade-in slide-in-from-top-2">
+                {TABS.map(tab => (
+                  <button
+                    key={tab.id}
+                    onClick={() => handleTabChange(tab.id)}
+                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors ${currentTab === tab.id ? 'bg-slate-100 dark:bg-slate-800 text-cyan-600 dark:text-cyan-400' : 'text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-slate-200'}`}
+                  >
+                    <tab.icon className={`w-4 h-4 ${currentTab === tab.id ? 'text-cyan-500' : 'text-slate-400'}`} />
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <button
+            onClick={() => onAdd(currentTab === 'all' ? undefined : (currentTab.toUpperCase() as any))}
+            className="flex items-center justify-center gap-2 bg-gradient-to-r from-cyan-600 to-blue-700 text-white py-3 px-5 rounded-2xl shadow-lg shadow-cyan-600/20 hover:from-cyan-500 hover:to-blue-600 transition-all font-bold text-sm shrink-0"
+          >
+            <PlusCircle className="w-4 h-4" />
+            <span className="hidden sm:inline">Add</span>
+          </button>
         </div>
 
         {/* Bulk Actions */}
         {selectedIds.size > 0 && (
-          <div className="flex flex-wrap items-center gap-2 p-2 bg-cyan-500/5 dark:bg-cyan-500/10 border border-cyan-500/20 rounded-2xl animate-in fade-in slide-in-from-left-4">
-            <span className="text-xs font-bold text-cyan-600 dark:text-cyan-400 px-2 uppercase tracking-tight">{selectedIds.size} Selected</span>
-            <select
-              className={selectClass}
-              value={bulkField}
-              onChange={e => setBulkField(e.target.value as BulkField | '')}
-            >
-              <option value="">Choose Field…</option>
-              <option value="category">Category</option>
-              <option value="subcategory">Sub-Category</option>
-              <option value="item">Item</option>
-              <option value="notes">Notes</option>
-              {currentTab === 'expense' && <option value="payment_mode">Payment Mode</option>}
-              {currentTab === 'income' && <option value="source">Income Source</option>}
-              {currentTab === 'saving' && <option value="is_in">In/Out</option>}
-              {currentTab === 'revolving' && (
-                <>
-                  <option value="is_give">Give/Receive</option>
-                  <option value="closed">Status</option>
-                </>
-              )}
-            </select>
-
-            {bulkField === 'category' && (
-              <select className={selectClass} value={bulkCategoryId} onChange={e => setBulkCategoryId(e.target.value ? Number(e.target.value) : '')}>
-                <option value="">Select Category…</option>
-                {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </select>
-            )}
-
-            {bulkField === 'subcategory' && (
-              <>
-                <select className={selectClass} value={bulkCategoryId} onChange={e => setBulkCategoryId(e.target.value ? Number(e.target.value) : '')}>
-                  <option value="">Category…</option>
-                  {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                </select>
-                <select className={selectClass} value={bulkSubCategoryId} onChange={e => setBulkSubCategoryId(e.target.value ? Number(e.target.value) : '')} disabled={!bulkCategoryId}>
-                  <option value="">Sub-Category…</option>
-                  {subCategories.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                </select>
-              </>
-            )}
-
-            {/* Bulk apply button */}
+          <div className="flex items-center gap-2 p-2 bg-cyan-500/5 dark:bg-cyan-500/10 border border-cyan-500/20 rounded-2xl animate-in fade-in slide-in-from-left-4">
+            <span className="text-xs font-bold text-cyan-600 dark:text-cyan-400 px-3 uppercase tracking-tight">{selectedIds.size} Selected</span>
             <button
-              onClick={handleBulkUpdate}
-              className="px-4 py-2 bg-cyan-600 text-white text-xs font-bold rounded-xl shadow-lg shadow-cyan-600/20 hover:bg-cyan-500 transition-all uppercase tracking-widest disabled:opacity-50"
-              disabled={bulkLoading || !bulkField}
+              onClick={() => setIsBulkEditDialogOpen(true)}
+              className="px-4 py-2 bg-cyan-600 text-white text-xs font-bold rounded-xl shadow-lg shadow-cyan-600/20 hover:bg-cyan-500 transition-all uppercase tracking-widest"
             >
-              Apply
+              Bulk Edit
+            </button>
+            <button
+              onClick={() => setIsBulkDeleteDialogOpen(true)}
+              className="px-4 py-2 bg-rose-500 text-white text-xs font-bold rounded-xl shadow-lg shadow-rose-500/20 hover:bg-rose-400 transition-all uppercase tracking-widest"
+            >
+              Bulk Delete
             </button>
             <button onClick={() => setSelectedIds(new Set())} className="text-[10px] text-slate-400 hover:text-slate-600 px-2 uppercase font-bold tracking-tighter">Cancel</button>
           </div>
@@ -480,14 +521,6 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
               <ListChecks className="w-5 h-5" />
             </button>
           )}
-
-          <button
-            onClick={() => onAdd(currentTab === 'all' ? undefined : (currentTab.toUpperCase() as any))}
-            className="flex items-center gap-2 bg-gradient-to-r from-cyan-600 to-blue-700 text-white py-3 px-5 rounded-2xl shadow-lg shadow-cyan-600/20 hover:from-cyan-500 hover:to-blue-600 transition-all font-bold text-sm"
-          >
-            <PlusCircle className="w-4 h-4" />
-            <span className="hidden sm:inline">Add</span>
-          </button>
         </div>
       </div>
 
@@ -511,7 +544,6 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
                 {visibleColumns.has('subcategory') && <th className="p-4 text-[11px] font-bold text-slate-400 uppercase tracking-widest">Sub-Cat</th>}
                 {visibleColumns.has('item') && <th className="p-4 text-[11px] font-bold text-slate-400 uppercase tracking-widest">Item</th>}
                 {visibleColumns.has('payment_mode') && <th className="p-4 text-[11px] font-bold text-slate-400 uppercase tracking-widest">Payment</th>}
-                {visibleColumns.has('source') && <th className="p-4 text-[11px] font-bold text-slate-400 uppercase tracking-widest">Source</th>}
                 {visibleColumns.has('is_in') && <th className="p-4 text-[11px] font-bold text-slate-400 uppercase tracking-widest">In/Out</th>}
                 {visibleColumns.has('is_give') && <th className="p-4 text-[11px] font-bold text-slate-400 uppercase tracking-widest">Give/Recv</th>}
                 {visibleColumns.has('closed') && <th className="p-4 text-[11px] font-bold text-slate-400 uppercase tracking-widest">Status</th>}
@@ -581,11 +613,6 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
                   {visibleColumns.has('payment_mode') && (
                     <td className="p-4 whitespace-nowrap">
                       {(t as any).payment_mode && <span className="text-[10px] font-bold text-slate-400 uppercase">{(t as any).payment_mode.replace('_', ' ')}</span>}
-                    </td>
-                  )}
-                  {visibleColumns.has('source') && (
-                    <td className="p-4 whitespace-nowrap">
-                      {(t as any).source && <span className="text-[10px] font-medium text-slate-400">{(t as any).source}</span>}
                     </td>
                   )}
                   {visibleColumns.has('is_in') && (
@@ -694,16 +721,11 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
                       </span>
                     </div>
 
-                    {((t as any).payment_mode || (t as any).source || t.notes) && (
+                    {((t as any).payment_mode || t.notes) && (
                       <div className="pt-0.5 flex gap-2 flex-wrap">
                         {(t as any).payment_mode && (
                           <span className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 text-[9px] text-slate-500 rounded border border-slate-200 dark:border-slate-700">
                             {(t as any).payment_mode.replace('_', ' ')}
-                          </span>
-                        )}
-                        {(t as any).source && (
-                          <span className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 text-[9px] text-slate-500 rounded border border-slate-200 dark:border-slate-700">
-                            {(t as any).source}
                           </span>
                         )}
                         {t.notes && (
@@ -729,6 +751,139 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
         onConfirm={confirmDelete}
         title="Delete Transaction"
         message="Are you sure you want to delete this record? This cannot be undone."
+      />
+
+      {/* Bulk Edit Dialog */}
+      {isBulkEditDialogOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 dark:bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 w-full max-w-md shadow-2xl border border-slate-200 dark:border-slate-800 scale-in-center">
+            <div className="mb-6">
+              <h3 className="text-xl font-black text-slate-900 dark:text-white mb-1">Bulk Edit</h3>
+              <p className="text-sm font-medium text-slate-500">Updating {selectedIds.size} transaction(s)</p>
+            </div>
+
+            <div className="space-y-4 mb-8">
+              <select
+                className={`${selectClass} w-full`}
+                value={bulkField}
+                onChange={e => setBulkField(e.target.value as BulkField | '')}
+              >
+                <option value="">Choose Field…</option>
+                <option value="category">Category</option>
+                <option value="subcategory">Sub-Category</option>
+                <option value="item">Item</option>
+                <option value="notes">Notes</option>
+                {currentTab === 'expense' && <option value="payment_mode">Payment Mode</option>}
+                {currentTab === 'saving' && <option value="is_in">In/Out</option>}
+                {currentTab === 'revolving' && (
+                  <>
+                    <option value="is_give">Give/Receive</option>
+                    <option value="closed">Status</option>
+                  </>
+                )}
+              </select>
+
+              {bulkField === 'category' && (
+                <select className={`${selectClass} w-full`} value={bulkCategoryId} onChange={e => setBulkCategoryId(e.target.value ? Number(e.target.value) : '')}>
+                  <option value="">Select Category…</option>
+                  {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+              )}
+
+              {bulkField === 'subcategory' && (
+                <>
+                  <select className={`${selectClass} w-full`} value={bulkCategoryId} onChange={e => setBulkCategoryId(e.target.value ? Number(e.target.value) : '')}>
+                    <option value="">Category…</option>
+                    {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  </select>
+                  <select className={`${selectClass} w-full`} value={bulkSubCategoryId} onChange={e => setBulkSubCategoryId(e.target.value ? Number(e.target.value) : '')} disabled={!bulkCategoryId}>
+                    <option value="">Sub-Category…</option>
+                    {subCategories.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                  </select>
+                </>
+              )}
+
+              {bulkField === 'item' && (
+                <>
+                  <select className={`${selectClass} w-full`} value={bulkCategoryId} onChange={e => setBulkCategoryId(e.target.value ? Number(e.target.value) : '')}>
+                    <option value="">Category…</option>
+                    {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  </select>
+                  <select className={`${selectClass} w-full`} value={bulkSubCategoryId} onChange={e => setBulkSubCategoryId(e.target.value ? Number(e.target.value) : '')} disabled={!bulkCategoryId}>
+                    <option value="">Sub-Category…</option>
+                    {subCategories.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                  </select>
+                  <select className={`${selectClass} w-full`} value={bulkItemId} onChange={e => setBulkItemId(e.target.value ? Number(e.target.value) : '')} disabled={!bulkSubCategoryId}>
+                    <option value="">Item…</option>
+                    {items.map(i => <option key={i.id} value={i.id}>{i.name}</option>)}
+                  </select>
+                </>
+              )}
+
+              {bulkField === 'payment_mode' && (
+                <select className={`${selectClass} w-full`} value={bulkPaymentMode} onChange={e => setBulkPaymentMode(e.target.value)}>
+                  <option value="">Select Payment Mode…</option>
+                  {PAYMENT_MODES.map(pm => <option key={pm.value} value={pm.value}>{pm.label}</option>)}
+                </select>
+              )}
+
+              {bulkField === 'is_in' && (
+                <select className={`${selectClass} w-full`} value={bulkIsIn ? 'true' : 'false'} onChange={e => setBulkIsIn(e.target.value === 'true')}>
+                  <option value="">Select Direction…</option>
+                  {SAVING_DIRECTIONS.map(d => <option key={d.value} value={d.value}>{d.label}</option>)}
+                </select>
+              )}
+
+              {bulkField === 'is_give' && (
+                <select className={`${selectClass} w-full`} value={bulkIsGive ? 'true' : 'false'} onChange={e => setBulkIsGive(e.target.value === 'true')}>
+                  <option value="">Select Direction…</option>
+                  {REVOLVING_DIRECTIONS.map(d => <option key={d.value} value={d.value}>{d.label}</option>)}
+                </select>
+              )}
+
+              {bulkField === 'closed' && (
+                <select className={`${selectClass} w-full`} value={bulkClosed ? 'true' : 'false'} onChange={e => setBulkClosed(e.target.value === 'true')}>
+                  <option value="">Select Status…</option>
+                  {REVOLVING_STATUSES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+                </select>
+              )}
+
+              {bulkField === 'notes' && (
+                <input
+                  type="text"
+                  className={`${selectClass} w-full`}
+                  placeholder="Enter Notes…"
+                  value={bulkNotes}
+                  onChange={e => setBulkNotes(e.target.value)}
+                />
+              )}
+            </div>
+
+            <div className="flex items-center justify-end gap-3">
+              <button
+                onClick={() => setIsBulkEditDialogOpen(false)}
+                className="px-5 py-2.5 rounded-xl text-sm font-bold text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors uppercase tracking-widest"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleBulkUpdate}
+                disabled={bulkLoading || !bulkField}
+                className="px-6 py-2.5 rounded-xl text-sm font-bold bg-cyan-600 text-white shadow-lg shadow-cyan-600/20 hover:bg-cyan-500 transition-colors disabled:opacity-50 uppercase tracking-widest"
+              >
+                Apply Changes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <ConfirmationDialog
+        isOpen={isBulkDeleteDialogOpen}
+        onClose={() => setIsBulkDeleteDialogOpen(false)}
+        onConfirm={confirmBulkDelete}
+        title="Delete Transactions"
+        message={`Are you sure you want to delete the ${selectedIds.size} selected transaction(s)? This action cannot be undone.`}
       />
     </div>
   );

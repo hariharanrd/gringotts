@@ -251,7 +251,7 @@ public class BudgetService {
         // Fetch transactions for the period
         User user = iamService.getCurrentUser();
         List<Expense> expenses = expenseRepository.findByUserAndTransactionTimeBetween(user, start, end);
-        List<Saving> savings = savingRepository.findByUserAndTransactionTimeBetween(user, start, end);
+        List<Saving> savings = savingRepository.findByUserAndTransactionTimeBetweenAndIsInTrue(user, start, end);
         List<Revolving> revolvings = revolvingRepository.findByUserAndTransactionTimeBetweenAndClosedFalse(user, start, end);
 
         // Aggregate spent amounts by category (use category id as key)

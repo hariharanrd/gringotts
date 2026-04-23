@@ -164,6 +164,17 @@ public class TransactionService {
         }
     }
 
+    @Transactional
+    public void bulkDelete(List<Long> transactionIds) {
+        User user = iamService.getCurrentUser();
+        List<Transaction> transactions = transactionRepository.findAllById(transactionIds);
+        for (Transaction t : transactions) {
+            if (t.getUser() != null && t.getUser().getId().equals(user.getId())) {
+                deleteTransaction(t.getId());
+            }
+        }
+    }
+
     public void deleteExpense(Long id) {
         expenseRepository.deleteById(id);
     }
@@ -424,16 +435,7 @@ public class TransactionService {
         return summary;
     }
 
-    public void bulkUpdateCategory(List<Long> transactionIds, Long categoryId) {
-        User user = iamService.getCurrentUser();
-        Category category = categoryRepository.findById(categoryId)
-                .orElseThrow(() -> new IllegalArgumentException("Category not found: " + categoryId));
-        List<Transaction> transactions = transactionRepository.findAllById(transactionIds);
-        transactions.stream()
-                .filter(t -> t.getUser() != null && t.getUser().getId().equals(user.getId()))
-                .forEach(t -> t.setCategory(category));
-        transactionRepository.saveAll(transactions);
-    }
+
 
     @Transactional
     public void bulkUpdateFields(List<Long> transactionIds, Map<String, Object> fields) {
