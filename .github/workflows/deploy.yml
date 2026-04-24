@@ -1,0 +1,79 @@
+name: Unified Deployment Workflow
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy-backend:
+    name: Deploy Backend to Cloud Run
+    runs-on: ubuntu-latest
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+      deployments: 'write'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Google Auth
+        id: auth
+        uses: 'google-github-actions/auth@v2'
+        with:
+          credentials_json: '${{ secrets.GCP_SA_KEY }}'
+
+      - name: 'Set up Cloud SDK'
+        uses: 'google-github-actions/setup-gcloud@v2'
+
+      - name: 'Configure Docker'
+        run: |
+          gcloud auth configure-docker --quiet
+
+      - name: 'Build and Push Container'
+        run: |
+          IMAGE_NAME="gcr.io/${{ secrets.GCP_PROJECT_ID }}/gringotts-server:${{ github.sha }}"
+          docker build -t "$IMAGE_NAME" ./server
+          docker push "$IMAGE_NAME"
+
+      - name: 'Deploy to Cloud Run'
+        id: deploy
+        uses: 'google-github-actions/deploy-cloudrun@v2'
+        with:
+          service: 'gringotts-server'
+          image: "gcr.io/${{ secrets.GCP_PROJECT_ID }}/gringotts-server:${{ github.sha }}"
+          region: 'asia-south1'
+          flags: '--allow-unauthenticated'
+
+      - name: 'Show Output'
+        run: echo ${{ steps.deploy.outputs.url }}
+
+  deploy-frontend:
+    name: Deploy Frontend to Firebase
+    needs: deploy-backend
+    runs-on: ubuntu-latest
+    permissions:
+      contents: 'read'
+      deployments: 'write'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Dependencies
+        run: npm ci
+        working-directory: ./client
+
+      - name: Build project
+        run: npm run build
+        working-directory: ./client
+
+      - name: Deploy to Firebase Hosting
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_GRINGOTTS_491511 }}
+          channelId: live
+          projectId: gringotts-491511
+          entryPoint: ./client

@@ -251,8 +251,6 @@ const TransactionDetails: React.FC = () => {
             />
           )}
 
-          {/* INCOME: source (Removed per request) */}
-
           {/* SAVING: direction */}
           {type === TransactionType.SAVING && transaction.is_in !== undefined && (
             <Field icon={transaction.is_in ? ArrowDownCircle : ArrowUpCircle} label="Direction"

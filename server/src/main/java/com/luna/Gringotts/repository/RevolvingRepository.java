@@ -10,7 +10,7 @@ import java.util.List;
 public interface RevolvingRepository extends TransactionRepository<Revolving> {
 
     @EntityGraph(attributePaths = {"category", "subCategory", "item"})
-    List<Revolving> findByUserAndTransactionTimeBetweenAndClosedFalse(User user, LocalDateTime start, LocalDateTime end);
+    List<Revolving> findByUserAndTransactionTimeBetweenAndClosedFalseAndIsGiveTrue(User user, LocalDateTime start, LocalDateTime end);
 
     @EntityGraph(attributePaths = {"category", "subCategory", "item"})
     List<Revolving> findByUserAndClosedFalse(User user);
