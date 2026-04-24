@@ -1,7 +1,6 @@
 package com.luna.Gringotts.records;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.PrimaryKeyJoinColumn;
@@ -17,12 +16,12 @@ import java.time.LocalDateTime;
 @OnDelete(action = OnDeleteAction.CASCADE)
 public class Income extends Transaction {
 
-    public Income(){
+    public Income() {
 
     }
 
     public Income(String refNo, LocalDateTime date, String description, Double value) {
-        super(refNo,date,description,value);
+        super(refNo, date, description, value);
     }
 
     @JsonIgnore
@@ -40,6 +39,6 @@ public class Income extends Transaction {
     String source;
 
     public enum IncomeMode {
-        SALARY,CASHBACK,RETURNS,OTHERS;
+        SALARY, CASHBACK, RETURNS, OTHERS;
     }
 }

@@ -4,7 +4,6 @@ import com.luna.Gringotts.records.*;
 import com.luna.Gringotts.repository.*;
 import org.jspecify.annotations.NonNull;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -252,7 +251,7 @@ public class BudgetService {
         User user = iamService.getCurrentUser();
         List<Expense> expenses = expenseRepository.findByUserAndTransactionTimeBetween(user, start, end);
         List<Saving> savings = savingRepository.findByUserAndTransactionTimeBetweenAndIsInTrue(user, start, end);
-        List<Revolving> revolvings = revolvingRepository.findByUserAndTransactionTimeBetweenAndClosedFalse(user, start, end);
+        List<Revolving> revolvings = revolvingRepository.findByUserAndTransactionTimeBetweenAndClosedFalseAndIsGiveTrue(user, start, end);
 
         // Aggregate spent amounts by category (use category id as key)
         Map<Long, Double> spentByCategory = new HashMap<>();
