@@ -430,7 +430,44 @@ export const api = {
       method: 'DELETE',
     });
     if (!response.ok) throw new Error('Failed to delete goal');
-  }
+  },
   // Investment Goals API End
+
+  // Account API Start
+  getProfile: async (): Promise<{ username: string; displayName: string; profilePicture: string }> => {
+    const response = await fetchWithCredentials(`${BASE_URL}/account/profile`);
+    return handleResponse(response);
+  },
+
+  updateProfile: async (displayName: string, profilePicture: string): Promise<{ username: string; displayName: string; profilePicture: string }> => {
+    const response = await fetchWithCredentials(`${BASE_URL}/account/profile`, {
+      method: 'PUT',
+      body: JSON.stringify({ displayName, profilePicture }),
+    });
+    return handleResponse(response);
+  },
+
+  resetPassword: async (currentPassword: string, newPassword: string): Promise<void> => {
+    const response = await fetchWithCredentials(`${BASE_URL}/account/reset-password`, {
+      method: 'POST',
+      body: JSON.stringify({ currentPassword, newPassword }),
+    });
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({ message: 'Failed to reset password' }));
+      throw new Error(err.message || 'Failed to reset password');
+    }
+  },
+
+  deleteAccount: async (currentPassword: string): Promise<void> => {
+    const response = await fetchWithCredentials(`${BASE_URL}/account`, {
+      method: 'DELETE',
+      body: JSON.stringify({ currentPassword }),
+    });
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({ message: 'Failed to delete account' }));
+      throw new Error(err.message || 'Failed to delete account');
+    }
+  },
+  // Account API End
 };
 

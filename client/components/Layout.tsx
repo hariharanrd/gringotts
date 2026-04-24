@@ -17,13 +17,16 @@ import {
   ChevronLeft,
   ChevronRight,
   ReceiptIndianRupee,
-  ReceiptText
+  ReceiptText,
+  UserCircle2
 } from 'lucide-react';
 
 import { useTheme } from './ThemeContext';
 
 interface LayoutProps {
   userName: string;
+  displayName?: string;
+  profilePicture?: string;
   children: React.ReactNode;
   onLogout: () => void;
   onImport?: () => void;
@@ -38,13 +41,16 @@ const navItems = [
 ];
 
 
-const Layout: React.FC<LayoutProps> = ({ userName, children, onImport }) => {
+const Layout: React.FC<LayoutProps> = ({ userName, displayName, profilePicture, children, onImport }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isPinned, setIsPinned] = useState(true);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const location = useLocation();
   const activeTab = location.pathname.replace('/', '');
   const { theme, toggleTheme } = useTheme();
+
+  const displayLabel = displayName && displayName.trim() ? displayName.trim() : userName;
+  const avatarInitial = displayLabel?.charAt(0)?.toUpperCase() || '?';
 
   return (
     <div className="flex h-screen overflow-hidden bg-slate-50 dark:bg-slate-950">
@@ -114,12 +120,15 @@ const Layout: React.FC<LayoutProps> = ({ userName, children, onImport }) => {
           {/* Bottom user section */}
           <div className="p-4 border-t border-slate-200 dark:border-slate-700/50">
             <div className={`flex items-center ${isPinned ? 'gap-3 px-3' : 'justify-center px-0'} py-2`}>
-              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center text-white font-bold text-sm shadow-lg shadow-violet-500/20 shrink-0">
-                {userName?.charAt(0)?.toUpperCase() || '?'}
+              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center text-white font-bold text-sm shadow-lg shadow-violet-500/20 shrink-0 overflow-hidden">
+                {profilePicture
+                  ? <img src={profilePicture} alt="avatar" className="w-full h-full object-cover" />
+                  : avatarInitial
+                }
               </div>
               {isPinned && (
                 <div className="flex-1 min-w-0 animate-in fade-in slide-in-from-left-2 duration-300">
-                  <p className="text-sm font-semibold text-slate-800 dark:text-slate-200 truncate">{userName}</p>
+                  <p className="text-sm font-semibold text-slate-800 dark:text-slate-200 truncate">{displayLabel}</p>
                   <p className="text-[11px] text-slate-400 dark:text-slate-500">Vault Keeper</p>
                 </div>
               )}
@@ -165,14 +174,26 @@ const Layout: React.FC<LayoutProps> = ({ userName, children, onImport }) => {
               onClick={() => setIsProfileOpen(!isProfileOpen)}
               className="flex items-center gap-3 hover:bg-slate-100 dark:hover:bg-slate-800/60 p-2 pr-4 rounded-xl transition-all duration-200"
             >
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center text-white font-bold text-xs shadow-lg shadow-violet-500/20">
-                {userName?.charAt(0)?.toUpperCase() || '?'}
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center text-white font-bold text-xs shadow-lg shadow-violet-500/20 overflow-hidden">
+                {profilePicture
+                  ? <img src={profilePicture} alt="avatar" className="w-full h-full object-cover" />
+                  : avatarInitial
+                }
               </div>
-              <span className="text-sm font-medium text-slate-600 dark:text-slate-300 hidden sm:block">{userName}</span>
+              <span className="text-sm font-medium text-slate-600 dark:text-slate-300 hidden sm:block">{displayLabel}</span>
             </button>
 
             {isProfileOpen && (
-              <div className="absolute top-full right-0 mt-2 w-48 glass rounded-xl shadow-2xl shadow-black/20 dark:shadow-black/40 py-2 z-50">
+              <div className="absolute top-full right-0 mt-2 w-52 glass rounded-xl shadow-2xl shadow-black/20 dark:shadow-black/40 py-2 z-50">
+                <Link
+                  to="/account"
+                  className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-white transition-colors w-full font-medium"
+                  onClick={() => setIsProfileOpen(false)}
+                >
+                  <UserCircle2 className="w-4 h-4" />
+                  Account Settings
+                </Link>
+                <div className="border-t border-slate-200 dark:border-slate-700/50 my-1" />
                 <Link
                   to="/logout"
                   className="flex items-center gap-3 px-4 py-2.5 text-sm text-rose-500 dark:text-rose-400 hover:bg-rose-500/10 transition-colors w-full font-medium"

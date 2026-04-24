@@ -13,4 +13,5 @@ import java.util.List;
 @Repository
 public interface InvestmentGoalRepository extends JpaRepository<InvestmentGoal, Long> {
     List<InvestmentGoal> findAllByUserOrderByCreatedAtDesc(User user);
+    void deleteByUser(User user);
 }

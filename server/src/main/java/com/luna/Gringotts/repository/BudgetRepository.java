@@ -16,4 +16,6 @@ public interface BudgetRepository extends JpaRepository<Budget, Long> {
     Optional<Budget> findByMonthAndYearAndUser(int month, int year, User user);
 
     List<Budget> findAllByIsMasterFalseAndUserOrderByYearDescMonthDesc(User user);
+    List<Budget> findAllByUser(User user);
+    void deleteByUser(User user);
 }

@@ -1,5 +1,7 @@
 package com.luna.Gringotts.controlller;
 
+import com.luna.Gringotts.records.User;
+import com.luna.Gringotts.repository.UserRepository;
 import com.luna.Gringotts.services.AppConfigurationService;
 import com.luna.Gringotts.services.AuthenticationService;
 import jakarta.servlet.http.HttpServletResponse;
@@ -19,6 +21,7 @@ import java.util.Map;
 public class AuthenticationController {
 
     private final AuthenticationService service;
+    private final UserRepository userRepository;
 
     @Value("${production:false}")
     private String production;
@@ -26,8 +29,9 @@ public class AuthenticationController {
     @Autowired
     AppConfigurationService appConfigurationService;
 
-    public AuthenticationController(AuthenticationService service) {
+    public AuthenticationController(AuthenticationService service, UserRepository userRepository) {
         this.service = service;
+        this.userRepository = userRepository;
     }
 
     @PostMapping("/register")
@@ -99,7 +103,14 @@ public class AuthenticationController {
         if (authentication != null && authentication.isAuthenticated()
                 && !"anonymousUser".equals(authentication.getPrincipal())) {
 
-            return ResponseEntity.ok(Map.of("username", authentication.getName()));
+            User user = userRepository.findByUsername(authentication.getName()).orElse(null);
+            if (user == null) return ResponseEntity.status(403).build();
+
+            return ResponseEntity.ok(Map.of(
+                    "username", user.getUsername(),
+                    "displayName", user.getDisplayName() != null ? user.getDisplayName() : "",
+                    "profilePicture", user.getProfilePicture() != null ? user.getProfilePicture() : ""
+            ));
         }
         return ResponseEntity.status(403).build();
     }

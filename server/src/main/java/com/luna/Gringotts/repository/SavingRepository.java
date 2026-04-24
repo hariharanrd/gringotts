@@ -12,4 +12,6 @@ import org.springframework.stereotype.Repository;
 public interface SavingRepository extends TransactionRepository<Saving> {
 
     List<Saving> findByUserAndTransactionTimeBetweenAndIsInTrue(User user, LocalDateTime start, LocalDateTime end);
+
+    void deleteByUser(User user);
 }
