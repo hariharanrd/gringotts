@@ -15,4 +15,5 @@ public interface RevolvingRepository extends TransactionRepository<Revolving> {
     @EntityGraph(attributePaths = {"category", "subCategory", "item"})
     List<Revolving> findByUserAndClosedFalse(User user);
 
+    void deleteByUser(User user);
 }

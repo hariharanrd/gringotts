@@ -153,13 +153,13 @@ public class TransactionService {
 
     public void deleteTransaction(Long id) {
         Transaction t = transactionRepository.findById(id).get();
-        if(t instanceof Expense) {
+        if (t instanceof Expense) {
             deleteExpense(id);
-        }else if(t instanceof Income) {
+        } else if (t instanceof Income) {
             deleteIncome(id);
-        }else if(t instanceof Saving) {
+        } else if (t instanceof Saving) {
             deleteSaving(id);
-        }else if(t instanceof Revolving) {
+        } else if (t instanceof Revolving) {
             deleteRevolving(id);
         }
     }
@@ -434,8 +434,6 @@ public class TransactionService {
 
         return summary;
     }
-
-
 
     @Transactional
     public void bulkUpdateFields(List<Long> transactionIds, Map<String, Object> fields) {

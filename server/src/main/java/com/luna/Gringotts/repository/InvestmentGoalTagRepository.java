@@ -12,4 +12,7 @@ public interface InvestmentGoalTagRepository extends JpaRepository<InvestmentGoa
     List<InvestmentGoalTag> findAllBySubCategory(SubCategory subCategory);
     List<InvestmentGoalTag> findAllByCategory(Category category);
     List<InvestmentGoalTag> findAllByGoal(InvestmentGoal goal);
+    boolean existsByCategoryId(Long categoryId);
+    boolean existsBySubCategoryId(Long subCategoryId);
+    boolean existsByItemId(Long itemId);
 }

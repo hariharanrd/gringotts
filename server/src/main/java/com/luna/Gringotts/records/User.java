@@ -25,6 +25,12 @@ public class User implements UserDetails {
     @Column(nullable = false)
     private boolean confirmed = false;
 
+    @Column(nullable = true)
+    private String displayName;
+
+    @Column(columnDefinition = "TEXT", nullable = true)
+    private String profilePicture;
+
     public Long getId() {
         return id;
     }
@@ -55,6 +61,22 @@ public class User implements UserDetails {
 
     public void setConfirmed(boolean confirmed) {
         this.confirmed = confirmed;
+    }
+
+    public String getDisplayName() {
+        return displayName;
+    }
+
+    public void setDisplayName(String displayName) {
+        this.displayName = displayName;
+    }
+
+    public String getProfilePicture() {
+        return profilePicture;
+    }
+
+    public void setProfilePicture(String profilePicture) {
+        this.profilePicture = profilePicture;
     }
 
     @Override

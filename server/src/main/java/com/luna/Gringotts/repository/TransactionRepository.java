@@ -31,4 +31,8 @@ public interface TransactionRepository<T extends Transaction> extends JpaReposit
 
     @EntityGraph(attributePaths = {"category", "subCategory", "item"})
     Page<T> findAll(Specification<T> spec, Pageable pageable);
+
+    boolean existsByCategoryId(Long categoryId);
+    boolean existsBySubCategoryId(Long subCategoryId);
+    boolean existsByItemId(Long itemId);
 }

@@ -1,11 +1,10 @@
 package com.luna.Gringotts.services;
 
+import java.util.Map;
 import com.luna.Gringotts.records.Category;
 import com.luna.Gringotts.records.Item;
 import com.luna.Gringotts.records.SubCategory;
-import com.luna.Gringotts.repository.CategoryRepository;
-import com.luna.Gringotts.repository.ItemRepository;
-import com.luna.Gringotts.repository.SubCategoryRepository;
+import com.luna.Gringotts.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -28,6 +27,15 @@ public class CSIService {
 
     @Autowired
     public IAMService iamService;
+
+    @Autowired
+    private TransactionRepository transactionRepository;
+
+    @Autowired
+    private InvestmentGoalTagRepository investmentGoalTagRepository;
+
+    @Autowired
+    private BudgetCategoryAllocationRepository budgetCategoryAllocationRepository;
 
 
     @CacheEvict(value = {"categories", "categoryById"}, allEntries = true)
@@ -53,18 +61,48 @@ public class CSIService {
     }
 
     @CacheEvict(value = {"categories", "categoryById"}, allEntries = true)
-    public void deleteCategory(Long id){
+    public Map<String, Object> deleteCategory(Long id){
+        if (subCategoryRepository.existsByCategoryId(id)) {
+            return Map.of("status", "error", "message", "Cannot delete category as it has associated sub-categories.", "status_code", 409);
+        }
+        if (transactionRepository.existsByCategoryId(id)) {
+            return Map.of("status", "error", "message", "Cannot delete category as it is associated with transactions.", "status_code", 409);
+        }
+        if (budgetCategoryAllocationRepository.existsByCategoryId(id)) {
+            return Map.of("status", "error", "message", "Cannot delete category as it is used in budget allocations.", "status_code", 409);
+        }
+        if (investmentGoalTagRepository.existsByCategoryId(id)) {
+            return Map.of("status", "error", "message", "Cannot delete category as it is tagged in investment goals.", "status_code", 409);
+        }
         categoryRepository.deleteById(id);
+        return Map.of("status", "success");
     }
 
     @CacheEvict(value = {"subCategories", "subCategoryById"}, allEntries = true)
-    public void deleteSubCategory(Long id){
+    public Map<String, Object> deleteSubCategory(Long id){
+        if (itemRepository.existsBySubCategoryId(id)) {
+            return Map.of("status", "error", "message", "Cannot delete sub-category as it has associated items.", "status_code", 409);
+        }
+        if (transactionRepository.existsBySubCategoryId(id)) {
+            return Map.of("status", "error", "message", "Cannot delete sub-category as it is associated with transactions.", "status_code", 409);
+        }
+        if (investmentGoalTagRepository.existsBySubCategoryId(id)) {
+            return Map.of("status", "error", "message", "Cannot delete sub-category as it is tagged in investment goals.", "status_code", 409);
+        }
         subCategoryRepository.deleteById(id);
+        return Map.of("status", "success");
     }
 
     @CacheEvict(value = {"items", "itemById"}, allEntries = true)
-    public void deleteItem(Long id){
+    public Map<String, Object> deleteItem(Long id){
+        if (transactionRepository.existsByItemId(id)) {
+            return Map.of("status", "error", "message", "Cannot delete item as it is associated with transactions.", "status_code", 409);
+        }
+        if (investmentGoalTagRepository.existsByItemId(id)) {
+            return Map.of("status", "error", "message", "Cannot delete item as it is tagged in investment goals.", "status_code", 409);
+        }
         itemRepository.deleteById(id);
+        return Map.of("status", "success");
     }
 
     @CacheEvict(value = {"categories", "categoryById"}, allEntries = true)

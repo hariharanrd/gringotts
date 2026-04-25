@@ -11,4 +11,6 @@ public interface SubCategoryRepository extends JpaRepository<SubCategory, Long> 
     Page<SubCategory> findByCategoryId(Long categoryId, org.springframework.data.domain.Pageable pageable);
 
     Page<SubCategory> findByCategoryUserOrderByNameAsc(com.luna.Gringotts.records.User user, org.springframework.data.domain.Pageable pageable);
+
+    boolean existsByCategoryId(Long categoryId);
 }

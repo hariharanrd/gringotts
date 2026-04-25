@@ -10,6 +10,7 @@ import Configuration from './pages/Configuration';
 import Budget from './pages/Budget';
 import InvestmentPlanner from './pages/InvestmentPlanner';
 import TransactionDetails from './pages/TransactionDetails';
+import Account from './pages/Account';
 import { Login } from './pages/Login';
 import { Register } from './pages/Register';
 import { api } from './services/api';
@@ -74,6 +75,8 @@ const GringottsApp: React.FC = () => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [username, setUsername] = useState<string>('');
+  const [displayName, setDisplayName] = useState<string>('');
+  const [profilePicture, setProfilePicture] = useState<string>('');
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
 
@@ -99,6 +102,8 @@ const GringottsApp: React.FC = () => {
       if (response.ok) {
         const data = await response.json();
         setUsername(data.username);
+        setDisplayName(data.displayName || '');
+        setProfilePicture(data.profilePicture || '');
         setIsAuthenticated(true);
         fetchAllTransactions();
       } else {
@@ -161,6 +166,8 @@ const GringottsApp: React.FC = () => {
           <PrivateRoute isAuthenticated={isAuthenticated}>
             <Layout
               userName={username}
+              displayName={displayName}
+              profilePicture={profilePicture}
               onLogout={handleLogout}
               onImport={() => setIsImportModalOpen(true)}
             >
@@ -174,6 +181,7 @@ const GringottsApp: React.FC = () => {
                   <Route path="/configuration" element={<Configuration />} />
                   <Route path="/budget" element={<Budget />} />
                   <Route path="/goals" element={<InvestmentPlanner />} />
+                  <Route path="/account" element={<Account onProfileUpdate={fetchUser} />} />
                   <Route path="/logout" element={<Logout onLogout={handleLogout} />} />
                   <Route path="*" element={
                     <div className="flex flex-col items-center justify-center min-h-[60vh]">
