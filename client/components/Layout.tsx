@@ -184,7 +184,7 @@ const Layout: React.FC<LayoutProps> = ({ userName, displayName, profilePicture, 
             </button>
 
             {isProfileOpen && (
-              <div className="absolute top-full right-0 mt-2 w-52 glass rounded-xl shadow-2xl shadow-black/20 dark:shadow-black/40 py-2 z-50">
+              <div className="absolute top-full right-0 mt-2 w-52 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl shadow-black/20 dark:shadow-black/40 py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
                 <Link
                   to="/account"
                   className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-white transition-colors w-full font-medium"
