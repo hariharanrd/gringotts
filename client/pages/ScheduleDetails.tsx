@@ -3,9 +3,9 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
 import { ScheduledTransaction, TransactionType } from '../types';
 import { useToast } from '../components/ToastContext';
-import { 
-  ArrowLeft, Clock, Calendar, Play, Tag, 
-  Hash, Activity, List, ChevronRight, CreditCard 
+import {
+  ArrowLeft, Clock, Calendar, Play, Tag,
+  Hash, Activity, List, ChevronRight, CreditCard
 } from 'lucide-react';
 
 const TYPE_CONFIG: Record<TransactionType, { gradient: string; amountClass: string }> = {
@@ -80,16 +80,16 @@ const ScheduleDetails: React.FC = () => {
           </button>
           <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Schedule Details</h2>
         </div>
-        <button 
-          onClick={async () => { 
+        <button
+          onClick={async () => {
             try {
-              await api.triggerScheduledTransaction(schedule.id); 
-              showToast('Executed successfully', 'success'); 
-              fetch(); 
+              await api.triggerScheduledTransaction(schedule.id);
+              showToast('Executed successfully', 'success');
+              fetch();
             } catch (e: any) {
               showToast(e.message || 'Execution failed', 'error');
             }
-          }} 
+          }}
           className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white font-bold rounded-xl shadow-lg shadow-cyan-500/20 transition-all active:scale-95"
         >
           <Play className="w-4 h-4" />
@@ -151,7 +151,7 @@ const ScheduleDetails: React.FC = () => {
                 {history.length} Runs
               </span>
             </div>
-            
+
             <div className="flex-1 overflow-y-auto">
               {history.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full py-12 text-slate-400">
@@ -175,9 +175,6 @@ const ScheduleDetails: React.FC = () => {
                           <div className="font-semibold text-slate-700 dark:text-slate-300">
                             {new Date(h.transaction_time || h.transactionTime).toLocaleDateString('en-IN', { dateStyle: 'medium' })}
                           </div>
-                          <div className="text-[10px] text-slate-400 font-bold uppercase">
-                            {new Date(h.transaction_time || h.transactionTime).toLocaleTimeString('en-IN', { timeStyle: 'short' })}
-                          </div>
                         </td>
                         <td className="p-4 font-medium text-slate-600 dark:text-slate-400">{h.description}</td>
                         <td className="p-4 text-right">
@@ -186,7 +183,7 @@ const ScheduleDetails: React.FC = () => {
                           </span>
                         </td>
                         <td className="p-4">
-                          <button 
+                          <button
                             onClick={() => navigate(`/transaction/${h.id}?type=${schedule.transaction_type}`)}
                             className="p-1.5 rounded-lg text-slate-300 group-hover:text-cyan-500 group-hover:bg-cyan-50 dark:group-hover:bg-cyan-500/10 transition-all"
                           >
