@@ -1,8 +1,17 @@
 # 🚀 Release Notes
 
-## [April 25, 2026] Account Management & System Reliability
+## [April 25, 2026] Scheduling, Account Management & System Reliability
 
-A major update introducing user personalization, secure account management, and improved system-wide error transparency.
+A major update introducing automated transaction scheduling, user personalization, and improved system-wide transparency.
+
+### ⏰ Automated Scheduled Transactions
+
+Take the manual work out of your recurring finances with our new scheduling engine.
+
+- **Recurring Templates**: Create templates for Expenses, Income, or Savings that automatically generate transactions on a Daily, Monthly, or Yearly basis.
+- **Smart Execution Engine**: Automated background processing runs twice daily (2 AM & 2 PM) to handle due transactions.
+- **Manual "Run Now"**: Trigger a scheduled transaction immediately without affecting the long-term automation timeline.
+- **Historical Tracking**: Every schedule maintains a complete execution history, linked directly to the generated transactions.
 
 ### 👤 User Account Management
 
