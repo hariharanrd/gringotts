@@ -1,5 +1,24 @@
 # 🚀 Release Notes
 
+## [April 25, 2026] Account Management & System Reliability
+
+A major update introducing user personalization, secure account management, and improved system-wide error transparency.
+
+### 👤 User Account Management
+
+Take full control of your Gringotts profile with a dedicated management suite.
+
+- **Profile Personalization**: Set your display name and upload a profile picture to customize your dashboard experience.
+- **Secure Password Resets**: Enhanced security flow for resetting account passwords directly from the profile settings.
+- **Account Deletion**: Implemented a secure account wipe feature that cascades and permanently deletes all associated financial data (transactions, categories, budgets, and goals) when an account is no longer needed.
+
+### Enhanced API Error messages
+
+- **Human-Readable Error Messages**: Refactored the global exception handling layer to provide clear, actionable error messages in API responses, moving away from cryptic stack traces to user-friendly feedback.
+- **Improved Field Validation**: Backend validation now returns specific field-level errors for more precise feedback during data entry.
+
+---
+
 ## [April 23, 2026] Investment Planner & Hierarchical Auto-Crediting
 
 A comprehensive upgrade to the long-term financial planning capabilities of Gringotts, featuring a sophisticated investment goal tracking system with automated progress updates and complex growth modeling.
