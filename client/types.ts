@@ -40,6 +40,8 @@ export interface Transaction {
   description: string;
   notes?: string;
   type: TransactionType;
+  schedule_id?: number;
+  created_by?: string;
 }
 
 export interface Expense extends Transaction {
@@ -127,4 +129,31 @@ export interface InvestmentGoal {
   tags?: InvestmentGoalTag[];
   years_to_goal?: number | null;
   percent_achieved?: number;
+}
+
+export enum ScheduleFrequency {
+  ONE_TIME = 'ONE_TIME',
+  DAILY = 'DAILY',
+  MONTHLY = 'MONTHLY',
+  YEARLY = 'YEARLY'
+}
+
+export interface ScheduledTransaction {
+  id: number;
+  name: string;
+  transaction_type: TransactionType;
+  amount: number;
+  description?: string;
+  category?: Category;
+  subcategory?: SubCategory;
+  item?: Item;
+  payment_mode?: string;
+  is_in?: boolean;
+  frequency: ScheduleFrequency;
+  start_date: string; // ISO date
+  end_date?: string;
+  next_run_date?: string;
+  last_run_date?: string;
+  is_active: boolean;
+  created_at?: string;
 }

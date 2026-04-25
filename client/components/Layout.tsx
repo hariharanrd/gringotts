@@ -12,13 +12,12 @@ import {
   Upload,
   Sun,
   Moon,
-  RefreshCw,
   HandCoins,
   ChevronLeft,
   ChevronRight,
-  ReceiptIndianRupee,
   ReceiptText,
-  UserCircle2
+  UserCircle2,
+  CalendarSync
 } from 'lucide-react';
 
 import { useTheme } from './ThemeContext';
@@ -37,6 +36,7 @@ const navItems = [
   { id: 'transactions', label: 'Transactions', icon: ReceiptText, path: '/transactions' },
   { id: 'budget', label: 'Budget', icon: HandCoins, path: '/budget' },
   { id: 'goals', label: 'Goals', icon: Goal, path: '/goals' },
+  { id: 'schedules', label: 'Schedules', icon: CalendarSync, path: '/schedules' },
   { id: 'configuration', label: 'Configuration', icon: Settings, path: '/configuration' },
 ];
 
