@@ -6,8 +6,26 @@ on:
       - main
 
 jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      server: ${{ steps.filter.outputs.server }}
+      client: ${{ steps.filter.outputs.client }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            server:
+              - 'server/**'
+            client:
+              - 'client/**'
+
   deploy-backend:
     name: Deploy Backend to Cloud Run
+    needs: changes
+    if: ${{ needs.changes.outputs.server == 'true' }}
     runs-on: ubuntu-latest
     permissions:
       contents: 'read'
@@ -51,7 +69,8 @@ jobs:
 
   deploy-frontend:
     name: Deploy Frontend to Firebase
-    needs: deploy-backend
+    needs: changes
+    if: ${{ needs.changes.outputs.client == 'true' }}
     runs-on: ubuntu-latest
     permissions:
       contents: 'read'
