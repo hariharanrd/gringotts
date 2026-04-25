@@ -119,9 +119,9 @@ const Configuration: React.FC = () => {
         }));
         showToast('Item deleted successfully', 'success');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error(`Failed to delete ${type.toLowerCase()}`, error);
-      showToast(`Failed to delete ${type.toLowerCase()}`, 'error');
+      showToast(error.message || `Failed to delete ${type.toLowerCase()}`, 'error');
     } finally {
       setDeleteTarget(null);
     }

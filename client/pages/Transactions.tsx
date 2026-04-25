@@ -161,9 +161,9 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
       setTransactions(response.data);
       setTotalPages(Math.ceil(response.total_count / 10));
       setHasMore(response.has_more);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to fetch transactions:", error);
-      showToast("Failed to fetch transactions.", 'error');
+      showToast(error.message || "Failed to fetch transactions.", 'error');
     } finally {
       setIsLoading(false);
     }
@@ -266,8 +266,8 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
       setBulkField('');
       setIsBulkEditDialogOpen(false);
       fetchTransactions(currentPage, filters);
-    } catch (error) {
-      showToast('Failed to bulk update.', 'error');
+    } catch (error: any) {
+      showToast(error.message || 'Failed to bulk update.', 'error');
     } finally {
       setBulkLoading(false);
     }
@@ -279,8 +279,8 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
       await api.deleteTransaction(deletingId);
       showToast('Transaction deleted successfully!', 'success');
       fetchTransactions(currentPage, filters);
-    } catch (error) {
-      showToast('Failed to delete transaction.', 'error');
+    } catch (error: any) {
+      showToast(error.message || 'Failed to delete transaction.', 'error');
     } finally {
       setIsDeleteDialogOpen(false);
       setDeletingId(null);
@@ -295,8 +295,8 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
       showToast(`Deleted ${selectedIds.size} transaction(s) successfully!`, 'success');
       setSelectedIds(new Set());
       fetchTransactions(currentPage, filters);
-    } catch (error) {
-      showToast('Failed to delete transactions.', 'error');
+    } catch (error: any) {
+      showToast(error.message || 'Failed to delete transactions.', 'error');
     } finally {
       setBulkLoading(false);
       setIsBulkDeleteDialogOpen(false);

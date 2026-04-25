@@ -185,20 +185,29 @@ public class CSIController {
 
     @DeleteMapping("/categories/{id}")
     public ResponseEntity<Map<String,Object>> deleteCategory(@PathVariable Long id){
-        CSIService.deleteCategory(id);
-        return ResponseEntity.ok(Map.of("status","success"));
+        Map<String, Object> result = CSIService.deleteCategory(id);
+        if ("error".equals(result.get("status"))) {
+            return ResponseEntity.status((Integer)result.get("status_code")).body(result);
+        }
+        return ResponseEntity.ok(result);
     }
 
     @DeleteMapping("/subcategories/{id}")
     public ResponseEntity<Map<String,Object>> deleteSubCategory(@PathVariable Long id){
-        CSIService.deleteSubCategory(id);
-        return ResponseEntity.ok(Map.of("status","success"));
+        Map<String, Object> result = CSIService.deleteSubCategory(id);
+        if ("error".equals(result.get("status"))) {
+            return ResponseEntity.status((Integer)result.get("status_code")).body(result);
+        }
+        return ResponseEntity.ok(result);
     }
 
     @DeleteMapping("/items/{id}")
     public ResponseEntity<Map<String,Object>> deleteItem(@PathVariable Long id){
-        CSIService.deleteItem(id);
-        return ResponseEntity.ok(Map.of("status","success"));
+        Map<String, Object> result = CSIService.deleteItem(id);
+        if ("error".equals(result.get("status"))) {
+            return ResponseEntity.status((Integer)result.get("status_code")).body(result);
+        }
+        return ResponseEntity.ok(result);
     }
 
 }

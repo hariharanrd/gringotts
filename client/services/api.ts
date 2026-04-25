@@ -31,11 +31,23 @@ async function handleResponse(response: Response) {
     throw new Error('Session expired');
   }
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: 'Network response was not ok' }));
-    throw new Error(error.message || `Error ${response.status}: ${response.statusText}`);
+    let errorMessage = `Error ${response.status}: ${response.statusText}`;
+    try {
+      const errorData = await response.json();
+      errorMessage = errorData.message || (errorData.details ? `${errorData.message || 'Error'}: ${errorData.details}` : null) || errorMessage;
+    } catch (e) {
+      // Body not JSON or empty
+    }
+    throw new Error(errorMessage);
   }
-  const data = await response.json();
-  return data;
+  
+  // For successful responses, try to parse JSON but don't fail if it's empty
+  try {
+    const text = await response.text();
+    return text ? JSON.parse(text) : {};
+  } catch (e) {
+    return {};
+  }
 }
 
 async function handleResponseAndGetData(response: Response) {
@@ -162,14 +174,14 @@ export const api = {
     const response = await fetchWithCredentials(`${BASE_URL}/transactions/${id}`, {
       method: 'DELETE',
     });
-    if (!response.ok) throw new Error('Failed to delete transaction');
+    await handleResponse(response);
   },
 
   bulkDelete: async (transactionIds: number[]) => {
     const response = await fetchWithCredentials(`${BASE_URL}/transactions?ids=${transactionIds.join(',')}`, {
       method: 'DELETE',
     });
-    if (!response.ok) throw new Error('Failed to bulk delete transactions');
+    await handleResponse(response);
   },
 
   bulkUpdate: async (transactionIds: number[], fields: Record<string, unknown>) => {
@@ -315,14 +327,14 @@ export const api = {
     const response = await fetchWithCredentials(`${BASE_URL}/categories/${id}`, {
       method: 'DELETE',
     });
-    if (!response.ok) throw new Error('Failed to delete category');
+    await handleResponse(response);
   },
 
   deleteSubCategory: async (id: number) => {
     const response = await fetchWithCredentials(`${BASE_URL}/subcategories/${id}`, {
       method: 'DELETE',
     });
-    if (!response.ok) throw new Error('Failed to delete subcategory');
+    await handleResponse(response);
   },
 
 
@@ -330,7 +342,7 @@ export const api = {
     const response = await fetchWithCredentials(`${BASE_URL}/items/${id}`, {
       method: 'DELETE',
     });
-    if (!response.ok) throw new Error('Failed to delete item');
+    await handleResponse(response);
   },
   //Configuration API End
 
@@ -393,7 +405,6 @@ export const api = {
     const response = await fetchWithCredentials(`${BASE_URL}/budgets/${id}`, {
       method: 'DELETE',
     });
-    if (!response.ok) throw new Error('Failed to delete budget');
     return handleResponse(response);
   },
   // Budget API End
@@ -429,7 +440,7 @@ export const api = {
     const response = await fetchWithCredentials(`${BASE_URL}/investment-goals/${id}`, {
       method: 'DELETE',
     });
-    if (!response.ok) throw new Error('Failed to delete goal');
+    await handleResponse(response);
   },
   // Investment Goals API End
 
@@ -452,10 +463,7 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ currentPassword, newPassword }),
     });
-    if (!response.ok) {
-      const err = await response.json().catch(() => ({ message: 'Failed to reset password' }));
-      throw new Error(err.message || 'Failed to reset password');
-    }
+    await handleResponse(response);
   },
 
   deleteAccount: async (currentPassword: string): Promise<void> => {
@@ -463,10 +471,7 @@ export const api = {
       method: 'DELETE',
       body: JSON.stringify({ currentPassword }),
     });
-    if (!response.ok) {
-      const err = await response.json().catch(() => ({ message: 'Failed to delete account' }));
-      throw new Error(err.message || 'Failed to delete account');
-    }
+    await handleResponse(response);
   },
   // Account API End
 };

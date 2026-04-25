@@ -49,9 +49,9 @@ public class AuthenticationService {
     }
 
     @CacheEvict(value = "users", allEntries = true)
-    public Map<String, String> register(String username, String password) {
+    public Map<String, Object> register(String username, String password) {
         if (userRepository.findByUsername(username).isPresent()) {
-            throw new RuntimeException("User already exists");
+            return Map.of("status", "error", "message", "User already exists", "status_code", 409);
         }
 
         GoogleAuthenticatorKey key = gAuth.createCredentials();
@@ -65,7 +65,8 @@ public class AuthenticationService {
         
         String preAuthToken = jwtService.generatePreAuthToken(username);
 
-        Map<String, String> response = new HashMap<>();
+        Map<String, Object> response = new HashMap<>();
+        response.put("status", "success");
         response.put("secret", key.getKey());
         response.put("otpAuthTotpURL", "otpauth://totp/Gringotts:" + username + "?secret=" + key.getKey() + "&issuer=Gringotts");
         response.put("preAuthToken", preAuthToken);
@@ -88,13 +89,13 @@ public class AuthenticationService {
         return jwtService.generateToken(user);
     }
 
-    public PreAuthResult preAuthenticate(String username, String password, String trustToken) {
+    public Map<String, Object> preAuthenticate(String username, String password, String trustToken) {
         try {
             authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(username, password)
             );
         } catch(DisabledException | UsernameNotFoundException | BadCredentialsException ue){
-            throw new RuntimeException("Bad Credentials");
+            return Map.of("status", "error", "message", "Bad Credentials", "status_code", 401);
         }
 
         if (trustToken != null) {
@@ -103,16 +104,24 @@ public class AuthenticationService {
                 trusted.get().getExpiresAt().isAfter(LocalDateTime.now())) {
                 
                 User user = userRepository.findByUsername(username).orElseThrow();
-                return new PreAuthResult(false, null, jwtService.generateToken(user), null);
+                return Map.of(
+                    "status", "success",
+                    "requiresMfa", false,
+                    "jwt", jwtService.generateToken(user)
+                );
             }
         }
 
-        return new PreAuthResult(true, jwtService.generatePreAuthToken(username), null, null);
+        return Map.of(
+            "status", "success",
+            "requiresMfa", true,
+            "preAuthToken", jwtService.generatePreAuthToken(username)
+        );
     }
 
-    public MfaResult completeMfa(String preAuthToken, int code, boolean trustBrowser) {
+    public Map<String, Object> completeMfa(String preAuthToken, int code, boolean trustBrowser) {
         if (!jwtService.isPreAuthTokenValid(preAuthToken)) {
-            throw new RuntimeException("Invalid or expired session. Please login again.");
+            return Map.of("status", "error", "message", "Invalid or expired session. Please login again.", "status_code", 401);
         }
 
         String username = jwtService.extractPreAuthUsername(preAuthToken);
@@ -120,7 +129,7 @@ public class AuthenticationService {
                 .orElseThrow();
 
         if (!gAuth.authorize(user.getTotpSecret(), code)) {
-            throw new RuntimeException("Invalid 2FA code");
+            return Map.of("status", "error", "message", "Invalid 2FA code", "status_code", 401);
         }
 
         if (!user.isConfirmed()) {
@@ -141,7 +150,11 @@ public class AuthenticationService {
             trustedBrowserRepository.save(tb);
         }
 
-        return new MfaResult(jwt, trustToken);
+        Map<String, Object> response = new HashMap<>();
+        response.put("status", "success");
+        response.put("jwt", jwt);
+        if (trustToken != null) response.put("trustToken", trustToken);
+        return response;
     }
 
     public static record PreAuthResult(boolean requiresMfa, String preAuthToken, String jwt, String trustToken) {}

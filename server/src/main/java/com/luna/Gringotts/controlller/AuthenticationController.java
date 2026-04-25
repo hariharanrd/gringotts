@@ -35,41 +35,53 @@ public class AuthenticationController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<Map<String, String>> register(@RequestBody RegisterRequest request) {
+    public ResponseEntity<Map<String, Object>> register(@RequestBody RegisterRequest request) {
         boolean registrationAllowed = Boolean.parseBoolean(appConfigurationService.getValue("IAM", "USER_REGISTRATION", "false"));
         if(registrationAllowed) {
-            return ResponseEntity.ok(service.register(request.getUsername(), request.getPassword()));
+            Map<String, Object> result = service.register(request.getUsername(), request.getPassword());
+            if ("error".equals(result.get("status"))) {
+                return ResponseEntity.status((Integer)result.get("status_code")).body(result);
+            }
+            return ResponseEntity.ok(result);
         } else {
             return ResponseEntity.status(403).build();
         }
     }
 
     @PostMapping("/pre-authenticate")
-    public ResponseEntity<PreAuthenticateResponse> preAuthenticate(
+    public ResponseEntity<?> preAuthenticate(
             @RequestBody PreAuthenticateRequest request,
             @RequestHeader(value = "X-Trust-Token", required = false) String trustToken,
             HttpServletResponse response) {
-        AuthenticationService.PreAuthResult result = service.preAuthenticate(
+        Map<String, Object> result = service.preAuthenticate(
                 request.getUsername(), request.getPassword(), trustToken);
 
-        if (!result.requiresMfa()) {
-            setSessionCookie(result.jwt(), response);
+        if ("error".equals(result.get("status"))) {
+            return ResponseEntity.status((Integer)result.get("status_code")).body(result);
+        }
+
+        if (Boolean.FALSE.equals(result.get("requiresMfa"))) {
+            setSessionCookie((String)result.get("jwt"), response);
             return ResponseEntity.ok(new PreAuthenticateResponse(false, null));
         }
 
-        return ResponseEntity.ok(new PreAuthenticateResponse(true, result.preAuthToken()));
+        return ResponseEntity.ok(new PreAuthenticateResponse(true, (String)result.get("preAuthToken")));
     }
 
     @PostMapping("/authenticate")
-    public ResponseEntity<AuthenticateResponse> authenticate(
+    public ResponseEntity<?> authenticate(
             @RequestBody AuthenticateRequest request,
             HttpServletResponse response) {
-        AuthenticationService.MfaResult result = service.completeMfa(
+        Map<String, Object> result = service.completeMfa(
                 request.getPreAuthToken(), request.getCode(), request.isTrustBrowser());
 
-        setSessionCookie(result.jwt(), response);
+        if ("error".equals(result.get("status"))) {
+            return ResponseEntity.status((Integer)result.get("status_code")).body(result);
+        }
 
-        return ResponseEntity.ok(new AuthenticateResponse(result.trustToken()));
+        setSessionCookie((String)result.get("jwt"), response);
+
+        return ResponseEntity.ok(new AuthenticateResponse((String)result.get("trustToken")));
     }
 
     private void setSessionCookie(String token, HttpServletResponse response) {

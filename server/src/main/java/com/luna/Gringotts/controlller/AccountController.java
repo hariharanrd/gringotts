@@ -51,23 +51,29 @@ public class AccountController {
     // ── POST /api/v1/account/reset-password ───────────────────────────────────
 
     @PostMapping("/reset-password")
-    public ResponseEntity<Void> resetPassword(@RequestBody ResetPasswordRequest request) {
-        accountService.resetPassword(
+    public ResponseEntity<Map<String, Object>> resetPassword(@RequestBody ResetPasswordRequest request) {
+        Map<String, Object> result = accountService.resetPassword(
                 currentUsername(),
                 request.getCurrentPassword(),
                 request.getNewPassword()
         );
-        return ResponseEntity.ok().build();
+        if ("error".equals(result.get("status"))) {
+            return ResponseEntity.status((Integer)result.get("status_code")).body(result);
+        }
+        return ResponseEntity.ok(result);
     }
 
     // ── DELETE /api/v1/account ────────────────────────────────────────────────
 
     @DeleteMapping
-    public ResponseEntity<Void> deleteAccount(
+    public ResponseEntity<Map<String, Object>> deleteAccount(
             @RequestBody DeleteAccountRequest request,
             HttpServletResponse response) {
 
-        accountService.deleteAccount(currentUsername(), request.getCurrentPassword());
+        Map<String, Object> result = accountService.deleteAccount(currentUsername(), request.getCurrentPassword());
+        if ("error".equals(result.get("status"))) {
+            return ResponseEntity.status((Integer)result.get("status_code")).body(result);
+        }
 
         // Clear the session cookie so the browser is immediately logged out
         ResponseCookie cookie = ResponseCookie.from("__session", "")
@@ -79,7 +85,7 @@ public class AccountController {
                 .build();
         response.addHeader("Set-Cookie", cookie.toString());
 
-        return ResponseEntity.ok().build();
+        return ResponseEntity.ok(result);
     }
 
     // ── Request / Response records ────────────────────────────────────────────

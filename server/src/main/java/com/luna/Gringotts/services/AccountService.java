@@ -76,29 +76,30 @@ public class AccountService {
     // ── Security ──────────────────────────────────────────────────────────────
 
     @CacheEvict(value = "users", allEntries = true)
-    public void resetPassword(String username, String currentPassword, String newPassword) {
+    public Map<String, Object> resetPassword(String username, String currentPassword, String newPassword) {
         User user = userRepository.findByUsername(username).orElseThrow();
 
         if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
-            throw new RuntimeException("Current password is incorrect");
+            return Map.of("status", "error", "message", "Current password is incorrect", "status_code", 401);
         }
         if (newPassword == null || newPassword.length() < 8) {
-            throw new RuntimeException("New password must be at least 8 characters");
+            return Map.of("status", "error", "message", "New password must be at least 8 characters", "status_code", 400);
         }
 
         user.setPassword(passwordEncoder.encode(newPassword));
         userRepository.save(user);
+        return Map.of("status", "success");
     }
 
     // ── Delete Account ────────────────────────────────────────────────────────
 
     @Transactional
     @CacheEvict(value = "users", allEntries = true)
-    public void deleteAccount(String username, String currentPassword) {
+    public Map<String, Object> deleteAccount(String username, String currentPassword) {
         User user = userRepository.findByUsername(username).orElseThrow();
 
         if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
-            throw new RuntimeException("Password is incorrect");
+            return Map.of("status", "error", "message", "Password is incorrect", "status_code", 401);
         }
 
         // 1. Goals (tags cascade via CascadeType.ALL on InvestmentGoal.tags)
@@ -121,5 +122,6 @@ public class AccountService {
 
         // 6. User itself
         userRepository.delete(user);
+        return Map.of("status", "success");
     }
 }
