@@ -6,6 +6,8 @@ import TransactionModal from './components/TransactionModal';
 import ImportModal from './components/ImportModal';
 import Dashboard from './pages/Dashboard';
 import Transactions from './pages/Transactions';
+import ScheduledTransactions from './pages/ScheduledTransactions';
+import ScheduleDetails from './pages/ScheduleDetails';
 import Configuration from './pages/Configuration';
 import Budget from './pages/Budget';
 import InvestmentPlanner from './pages/InvestmentPlanner';
@@ -178,6 +180,8 @@ const GringottsApp: React.FC = () => {
                   <Route path="/dashboard" element={<Dashboard />} />
                   <Route path="/transactions" element={<Transactions onEdit={handleEditTransaction} onAdd={handleAddTransaction} refreshTrigger={refreshKey} />} />
                   <Route path="/transaction/:id" element={<TransactionDetails />} />
+                  <Route path="/schedules" element={<ScheduledTransactions />} />
+                  <Route path="/schedule/:id" element={<ScheduleDetails />} />
                   <Route path="/configuration" element={<Configuration />} />
                   <Route path="/budget" element={<Budget />} />
                   <Route path="/goals" element={<InvestmentPlanner />} />

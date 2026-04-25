@@ -251,6 +251,21 @@ const TransactionDetails: React.FC = () => {
             />
           )}
 
+          {/* Schedule Info */}
+          {transaction.schedule_id && (
+            <Field icon={RefreshCw} label="Created Via"
+              value={
+                <button 
+                  onClick={() => navigate(`/schedule/${transaction.schedule_id}`)}
+                  className="flex items-center gap-1.5 px-3 py-1 bg-cyan-50 dark:bg-cyan-900/30 text-cyan-600 dark:text-cyan-400 rounded-full text-xs font-bold hover:bg-cyan-100 dark:hover:bg-cyan-900/50 transition-all border border-cyan-100 dark:border-cyan-800"
+                >
+                  <Clock className="w-3.5 h-3.5" />
+                  Automated Schedule #{transaction.schedule_id}
+                </button>
+              }
+            />
+          )}
+
           {/* SAVING: direction */}
           {type === TransactionType.SAVING && transaction.is_in !== undefined && (
             <Field icon={transaction.is_in ? ArrowDownCircle : ArrowUpCircle} label="Direction"

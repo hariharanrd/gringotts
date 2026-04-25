@@ -74,6 +74,14 @@ public class Transaction {
     @Column(name = "imported")
     Boolean imported = false;
 
+    @Column(name = "created_by")
+    @JsonProperty("created_by")
+    String createdBy = "USER"; // "USER" or "SCHEDULE"
+
+    @Column(name = "schedule_id")
+    @JsonProperty("schedule_id")
+    Long scheduleId;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
@@ -173,6 +181,22 @@ public class Transaction {
 
     public void setUser(User user) {
         this.user = user;
+    }
+
+    public String getCreatedBy() {
+        return createdBy;
+    }
+
+    public void setCreatedBy(String createdBy) {
+        this.createdBy = createdBy;
+    }
+
+    public Long getScheduleId() {
+        return scheduleId;
+    }
+
+    public void setScheduleId(Long scheduleId) {
+        this.scheduleId = scheduleId;
     }
 
     @JsonProperty("type")
