@@ -61,10 +61,7 @@ public class ScheduledTransactionService {
             if (incoming.getStartDate().isBefore(LocalDate.now())) {
                 throw new IllegalArgumentException("Schedule Start Date cannot be in the past");
             }
-            // If the schedule hasn't run yet, update next run date too
-            if (existing.getLastRunDate() == null) {
-                existing.setNextRunDate(incoming.getStartDate());
-            }
+            existing.setNextRunDate(incoming.getStartDate());
         }
         
         existing.setName(incoming.getName());
