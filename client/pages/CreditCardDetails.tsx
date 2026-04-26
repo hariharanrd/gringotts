@@ -122,55 +122,14 @@ const CreditCardDetails: React.FC = () => {
     }
   };
 
-  const getBillStatus = (card: CreditCard) => {
-    const allBills = card.bills || [];
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    // Filter for statements that have already been generated (billed)
-    const billedStatements = allBills.filter(bill => {
-      const statementDate = new Date(bill.billing_year, bill.billing_month - 1, card.billing_date);
-      return today >= statementDate;
-    });
-
-    // Find the oldest unpaid billed statement
-    const unpaidBilled = billedStatements
-      .filter(b => b.payment_status !== 'PAID')
-      .sort((a, b) => {
-        // Sort by date ascending to get the oldest first
-        if (a.billing_year !== b.billing_year) return a.billing_year - b.billing_year;
-        return a.billing_month - b.billing_month;
-      });
-
-    if (unpaidBilled.length > 0) {
-      const oldestUnpaid = unpaidBilled[0];
-
-      let dueMonth = oldestUnpaid.billing_month;
-      let dueYear = oldestUnpaid.billing_year;
-      if (card.billing_date > card.due_date) {
-        dueMonth++;
-        if (dueMonth > 12) {
-          dueMonth = 1;
-          dueYear++;
-        }
-      }
-
-      const dueDate = new Date(dueYear, dueMonth - 1, card.due_date);
-      const isOverdue = today > dueDate;
-      const unpaidAmount = oldestUnpaid.amount_due - oldestUnpaid.amount_paid;
-
-      if (isOverdue) {
-        return { label: `Overdue: ₹${unpaidAmount.toLocaleString()}`, color: 'text-rose-400', icon: AlertTriangle };
-      }
-      return { label: `Bill Pending: ₹${unpaidAmount.toLocaleString()}`, color: 'text-amber-400', icon: History };
+  const getStatusConfig = (type: string) => {
+    switch (type) {
+      case 'overdue': return { color: 'text-rose-400', icon: AlertTriangle };
+      case 'pending': return { color: 'text-amber-400', icon: History };
+      case 'paid': return { color: 'text-emerald-400', icon: ShieldCheck };
+      case 'next': return { color: 'text-white/40', icon: Calendar };
+      default: return { color: 'text-white/40', icon: Calendar };
     }
-
-    // If all generated statements are paid
-    if (billedStatements.length > 0 && billedStatements.every(b => b.payment_status === 'PAID')) {
-      return { label: 'Last Bill Paid', color: 'text-emerald-400', icon: ShieldCheck };
-    }
-
-    return { label: `Next Bill: ${card.billing_date}${getOrdinalSuffix(card.billing_date)}`, color: 'text-white/40', icon: Calendar };
   };
 
   const getCycleDates = (bill: CreditCardBill, billingDate: number) => {
@@ -287,12 +246,15 @@ const CreditCardDetails: React.FC = () => {
                 <div className="space-y-0.5">
                   <span className="text-[9px] font-bold text-white/30 uppercase tracking-widest block">Status</span>
                   {(() => {
-                    const status = getBillStatus(card);
-                    const StatusIcon = status.icon;
+                    const status = card.smart_status;
+                    if (!status) return null;
+                    const config = getStatusConfig(status.type);
+                    const StatusIcon = config.icon;
                     return (
-                      <div className={`flex items-center gap-1.5 ${status.color} text-sm font-black`}>
+                      <div className={`flex items-center gap-1.5 ${config.color} text-sm font-black`}>
                         <StatusIcon className="w-3.5 h-3.5" />
                         {status.label}
+                        {status.amount ? `: ₹${status.amount.toLocaleString()}` : status.date ? `: ${status.date}${getOrdinalSuffix(status.date)}` : ''}
                       </div>
                     );
                   })()}

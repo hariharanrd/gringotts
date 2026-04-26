@@ -272,7 +272,7 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
       if (bulkField === 'is_in') fields['is_in'] = bulkIsIn;
       if (bulkField === 'is_give') fields['is_give'] = bulkIsGive;
       if (bulkField === 'closed') fields['closed'] = bulkClosed;
-      if (bulkField === 'credit_card') fields['credit_card_id'] = bulkCreditCardId;
+      if (bulkField === 'credit_card') fields['credit_card'] = { id: bulkCreditCardId };
 
       await api.bulkUpdate(Array.from(selectedIds), fields);
       showToast(`Updated ${bulkField.replace('_', ' ')} for ${selectedIds.size} transaction(s)`, 'success');

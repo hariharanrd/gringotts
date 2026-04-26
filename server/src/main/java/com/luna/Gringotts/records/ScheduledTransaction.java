@@ -49,7 +49,7 @@ public class ScheduledTransaction {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "credit_card_id")
-    @JsonProperty("credit_card_id")
+    @JsonProperty("credit_card")
     CreditCard creditCard;
 
     @Column(name = "is_in")

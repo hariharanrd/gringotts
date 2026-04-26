@@ -152,7 +152,7 @@ export interface ScheduledTransaction {
   last_run_date?: string;
   is_active: boolean;
   created_at?: string;
-  credit_card_id?: number;
+  credit_card?: CreditCard;
 }
 
 export interface CreditCard {
@@ -169,11 +169,17 @@ export interface CreditCard {
   utilization_percent?: number;
   threshold_exceeded?: boolean;
   bills?: CreditCardBill[];
+  smart_status?: {
+    type: 'overdue' | 'pending' | 'paid' | 'next';
+    label: string;
+    amount?: number;
+    date?: number;
+  };
 }
 
 export interface CreditCardBill {
   id?: number;
-  credit_card_id: number;
+  credit_card: CreditCard;
   billing_month: number;
   billing_year: number;
   amount_due: number;
@@ -184,6 +190,6 @@ export interface CreditCardBill {
 
 export interface Expense extends Transaction {
   payment_mode?: string;
-  credit_card_id?: CreditCard;
+  credit_card?: CreditCard;
   type: TransactionType.EXPENSE;
 }

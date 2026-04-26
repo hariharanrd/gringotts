@@ -258,8 +258,8 @@ const TransactionDetails: React.FC = () => {
                   </Badge>
                 }
               />
-              {(transaction as any).credit_card_id && (
-                <Field icon={CreditCard} label="Credit Card" value={(transaction as any).credit_card_id.nickname} />
+              {(transaction as any).credit_card && (
+                <Field icon={CreditCard} label="Credit Card" value={(transaction as any).credit_card.nickname} />
               )}
             </>
           )}

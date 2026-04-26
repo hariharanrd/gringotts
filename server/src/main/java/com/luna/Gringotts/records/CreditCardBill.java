@@ -19,7 +19,7 @@ public class CreditCardBill {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "credit_card_id", nullable = false)
-    @JsonProperty("credit_card_id")
+    @JsonProperty("credit_card")
     private CreditCard creditCard;
 
     @Column(name = "billing_month", nullable = false)

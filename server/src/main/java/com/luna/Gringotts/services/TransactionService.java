@@ -472,8 +472,17 @@ public class TransactionService {
             subCategory = item.getSubCategory();
             category = subCategory.getCategory();
         }
-        if (fields.containsKey("credit_card_id")) {
-            Long id = toLong(fields.get("credit_card_id"));
+        if (fields.containsKey("credit_card_id") || fields.containsKey("credit_card")) {
+            Object ccVal = fields.get("credit_card");
+            if (ccVal == null) ccVal = fields.get("credit_card_id");
+
+            Long id;
+            if (ccVal instanceof Map<?, ?> ccMap) {
+                id = toLong(ccMap.get("id"));
+            } else {
+                id = toLong(ccVal);
+            }
+
             creditCard = creditCardRepository.findById(id)
                     .orElseThrow(() -> new IllegalArgumentException("Credit Card not found: " + id));
         }
@@ -503,7 +512,7 @@ public class TransactionService {
                     e.setPaymentMode((String) fields.get("payment_mode"));
                 }
                 
-                if (fields.containsKey("credit_card_id")) {
+                if (fields.containsKey("credit_card_id") || fields.containsKey("credit_card")) {
                     e.setCreditCard(finalCreditCard);
                     e.setPaymentMode("CREDIT_CARD"); // Force payment mode if card is explicitly set
                 }

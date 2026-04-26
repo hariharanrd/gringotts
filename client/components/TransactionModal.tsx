@@ -23,7 +23,7 @@ type TransactionFormState = Omit<Partial<Transaction>, 'value'> & {
   category?: Category;
   subcategory?: SubCategory;
   item?: Item;
-  credit_card_id?: number;
+  credit_card?: number;
 };
 
 const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, onSuccess, transaction, defaultType }) => {
@@ -48,7 +48,7 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, on
     is_give: true,
     closed: false,
     notes: '',
-    credit_card_id: undefined
+    credit_card: undefined
   });
 
   const [loading, setLoading] = useState(false);
@@ -67,7 +67,7 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, on
       is_give: true,
       closed: false,
       notes: '',
-      credit_card_id: undefined
+      credit_card: undefined
     });
     setSubCategories([]);
     setItems([]);
@@ -121,7 +121,7 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, on
             category: transaction.category,
             subcategory: transaction.subcategory,
             item: transaction.item,
-            credit_card_id: (transaction as any).credit_card_id
+            credit_card: (transaction as any).credit_card?.id
           });
         } else if (defaultType) {
           setType(defaultType);
@@ -170,7 +170,7 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, on
       return;
     }
 
-    if (type === TransactionType.EXPENSE && formData.payment_mode === 'CREDIT_CARD' && !formData.credit_card_id) {
+    if (type === TransactionType.EXPENSE && formData.payment_mode === 'CREDIT_CARD' && !formData.credit_card) {
       showToast('Please select a Credit Card', 'error');
       return;
     }
@@ -199,7 +199,7 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, on
         savedResponse = await apiCall({
           ...commonPayload,
           payment_mode: formData.payment_mode,
-          credit_card_id: formData.payment_mode === 'CREDIT_CARD' && formData.credit_card_id ? { id: formData.credit_card_id } : undefined,
+          credit_card: formData.payment_mode === 'CREDIT_CARD' && formData.credit_card ? { id: formData.credit_card } : undefined,
           type: TransactionType.EXPENSE
         } as any);
       } else if (type === TransactionType.INCOME) {
@@ -370,7 +370,7 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, on
                   <select
                     className="w-full px-4 py-2.5 bg-slate-100 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 rounded-xl focus:ring-2 focus:ring-cyan-500/40 outline-none text-slate-900 dark:text-white"
                     value={formData.payment_mode}
-                    onChange={(e) => setFormData(prev => ({ ...prev, payment_mode: e.target.value, credit_card_id: e.target.value === 'CREDIT_CARD' ? prev.credit_card_id : undefined }))}
+                    onChange={(e) => setFormData(prev => ({ ...prev, payment_mode: e.target.value, credit_card: e.target.value === 'CREDIT_CARD' ? prev.credit_card : undefined }))}
                   >
                     <option value="">Select Payment Mode</option>
                     {PAYMENT_MODES.map(pm => <option key={pm.value} value={pm.value}>{pm.label}</option>)}
@@ -384,8 +384,8 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, on
                       <div className="relative">
                         <select
                           className="w-full pl-11 pr-4 py-2.5 bg-slate-100 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 rounded-xl focus:ring-2 focus:ring-cyan-500/40 outline-none text-slate-900 dark:text-white appearance-none"
-                          value={formData.credit_card_id || ''}
-                          onChange={(e) => setFormData(prev => ({ ...prev, credit_card_id: Number(e.target.value) }))}
+                          value={formData.credit_card || ''}
+                          onChange={(e) => setFormData(prev => ({ ...prev, credit_card: Number(e.target.value) }))}
                         >
                           <option value="">Choose a card</option>
                           {creditCards.map(cc => (
@@ -399,12 +399,12 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, on
                       </div>
                     </div>
 
-                    {formData.credit_card_id && creditCards.find(c => c.id === formData.credit_card_id)?.threshold_exceeded && (
+                    {formData.credit_card && creditCards.find(c => c.id === formData.credit_card)?.threshold_exceeded && (
                       <div className="flex gap-3 p-3 bg-rose-500/10 border border-rose-500/20 rounded-xl animate-pulse">
                         <AlertTriangle className="w-5 h-5 text-rose-500 shrink-0" />
                         <div className="text-xs">
                           <p className="font-bold text-rose-600 dark:text-rose-400">Usage Threshold Alert</p>
-                          <p className="text-rose-500/80">This card has exceeded its utilization threshold ({creditCards.find(c => c.id === formData.credit_card_id)?.threshold_percentage}%).</p>
+                          <p className="text-rose-500/80">This card has exceeded its utilization threshold ({creditCards.find(c => c.id === formData.credit_card)?.threshold_percentage}%).</p>
                         </div>
                       </div>
                     )}

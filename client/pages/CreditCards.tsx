@@ -164,63 +164,14 @@ const CreditCards: React.FC = () => {
     return new Date(2000, month - 1).toLocaleString('default', { month: 'short' });
   };
 
-  const getOrdinalSuffix = (day: number) => {
-    if (day > 3 && day < 21) return 'th';
-    switch (day % 10) {
-      case 1: return 'st';
-      case 2: return 'nd';
-      case 3: return 'rd';
-      default: return 'th';
+  const getStatusConfig = (type: string) => {
+    switch (type) {
+      case 'overdue': return { color: 'text-rose-400', icon: AlertTriangle };
+      case 'pending': return { color: 'text-amber-400', icon: History };
+      case 'paid': return { color: 'text-emerald-400', icon: ShieldCheck };
+      case 'next': return { color: 'text-white/40', icon: Calendar };
+      default: return { color: 'text-white/40', icon: Calendar };
     }
-  };
-
-  const getBillStatus = (card: CreditCard) => {
-    const allBills = card.bills || [];
-    const today = new Date();
-    today.setHours(0,0,0,0);
-
-    // Filter for statements that have already been generated (billed)
-    const billedStatements = allBills.filter(bill => {
-      const statementDate = new Date(bill.billing_year, bill.billing_month - 1, card.billing_date);
-      return today >= statementDate;
-    });
-
-    // Find the oldest unpaid billed statement
-    const unpaidBilled = billedStatements
-      .filter(b => b.payment_status !== 'PAID')
-      .sort((a, b) => {
-        if (a.billing_year !== b.billing_year) return a.billing_year - b.billing_year;
-        return a.billing_month - b.billing_month;
-      });
-
-    if (unpaidBilled.length > 0) {
-      const oldestUnpaid = unpaidBilled[0];
-      
-      let dueMonth = oldestUnpaid.billing_month;
-      let dueYear = oldestUnpaid.billing_year;
-      if (card.billing_date > card.due_date) {
-        dueMonth++;
-        if (dueMonth > 12) {
-          dueMonth = 1;
-          dueYear++;
-        }
-      }
-      
-      const dueDate = new Date(dueYear, dueMonth - 1, card.due_date);
-      const isOverdue = today > dueDate;
-      const unpaidAmount = oldestUnpaid.amount_due - oldestUnpaid.amount_paid;
-
-      if (isOverdue) {
-        return { label: `Overdue: ₹${unpaidAmount.toLocaleString()}`, color: 'text-rose-400', icon: AlertTriangle };
-      }
-      return { label: `Bill Pending: ₹${unpaidAmount.toLocaleString()}`, color: 'text-amber-400', icon: History };
-    }
-
-    if (billedStatements.length > 0 && billedStatements.every(b => b.payment_status === 'PAID')) {
-      return { label: 'Last Bill Paid', color: 'text-emerald-400', icon: ShieldCheck };
-    }
-
-    return { label: `Next Bill: ${card.billing_date}${getOrdinalSuffix(card.billing_date)}`, color: 'text-white/40', icon: Calendar };
   };
 
   return (
@@ -308,12 +259,24 @@ const CreditCards: React.FC = () => {
                     <div>
                       <h4 className="text-2xl font-bold text-white mb-1">{card.nickname}</h4>
                       {(() => {
-                        const status = getBillStatus(card);
-                        const StatusIcon = status.icon;
+                        const status = card.smart_status;
+                        if (!status) return null;
+                        const config = getStatusConfig(status.type);
+                        const StatusIcon = config.icon;
+                        const ordinalSuffix = (day: number) => {
+                          if (day > 3 && day < 21) return 'th';
+                          switch (day % 10) {
+                            case 1: return 'st';
+                            case 2: return 'nd';
+                            case 3: return 'rd';
+                            default: return 'th';
+                          }
+                        };
                         return (
-                          <div className={`flex items-center gap-2 ${status.color} text-[11px] font-bold uppercase tracking-wider`}>
+                          <div className={`flex items-center gap-2 ${config.color} text-[11px] font-bold uppercase tracking-wider`}>
                             <StatusIcon className="w-3.5 h-3.5" />
                             {status.label}
+                            {status.amount ? `: ₹${status.amount.toLocaleString()}` : status.date ? `: ${status.date}${ordinalSuffix(status.date)}` : ''}
                           </div>
                         );
                       })()}

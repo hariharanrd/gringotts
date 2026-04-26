@@ -38,7 +38,7 @@ const ScheduleModal: React.FC<Props> = ({ isOpen, onClose, schedule }) => {
     is_active: true,
     description: '',
     payment_mode: 'UPI',
-    credit_card_id: undefined,
+    credit_card: undefined,
   });
 
   const getSubCategories = async (categoryId: number) => {
@@ -67,7 +67,10 @@ const ScheduleModal: React.FC<Props> = ({ isOpen, onClose, schedule }) => {
         }
 
         if (schedule) {
-          setForm(schedule);
+          setForm({
+            ...schedule,
+            credit_card: (schedule.credit_card as any)?.id
+          });
           if (schedule.category) {
             const subs = await getSubCategories(schedule.category.id);
             setSubCategories(subs);
@@ -139,7 +142,7 @@ const ScheduleModal: React.FC<Props> = ({ isOpen, onClose, schedule }) => {
         category: form.category ? { id: form.category.id } : undefined,
         subcategory: form.subcategory ? { id: form.subcategory.id } : undefined,
         item: form.item ? { id: form.item.id } : undefined,
-        credit_card_id: (form.payment_mode === 'CREDIT_CARD' && form.credit_card_id) ? { id: form.credit_card_id } : undefined,
+        credit_card: (form.payment_mode === 'CREDIT_CARD' && form.credit_card) ? { id: form.credit_card } : undefined,
       };
 
       if (schedule) {
@@ -355,8 +358,8 @@ const ScheduleModal: React.FC<Props> = ({ isOpen, onClose, schedule }) => {
                   <label className="text-sm font-semibold text-slate-600 dark:text-slate-400 ml-1">Select Credit Card</label>
                   <select
                     required
-                    value={form.credit_card_id || ''}
-                    onChange={(e) => setForm(f => ({ ...f, credit_card_id: Number(e.target.value) }))}
+                    value={form.credit_card || ''}
+                    onChange={(e) => setForm(f => ({ ...f, credit_card: Number(e.target.value) }))}
                     className={inputClass}
                   >
                     <option value="" className="dark:bg-slate-900">Choose a Card</option>

@@ -197,7 +197,72 @@ public class CreditCardService {
                 .sum();
         dto.put("total_outstanding", totalOutstanding);
 
+        // Smart Status Logic
+        dto.put("smart_status", getSmartStatus(card, allBills));
+
         return dto;
+    }
+
+    private Map<String, Object> getSmartStatus(CreditCard card, List<CreditCardBill> allBills) {
+        LocalDate today = LocalDate.now();
+        
+        // Filter for statements already generated (today >= statement date)
+        List<CreditCardBill> billedStatements = allBills.stream()
+                .filter(bill -> {
+                    LocalDate statementDate = LocalDate.of(bill.getBillingYear(), bill.getBillingMonth(), card.getBillingDate());
+                    return !today.isBefore(statementDate);
+                })
+                .collect(Collectors.toList());
+
+        // Find oldest unpaid billed statement
+        List<CreditCardBill> unpaidBilled = billedStatements.stream()
+                .filter(b -> !"PAID".equals(b.getPaymentStatus()))
+                .sorted(Comparator.comparingInt(CreditCardBill::getBillingYear)
+                        .thenComparingInt(CreditCardBill::getBillingMonth))
+                .collect(Collectors.toList());
+
+        Map<String, Object> status = new LinkedHashMap<>();
+
+        if (!unpaidBilled.isEmpty()) {
+            CreditCardBill oldestUnpaid = unpaidBilled.get(0);
+            
+            int dueMonth = oldestUnpaid.getBillingMonth();
+            int dueYear = oldestUnpaid.getBillingYear();
+            if (card.getBillingDate() > card.getDueDate()) {
+                dueMonth++;
+                if (dueMonth > 12) {
+                    dueMonth = 1;
+                    dueYear++;
+                }
+            }
+            
+            LocalDate dueDate = LocalDate.of(dueYear, dueMonth, card.getDueDate());
+            boolean isOverdue = today.isAfter(dueDate);
+            double unpaidAmount = oldestUnpaid.getAmountDue() - oldestUnpaid.getAmountPaid();
+
+            if (isOverdue) {
+                status.put("type", "overdue");
+                status.put("label", "Overdue");
+                status.put("amount", unpaidAmount);
+            } else {
+                status.put("type", "pending");
+                status.put("label", "Bill Pending");
+                status.put("amount", unpaidAmount);
+            }
+            return status;
+        }
+
+        // If all generated statements are paid
+        if (!billedStatements.isEmpty() && billedStatements.stream().allMatch(b -> "PAID".equals(b.getPaymentStatus()))) {
+            status.put("type", "paid");
+            status.put("label", "Last Bill Paid");
+            return status;
+        }
+
+        status.put("type", "next");
+        status.put("label", "Next Bill");
+        status.put("date", card.getBillingDate());
+        return status;
     }
 
     private CreditCard requireCard(Long id) {
