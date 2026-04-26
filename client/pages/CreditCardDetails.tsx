@@ -209,7 +209,7 @@ const CreditCardDetails: React.FC = () => {
           {/* Status Row */}
           <div className="flex items-center justify-end gap-2">
             <span className="px-2.5 py-1 bg-white/10 backdrop-blur-md rounded-full text-[9px] font-black text-white uppercase tracking-widest border border-white/10">
-              Cycle: {card.billing_date}{getOrdinalSuffix(card.billing_date)}
+              Statement Date: {card.billing_date}{getOrdinalSuffix(card.billing_date)} of every month
             </span>
             <span className={`px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${card.threshold_exceeded ? 'bg-rose-500 text-white shadow-lg shadow-rose-500/20' : 'bg-cyan-500 text-white'}`}>
               {card.utilization_percent}% Used

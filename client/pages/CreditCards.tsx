@@ -7,14 +7,13 @@ import {
   Edit2,
   AlertTriangle,
   History,
-  Wallet,
   Calendar,
-  IndianRupee,
   ShieldCheck,
-  ExternalLink
+  ExternalLink,
+  Maximize2
 } from 'lucide-react';
 import { api } from '../services/api';
-import { CreditCard, CreditCardBill } from '../types';
+import { CreditCard } from '../types';
 import { useToast } from '../components/ToastContext';
 import { useNavigate } from 'react-router-dom';
 
@@ -151,29 +150,6 @@ const CreditCards: React.FC = () => {
   };
 
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'PAID': return 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400';
-      case 'PARTIALLY_PAID': return 'bg-amber-500/10 text-amber-600 dark:text-amber-400';
-      case 'UNPAID': return 'bg-rose-500/10 text-rose-600 dark:text-rose-400';
-      default: return 'bg-slate-500/10 text-slate-600 dark:text-slate-400';
-    }
-  };
-
-  const getMonthName = (month: number) => {
-    return new Date(2000, month - 1).toLocaleString('default', { month: 'short' });
-  };
-
-  const getStatusConfig = (type: string) => {
-    switch (type) {
-      case 'overdue': return { color: 'text-rose-400', icon: AlertTriangle };
-      case 'pending': return { color: 'text-amber-400', icon: History };
-      case 'paid': return { color: 'text-emerald-400', icon: ShieldCheck };
-      case 'next': return { color: 'text-white/40', icon: Calendar };
-      default: return { color: 'text-white/40', icon: Calendar };
-    }
-  };
-
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
       {/* Header */}
@@ -218,7 +194,7 @@ const CreditCards: React.FC = () => {
             return (
               <div
                 key={card.id}
-                className={`group relative flex flex-col ${theme.bg} rounded-[2.5rem] border transition-all duration-300 overflow-hidden shadow-sm hover:shadow-2xl ${card.threshold_exceeded
+                className={`group relative flex flex-col ${theme.bg} rounded-[2.5rem] border transition-all duration-500 overflow-hidden shadow-sm hover:shadow-2xl hover:-translate-y-1 hover:scale-[1.01] ${card.threshold_exceeded || card.smart_status?.type === 'overdue'
                   ? 'border-rose-500 shadow-rose-500/20'
                   : `${theme.border} hover:border-white/20`
                   }`}
@@ -227,108 +203,173 @@ const CreditCards: React.FC = () => {
                 <div className={`absolute inset-0 ${theme.pattern} opacity-100`} />
                 <div className={`absolute inset-0 ${theme.overlay} opacity-100`} />
 
-                {/* Card Design Layer */}
-                <div className="p-8 pb-4 relative z-10">
+                {/* Card Header */}
+                <div className="p-7 pb-5 relative z-10">
                   <div className={`absolute top-0 right-0 w-64 h-64 bg-gradient-to-br transition-opacity duration-500 ${card.threshold_exceeded
                     ? 'from-rose-500/20 to-pink-500/10'
                     : 'from-white/10 to-transparent'
                     } rounded-full blur-3xl -mr-20 -mt-20 group-hover:opacity-100 opacity-60`} />
-
-                  <div className="flex justify-between items-start mb-10 relative">
-                    <div className="space-y-1">
-                      <span className="text-[10px] font-bold text-white/40 uppercase tracking-[0.2em]">Issued by</span>
-                      <h3 className="text-xl font-black text-white tracking-tight">{card.issuer}</h3>
+                  <div className="flex justify-between items-start relative">
+                    <div className="space-y-0.5">
+                      <span className="text-[9px] font-bold text-white/30 uppercase tracking-[0.25em] block">{card.issuer}</span>
+                      <h3 className="text-2xl font-black text-white tracking-tight">{card.nickname}</h3>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex items-center">
                       <button
-                        onClick={() => handleOpenModal(card)}
-                        className="p-2.5 rounded-2xl bg-white/5 text-white/40 hover:text-white hover:bg-white/10 transition-all backdrop-blur-md"
+                        onClick={() => navigate(`/credit-cards/${card.id}`)}
+                        className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-white/10 text-white hover:bg-white/20 transition-all border border-white/10 group/expand shadow-lg shadow-black/20"
+                        title="Open detailed view"
                       >
-                        <Edit2 className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(card.id!)}
-                        className="p-2.5 rounded-2xl bg-white/5 text-white/40 hover:text-rose-400 hover:bg-rose-500/10 transition-all backdrop-blur-md"
-                      >
-                        <Trash2 className="w-4 h-4" />
+                        <Maximize2 className="w-5 h-5 transition-transform group-hover/expand:scale-110" />
+                        <span className="text-xs font-black uppercase tracking-widest opacity-70 group-hover/expand:opacity-100">Details</span>
                       </button>
                     </div>
                   </div>
+                </div>
 
-                  <div className="flex justify-between items-end relative">
-                    <div>
-                      <h4 className="text-2xl font-bold text-white mb-1">{card.nickname}</h4>
-                      {(() => {
-                        const status = card.smart_status;
-                        if (!status) return null;
-                        const config = getStatusConfig(status.type);
-                        const StatusIcon = config.icon;
-                        const ordinalSuffix = (day: number) => {
-                          if (day > 3 && day < 21) return 'th';
-                          switch (day % 10) {
-                            case 1: return 'st';
-                            case 2: return 'nd';
-                            case 3: return 'rd';
-                            default: return 'th';
-                          }
-                        };
-                        return (
-                          <div className={`flex items-center gap-2 ${config.color} text-[11px] font-bold uppercase tracking-wider`}>
-                            <StatusIcon className="w-3.5 h-3.5" />
-                            {status.label}
-                            {status.amount ? `: ₹${status.amount.toLocaleString()}` : status.date ? `: ${status.date}${ordinalSuffix(status.date)}` : ''}
+                {/* Action Banner — the #1 thing users need to see */}
+                {(() => {
+                  const status = card.smart_status;
+                  if (!status) return null;
+
+                  const ordinalSuffix = (day: number) => {
+                    if (day > 3 && day < 21) return 'th';
+                    switch (day % 10) {
+                      case 1: return 'st';
+                      case 2: return 'nd';
+                      case 3: return 'rd';
+                      default: return 'th';
+                    }
+                  };
+
+                  const bannerConfig = {
+                    overdue: {
+                      bg: 'bg-rose-500',
+                      ring: 'ring-2 ring-rose-400/60',
+                      textColor: 'text-white',
+                      subColor: 'text-rose-100',
+                      icon: AlertTriangle,
+                      pulse: true,
+                    },
+                    pending: {
+                      bg: 'bg-amber-500/20 border border-amber-500/40',
+                      ring: '',
+                      textColor: 'text-amber-300',
+                      subColor: 'text-amber-300/70',
+                      icon: History,
+                      pulse: false,
+                    },
+                    paid: {
+                      bg: 'bg-emerald-500/10 border border-emerald-500/20',
+                      ring: '',
+                      textColor: 'text-emerald-400',
+                      subColor: 'text-emerald-400/60',
+                      icon: ShieldCheck,
+                      pulse: false,
+                    },
+                    next: {
+                      bg: 'bg-white/5 border border-white/10',
+                      ring: '',
+                      textColor: 'text-white/50',
+                      subColor: 'text-white/30',
+                      icon: Calendar,
+                      pulse: false,
+                    },
+                  };
+
+                  const cfg = bannerConfig[status.type] ?? bannerConfig.next;
+                  const BannerIcon = cfg.icon;
+
+                  const amountStr = status.amount
+                    ? `₹${status.amount.toLocaleString('en-IN')}`
+                    : status.date
+                      ? `${status.date}${ordinalSuffix(status.date)}`
+                      : null;
+
+                  return (
+                    <div className={`mx-5 mb-4 px-5 py-4 rounded-2xl ${cfg.bg} ${cfg.ring} relative z-10 ${cfg.pulse ? 'animate-pulse' : ''}`}>
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className={`shrink-0 p-2 rounded-xl ${status.type === 'overdue' ? 'bg-white/20' : 'bg-white/5'}`}>
+                            <BannerIcon className={`w-5 h-5 ${cfg.textColor}`} />
                           </div>
-                        );
-                      })()}
+                          <div className="min-w-0">
+                            <p className={`text-[11px] font-black uppercase tracking-widest ${cfg.subColor}`}>
+                              {status.type === 'overdue' ? 'Action Required' : status.type === 'pending' ? 'Bill Due' : status.type === 'paid' ? 'Bill Status' : 'Next Billing'}
+                            </p>
+                            <p className={`text-sm font-black ${cfg.textColor} leading-tight`}>
+                              {status.label}
+                            </p>
+                          </div>
+                        </div>
+                        {amountStr && (
+                          <div className="text-right shrink-0">
+                            <p className={`text-[10px] font-bold uppercase tracking-widest ${cfg.subColor}`}>
+                              {status.amount ? 'Amount Due' : 'On'}
+                            </p>
+                            <p className={`text-xl font-black tabular-nums ${cfg.textColor}`}>
+                              {amountStr}
+                            </p>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest block mb-1">Outstanding</span>
-                      <span className="text-2xl font-black text-white">
-                        ₹{card.total_outstanding?.toLocaleString() || '0'}
+                  );
+                })()}
+
+                {/* Stats Row */}
+                <div className="px-8 pb-5 relative z-10">
+                  <div className="flex justify-between items-end gap-4">
+                    {/* Outstanding */}
+                    <div>
+                      <span className="text-[9px] font-bold text-white/30 uppercase tracking-widest block mb-0.5">Total Outstanding</span>
+                      <span className={`text-lg font-black tabular-nums ${(card.total_outstanding ?? 0) > 0 ? 'text-white' : 'text-white/30'}`}>
+                        ₹{card.total_outstanding?.toLocaleString('en-IN') || '0'}
                       </span>
+                    </div>
+                    {/* Limit info */}
+                    <div className="text-right">
+                      <span className="text-[9px] font-bold text-white/30 uppercase tracking-widest block mb-0.5">Limit</span>
+                      <span className="text-lg font-black text-white/60 tabular-nums">₹{card.credit_limit.toLocaleString('en-IN')}</span>
                     </div>
                   </div>
                 </div>
 
                 {/* Utilization Bar */}
-                <div className="px-8 py-6 space-y-3 relative z-10">
-                  <div className="flex justify-between text-xs font-bold uppercase tracking-wider">
-                    <span className="text-white/40">Cycle Usage</span>
-                    <span className={card.threshold_exceeded ? 'text-rose-400' : 'text-white/60'}>
-                      {card.utilization_percent}% Used
+                <div className="px-8 pb-6 space-y-2 relative z-10">
+                  <div className="flex justify-between text-[10px] font-bold uppercase tracking-wider">
+                    <span className="text-white/30">Cycle Usage</span>
+                    <span className={card.threshold_exceeded ? 'text-rose-400' : 'text-white/40'}>
+                      {card.utilization_percent}%
+                      {card.threshold_exceeded && ' · ⚠ Limit Breached'}
                     </span>
                   </div>
-                  <div className="h-2.5 bg-black/20 rounded-full overflow-hidden p-0.5 border border-white/5 backdrop-blur-md">
+                  <div className="h-2 bg-black/20 rounded-full overflow-hidden border border-white/5">
                     <div
                       className={`h-full rounded-full transition-all duration-1000 ease-out ${card.threshold_exceeded
-                        ? 'bg-gradient-to-r from-rose-500 to-pink-500 shadow-[0_0_12px_rgba(244,63,94,0.4)]'
-                        : 'bg-gradient-to-r from-cyan-400 to-blue-500 shadow-[0_0_12px_rgba(6,182,212,0.3)]'
+                        ? 'bg-gradient-to-r from-rose-500 to-pink-500 shadow-[0_0_10px_rgba(244,63,94,0.5)]'
+                        : 'bg-gradient-to-r from-cyan-400 to-blue-500 shadow-[0_0_10px_rgba(6,182,212,0.3)]'
                         }`}
                       style={{ width: `${Math.min(100, card.utilization_percent || 0)}%` }}
                     />
                   </div>
-                  <div className="flex justify-between items-center text-[11px] font-medium">
-                    <span className="text-white/30 font-bold">₹{card.current_bill?.amount_due.toLocaleString() || '0'} / ₹{card.credit_limit.toLocaleString()}</span>
-                    {card.threshold_exceeded && (
-                      <div className="flex items-center gap-1 text-rose-400 font-bold animate-pulse">
-                        <AlertTriangle className="w-3 h-3" />
-                        <span>Threshold Limit Hit</span>
-                      </div>
-                    )}
+                  {/* Card Management Bar - subtle and at the bottom */}
+                  <div className="mt-auto relative z-10 border-t border-white/5 bg-black/10 flex justify-end p-3 px-6 gap-2 opacity-40 group-hover:opacity-100 transition-opacity">
+                    <button
+                      onClick={() => handleOpenModal(card)}
+                      className="p-2 rounded-xl text-white/40 hover:text-white hover:bg-white/10 transition-all flex items-center gap-2"
+                    >
+                      <Edit2 className="w-3.5 h-3.5" />
+                      <span className="text-[10px] font-bold uppercase tracking-widest">Edit Card</span>
+                    </button>
+                    <button
+                      onClick={() => handleDelete(card.id!)}
+                      className="p-2 rounded-xl text-white/40 hover:text-rose-400 hover:bg-rose-500/10 transition-all flex items-center gap-2"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span className="text-[10px] font-bold uppercase tracking-widest">Delete</span>
+                    </button>
                   </div>
-                </div>
-
-                <div className="mt-auto relative z-10">
-                  <button
-                    onClick={() => navigate(`/credit-cards/${card.id}`)}
-                    className="w-full py-4 px-8 border-t border-white/5 flex items-center justify-between hover:bg-white/5 transition-colors group/btn backdrop-blur-xl"
-                  >
-                    <div className="flex items-center gap-2 text-sm font-semibold text-white/40">
-                      <History className="w-4 h-4 transition-transform group-hover/btn:rotate-[-45deg]" />
-                      Full Billing History
-                    </div>
-                    <ExternalLink className="w-4 h-4 text-white/40 group-hover/btn:text-white transition-colors" />
-                  </button>
                 </div>
               </div>
             );
