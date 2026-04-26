@@ -3,6 +3,9 @@ package com.luna.Gringotts.records;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrimaryKeyJoinColumn;
 import jakarta.persistence.Table;
 import org.hibernate.annotations.OnDelete;
@@ -24,6 +27,11 @@ public class Expense extends Transaction {
     @JsonProperty("payment_mode")
     String paymentMode;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "credit_card_id")
+    @JsonProperty("credit_card")
+    CreditCard creditCard;
+
     public Expense(String refNo, LocalDateTime date, String description, Double value, ExpenseMode mode) {
         super(refNo, date, description, value);
         if (mode != null) {
@@ -37,6 +45,14 @@ public class Expense extends Transaction {
 
     public String getPaymentMode() {
         return paymentMode;
+    }
+
+    public CreditCard getCreditCard() {
+        return creditCard;
+    }
+
+    public void setCreditCard(CreditCard creditCard) {
+        this.creditCard = creditCard;
     }
 
     public enum ExpenseMode {

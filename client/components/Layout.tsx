@@ -17,7 +17,10 @@ import {
   ChevronRight,
   ReceiptText,
   UserCircle2,
-  CalendarSync
+  CalendarSync,
+  CreditCard,
+  Target,
+  Clock
 } from 'lucide-react';
 
 import { useTheme } from './ThemeContext';
@@ -35,8 +38,9 @@ const navItems = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },
   { id: 'transactions', label: 'Transactions', icon: ReceiptText, path: '/transactions' },
   { id: 'budget', label: 'Budget', icon: HandCoins, path: '/budget' },
-  { id: 'goals', label: 'Goals', icon: Goal, path: '/goals' },
-  { id: 'schedules', label: 'Schedules', icon: CalendarSync, path: '/schedules' },
+  { id: 'investment-planner', label: 'Goals', icon: Goal, path: '/investment-planner' },
+  { id: 'credit-cards', label: 'Cards', icon: CreditCard, path: '/credit-cards' },
+  { id: 'schedules', label: 'Schedules', icon: Clock, path: '/schedules' },
   { id: 'configuration', label: 'Configuration', icon: Settings, path: '/configuration' },
 ];
 
@@ -46,8 +50,23 @@ const Layout: React.FC<LayoutProps> = ({ userName, displayName, profilePicture, 
   const [isPinned, setIsPinned] = useState(true);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const location = useLocation();
-  const activeTab = location.pathname.replace('/', '');
   const { theme, toggleTheme } = useTheme();
+
+  const getPageTitle = (path: string) => {
+    const parts = path.split('/').filter(Boolean);
+    if (parts.length === 0) return 'Dashboard';
+
+    const root = parts[0];
+    if (root === 'investment-planner') return 'Goals & Planning';
+    if (root === 'account') return 'My Account';
+    if (root === 'transaction') return 'Transaction Details';
+    if (root === 'schedules' && parts.length > 1) return 'Schedule Details';
+    if (root === 'credit-cards' && parts.length > 2 && parts[2] === 'history') return 'Billing History';
+
+    return root.split('-')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  };
 
   const displayLabel = displayName && displayName.trim() ? displayName.trim() : userName;
   const avatarInitial = displayLabel?.charAt(0)?.toUpperCase() || '?';
@@ -94,7 +113,9 @@ const Layout: React.FC<LayoutProps> = ({ userName, displayName, profilePicture, 
           {/* Nav */}
           <nav className="flex-1 p-4 space-y-1">
             {navItems.map((item) => {
-              const isActive = activeTab === item.id;
+              const isActive = item.path === '/dashboard' 
+                ? location.pathname === '/dashboard' || location.pathname === '/'
+                : location.pathname.startsWith(item.path);
               return (
                 <Link
                   key={item.id}
@@ -148,7 +169,7 @@ const Layout: React.FC<LayoutProps> = ({ userName, displayName, profilePicture, 
             >
               <Menu className="w-6 h-6" />
             </button>
-            <h2 className="text-lg font-semibold text-slate-900 dark:text-white capitalize">{activeTab}</h2>
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-white">{getPageTitle(location.pathname)}</h2>
           </div>
 
           <div className="flex items-center gap-3 relative">

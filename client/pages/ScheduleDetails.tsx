@@ -15,6 +15,16 @@ const TYPE_CONFIG: Record<TransactionType, { gradient: string; amountClass: stri
   [TransactionType.REVOLVING]: { gradient: 'from-blue-500 to-cyan-600', amountClass: 'text-blue-500 dark:text-blue-400' },
 };
 
+const formatDate = (dateStr: string | null) => {
+  if (!dateStr) return '—';
+  const date = new Date(dateStr);
+  return date.toLocaleDateString('en-IN', {
+    day: '2-digit',
+    month: 'short',
+    year: '2-digit'
+  });
+};
+
 const DetailItem: React.FC<{ icon: React.ElementType; label: string; value: React.ReactNode }> = ({ icon: Icon, label, value }) => (
   <div className="flex flex-col gap-1">
     <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
@@ -72,14 +82,18 @@ const ScheduleDetails: React.FC = () => {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
-      {/* Header */}
+      {/* Actions Row */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <button onClick={() => navigate('/schedules')} className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 transition-colors">
-            <ArrowLeft className="w-5 h-5" />
-          </button>
-          <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Schedule Details</h2>
-        </div>
+        <button 
+          onClick={() => navigate('/schedules')} 
+          className="flex items-center gap-2 text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors group"
+        >
+          <div className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 group-hover:bg-slate-200 dark:group-hover:bg-slate-700 transition-colors">
+            <ArrowLeft className="w-4 h-4" />
+          </div>
+          <span className="text-xs font-bold tracking-tight uppercase">Back to Schedules</span>
+        </button>
+
         <button
           onClick={async () => {
             try {
@@ -90,33 +104,38 @@ const ScheduleDetails: React.FC = () => {
               showToast(e.message || 'Execution failed', 'error');
             }
           }}
-          className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white font-bold rounded-xl shadow-lg shadow-cyan-500/20 transition-all active:scale-95"
+          className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white font-bold rounded-xl shadow-lg shadow-cyan-500/20 transition-all active:scale-95 text-xs"
         >
-          <Play className="w-4 h-4" />
+          <Play className="w-3.5 h-3.5 fill-current" />
           Run Now
         </button>
       </div>
 
       {/* Hero Card */}
-      <div className={`rounded-3xl bg-gradient-to-br ${config.gradient} p-8 text-white shadow-xl relative overflow-hidden`}>
-        <div className="absolute top-0 right-0 p-8 opacity-10">
-          <Clock className="w-32 h-32" />
+      <div className={`rounded-[2rem] bg-gradient-to-br ${config.gradient} p-6 text-white shadow-lg relative overflow-hidden group`}>
+        {/* Background Decoration */}
+        <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:scale-110 transition-transform duration-700">
+          <Clock className="w-32 h-32 -mr-8 -mt-8" />
         </div>
-        <div className="relative z-10 space-y-4">
-          <div className="flex items-center gap-2">
-            <span className="px-3 py-1 bg-white/20 backdrop-blur-md rounded-full text-[10px] font-black uppercase tracking-widest">
-              {schedule.transaction_type}
-            </span>
-            <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${schedule.is_active ? 'bg-emerald-400 text-emerald-950' : 'bg-slate-400 text-slate-950'}`}>
-              {schedule.is_active ? 'Active' : 'Paused'}
-            </span>
-          </div>
-          <div>
-            <h3 className="text-3xl font-black tracking-tight mb-1">{schedule.name}</h3>
-            <p className="text-white/80 font-medium">{schedule.description || 'No description provided'}</p>
-          </div>
-          <div className="text-4xl font-black tabular-nums">
-            ₹{schedule.amount.toLocaleString('en-IN')}
+        
+        <div className="relative z-10">
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <span className="px-2.5 py-0.5 bg-white/20 backdrop-blur-md rounded-full text-[9px] font-black uppercase tracking-widest border border-white/10">
+                {schedule.transaction_type}
+              </span>
+              <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest ${schedule.is_active ? 'bg-emerald-400 text-emerald-950 shadow-lg shadow-emerald-400/20' : 'bg-slate-400 text-slate-950'}`}>
+                {schedule.is_active ? 'Active' : 'Paused'}
+              </span>
+            </div>
+            <div>
+              <h3 className="text-2xl font-black tracking-tight mb-1">{schedule.name}</h3>
+              <p className="text-white/70 text-xs font-medium max-w-xl line-clamp-1">{schedule.description || 'No description provided'}</p>
+            </div>
+            <div className="text-3xl font-black tabular-nums flex items-baseline gap-1">
+              <span className="text-xl opacity-60">₹</span>
+              {schedule.amount.toLocaleString('en-IN')}
+            </div>
           </div>
         </div>
       </div>
@@ -132,7 +151,7 @@ const ScheduleDetails: React.FC = () => {
             <div className="grid grid-cols-1 gap-6">
               <DetailItem icon={Hash} label="ID" value={schedule.id} />
               <DetailItem icon={Calendar} label="Frequency" value={<span className="capitalize">{schedule.frequency.toLowerCase().replace('_', ' ')}</span>} />
-              <DetailItem icon={Clock} label="Next Run" value={schedule.next_run_date || '—'} />
+              <DetailItem icon={Clock} label="Next Run" value={formatDate(schedule.next_run_date)} />
               <DetailItem icon={Tag} label="Category" value={schedule.category?.name || '—'} />
               {schedule.payment_mode && <DetailItem icon={CreditCard} label="Payment Mode" value={schedule.payment_mode} />}
             </div>
@@ -173,7 +192,7 @@ const ScheduleDetails: React.FC = () => {
                       <tr key={h.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group">
                         <td className="p-4">
                           <div className="font-semibold text-slate-700 dark:text-slate-300">
-                            {new Date(h.transaction_time || h.transactionTime).toLocaleDateString('en-IN', { dateStyle: 'medium' })}
+                            {formatDate(h.transaction_time || h.transactionTime)}
                           </div>
                         </td>
                         <td className="p-4 font-medium text-slate-600 dark:text-slate-400">{h.description}</td>

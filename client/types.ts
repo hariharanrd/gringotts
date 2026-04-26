@@ -44,10 +44,6 @@ export interface Transaction {
   created_by?: string;
 }
 
-export interface Expense extends Transaction {
-  payment_mode? : string
-  type: TransactionType.EXPENSE
-}
 
 export interface Income extends Transaction {
   type: TransactionType.INCOME
@@ -156,4 +152,38 @@ export interface ScheduledTransaction {
   last_run_date?: string;
   is_active: boolean;
   created_at?: string;
+  credit_card_id?: number;
+}
+
+export interface CreditCard {
+  id?: number;
+  nickname: string;
+  issuer: string;
+  billing_date: number;
+  due_date: number;
+  credit_limit: number;
+  threshold_percentage: number;
+  created_at?: string;
+  current_bill?: CreditCardBill;
+  total_outstanding?: number;
+  utilization_percent?: number;
+  threshold_exceeded?: boolean;
+  bills?: CreditCardBill[];
+}
+
+export interface CreditCardBill {
+  id?: number;
+  credit_card_id: number;
+  billing_month: number;
+  billing_year: number;
+  amount_due: number;
+  amount_paid: number;
+  payment_status: 'PAID' | 'UNPAID' | 'PARTIALLY_PAID';
+  created_at?: string;
+}
+
+export interface Expense extends Transaction {
+  payment_mode?: string;
+  credit_card_id?: CreditCard;
+  type: TransactionType.EXPENSE;
 }

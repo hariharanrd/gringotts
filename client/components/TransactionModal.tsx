@@ -1,8 +1,8 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Save, TrendingDown, TrendingUp, PiggyBank, RefreshCw } from 'lucide-react';
+import { X, Save, TrendingDown, TrendingUp, PiggyBank, RefreshCw, AlertTriangle, CreditCard as CardIcon, ChevronDown } from 'lucide-react';
 import { api } from '../services/api';
-import { Category, SubCategory, Item, TransactionType, Expense, Income, Saving, Revolving, Transaction } from '../types';
+import { Category, SubCategory, Item, TransactionType, Expense, Income, Saving, Revolving, Transaction, CreditCard } from '../types';
 import { useToast } from '../components/ToastContext';
 import { PAYMENT_MODES } from '../constants';
 
@@ -23,6 +23,7 @@ type TransactionFormState = Omit<Partial<Transaction>, 'value'> & {
   category?: Category;
   subcategory?: SubCategory;
   item?: Item;
+  credit_card_id?: number;
 };
 
 const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, onSuccess, transaction, defaultType }) => {
@@ -33,6 +34,7 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, on
   const [items, setItems] = useState<Item[]>([]);
   const subCategoryCache = useRef<Record<number, SubCategory[]>>({});
   const itemCache = useRef<Record<number, Item[]>>({});
+  const [creditCards, setCreditCards] = useState<CreditCard[]>([]);
 
   const [formData, setFormData] = useState<TransactionFormState>({
     value: 0,
@@ -45,10 +47,12 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, on
     is_in: true,
     is_give: true,
     closed: false,
-    notes: ''
+    notes: '',
+    credit_card_id: undefined
   });
 
   const [loading, setLoading] = useState(false);
+  const [showTypeChangeConfirm, setShowTypeChangeConfirm] = useState(false);
 
   const resetForm = () => {
     setFormData({
@@ -62,10 +66,12 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, on
       is_in: true,
       is_give: true,
       closed: false,
-      notes: ''
+      notes: '',
+      credit_card_id: undefined
     });
     setSubCategories([]);
     setItems([]);
+    setShowTypeChangeConfirm(false);
   };
 
   const getSubCategories = async (categoryId: number) => {
@@ -89,6 +95,7 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, on
   useEffect(() => {
     const fetchDropdownData = async () => {
       if (isOpen) {
+        setShowTypeChangeConfirm(false);
         const typeToUse = transaction ? transaction.type : (defaultType || type);
         const cats = await api.getCategories(typeToUse);
         setCategories(cats);
@@ -106,6 +113,7 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, on
             setItems(its);
           }
 
+
           setFormData({
             ...transaction,
             value: transaction.value.toString(),
@@ -113,11 +121,16 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, on
             category: transaction.category,
             subcategory: transaction.subcategory,
             item: transaction.item,
+            credit_card_id: (transaction as any).credit_card_id
           });
         } else if (defaultType) {
           setType(defaultType);
         }
 
+        // Fetch credit cards if it's an expense
+        if (typeToUse === TransactionType.EXPENSE) {
+          api.getCreditCards().then(res => setCreditCards(res.data));
+        }
       }
     };
 
@@ -149,8 +162,19 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, on
 
   const isEditing = !!transaction;
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+
+    if (isEditing && transaction && type !== transaction.type && !showTypeChangeConfirm) {
+      setShowTypeChangeConfirm(true);
+      return;
+    }
+
+    if (type === TransactionType.EXPENSE && formData.payment_mode === 'CREDIT_CARD' && !formData.credit_card_id) {
+      showToast('Please select a Credit Card', 'error');
+      return;
+    }
+
     setLoading(true);
     try {
       const commonPayload = {
@@ -172,7 +196,12 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, on
 
       let savedResponse: any;
       if (type === TransactionType.EXPENSE) {
-        savedResponse = await apiCall({ ...commonPayload, payment_mode: formData.payment_mode, type: TransactionType.EXPENSE } as any);
+        savedResponse = await apiCall({
+          ...commonPayload,
+          payment_mode: formData.payment_mode,
+          credit_card_id: formData.payment_mode === 'CREDIT_CARD' && formData.credit_card_id ? { id: formData.credit_card_id } : undefined,
+          type: TransactionType.EXPENSE
+        } as any);
       } else if (type === TransactionType.INCOME) {
         savedResponse = await apiCall({ ...commonPayload, type: TransactionType.INCOME } as any);
       } else if (type === TransactionType.SAVING) {
@@ -241,6 +270,9 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, on
                       setItems([]);
                       setFormData(prev => ({ ...prev, category: undefined, subcategory: undefined, item: undefined }));
                     });
+                    if (t === TransactionType.EXPENSE) {
+                      api.getCreditCards().then(res => setCreditCards(res.data));
+                    }
                   }}
                   className={`py-2.5 flex items-center justify-center text-sm font-semibold rounded-lg transition-all ${type === t ? `bg-gradient-to-r ${typeColors[t]} text-white shadow-lg` : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700/50'
                     }`}
@@ -274,6 +306,7 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, on
                   required
                   className="w-full px-4 py-2.5 bg-slate-100 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 rounded-xl focus:ring-2 focus:ring-cyan-500/40 focus:border-cyan-500/50 outline-none transition-all text-slate-900 dark:text-white [color-scheme:light] dark:[color-scheme:dark]"
                   value={formData.transaction_time?.slice(0, 16)}
+                  max={new Date().toISOString().slice(0, 16)}
                   onChange={(e) => setFormData(prev => ({ ...prev, transaction_time: e.target.value }))}
                 />
               </div>
@@ -331,16 +364,52 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, on
             </div>
 
             {type === TransactionType.EXPENSE && (
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium text-slate-600 dark:text-slate-300">Payment Mode</label>
-                <select
-                  className="w-full px-4 py-2.5 bg-slate-100 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 rounded-xl focus:ring-2 focus:ring-cyan-500/40 outline-none text-slate-900 dark:text-white"
-                  value={formData.payment_mode}
-                  onChange={(e) => setFormData(prev => ({ ...prev, payment_mode: e.target.value }))}
-                >
-                  <option value="">Select Payment Mode</option>
-                  {PAYMENT_MODES.map(pm => <option key={pm.value} value={pm.value}>{pm.label}</option>)}
-                </select>
+              <div className="space-y-4">
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-slate-600 dark:text-slate-300">Payment Mode</label>
+                  <select
+                    className="w-full px-4 py-2.5 bg-slate-100 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 rounded-xl focus:ring-2 focus:ring-cyan-500/40 outline-none text-slate-900 dark:text-white"
+                    value={formData.payment_mode}
+                    onChange={(e) => setFormData(prev => ({ ...prev, payment_mode: e.target.value, credit_card_id: e.target.value === 'CREDIT_CARD' ? prev.credit_card_id : undefined }))}
+                  >
+                    <option value="">Select Payment Mode</option>
+                    {PAYMENT_MODES.map(pm => <option key={pm.value} value={pm.value}>{pm.label}</option>)}
+                  </select>
+                </div>
+
+                {formData.payment_mode === 'CREDIT_CARD' && (
+                  <div className="space-y-3 animate-in slide-in-from-top-2 duration-200">
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium text-slate-600 dark:text-slate-300">Select Credit Card</label>
+                      <div className="relative">
+                        <select
+                          className="w-full pl-11 pr-4 py-2.5 bg-slate-100 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 rounded-xl focus:ring-2 focus:ring-cyan-500/40 outline-none text-slate-900 dark:text-white appearance-none"
+                          value={formData.credit_card_id || ''}
+                          onChange={(e) => setFormData(prev => ({ ...prev, credit_card_id: Number(e.target.value) }))}
+                        >
+                          <option value="">Choose a card</option>
+                          {creditCards.map(cc => (
+                            <option key={cc.id} value={cc.id}>{cc.nickname} ({cc.issuer})</option>
+                          ))}
+                        </select>
+                        <CardIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                        <div className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none">
+                          <ChevronDown className="w-4 h-4 text-slate-400" />
+                        </div>
+                      </div>
+                    </div>
+
+                    {formData.credit_card_id && creditCards.find(c => c.id === formData.credit_card_id)?.threshold_exceeded && (
+                      <div className="flex gap-3 p-3 bg-rose-500/10 border border-rose-500/20 rounded-xl animate-pulse">
+                        <AlertTriangle className="w-5 h-5 text-rose-500 shrink-0" />
+                        <div className="text-xs">
+                          <p className="font-bold text-rose-600 dark:text-rose-400">Usage Threshold Alert</p>
+                          <p className="text-rose-500/80">This card has exceeded its utilization threshold ({creditCards.find(c => c.id === formData.credit_card_id)?.threshold_percentage}%).</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             )}
 
@@ -443,6 +512,38 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, on
             </button>
           </div>
         </form>
+
+        {showTypeChangeConfirm && (
+          <div className="absolute inset-0 z-[70] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200 rounded-2xl">
+            <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 max-w-[320px] w-full text-center space-y-4">
+              <div className="w-14 h-14 bg-rose-100 dark:bg-rose-500/20 rounded-full flex items-center justify-center mx-auto">
+                <AlertTriangle className="w-7 h-7 text-rose-600 dark:text-rose-500" />
+              </div>
+              <div className="space-y-2">
+                <h4 className="text-lg font-bold text-slate-900 dark:text-white">Change Type?</h4>
+                <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                  Changing from <span className="font-bold text-rose-500">{transaction?.type}</span> to <span className="font-bold text-cyan-500">{type}</span> will recreate this record. Are you sure?
+                </p>
+              </div>
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowTypeChangeConfirm(false)}
+                  className="flex-1 px-4 py-2.5 text-xs font-bold text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 transition-all"
+                >
+                  No, Keep
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSubmit()}
+                  className="flex-1 px-4 py-2.5 text-xs font-bold text-white bg-rose-500 rounded-xl hover:bg-rose-600 shadow-lg shadow-rose-500/20 transition-all"
+                >
+                  Yes, Change
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

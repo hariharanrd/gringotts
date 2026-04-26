@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { X, Save, Clock, TrendingDown, TrendingUp, PiggyBank, RefreshCw } from 'lucide-react';
 import { api } from '../services/api';
-import { ScheduledTransaction, ScheduleFrequency, TransactionType, Category, SubCategory, Item } from '../types';
+import { ScheduledTransaction, ScheduleFrequency, TransactionType, Category, SubCategory, Item, CreditCard } from '../types';
 import { useToast } from './ToastContext';
 import { PAYMENT_MODES } from '../constants';
 
@@ -25,6 +25,7 @@ const ScheduleModal: React.FC<Props> = ({ isOpen, onClose, schedule }) => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [subCategories, setSubCategories] = useState<SubCategory[]>([]);
   const [items, setItems] = useState<Item[]>([]);
+  const [creditCards, setCreditCards] = useState<CreditCard[]>([]);
   const subCategoryCache = useRef<Record<number, SubCategory[]>>({});
   const itemCache = useRef<Record<number, Item[]>>({});
 
@@ -37,7 +38,7 @@ const ScheduleModal: React.FC<Props> = ({ isOpen, onClose, schedule }) => {
     is_active: true,
     description: '',
     payment_mode: 'UPI',
-    is_in: true,
+    credit_card_id: undefined,
   });
 
   const getSubCategories = async (categoryId: number) => {
@@ -60,6 +61,10 @@ const ScheduleModal: React.FC<Props> = ({ isOpen, onClose, schedule }) => {
         const typeToUse = schedule ? schedule.transaction_type : (form.transaction_type || TransactionType.EXPENSE);
         const cats = await api.getCategories(typeToUse);
         setCategories(cats);
+
+        if (typeToUse === TransactionType.EXPENSE) {
+          api.getCreditCards().then(res => setCreditCards(res.data));
+        }
 
         if (schedule) {
           setForm(schedule);
@@ -97,6 +102,9 @@ const ScheduleModal: React.FC<Props> = ({ isOpen, onClose, schedule }) => {
     setCategories(cats);
     setSubCategories([]);
     setItems([]);
+    if (type === TransactionType.EXPENSE) {
+      api.getCreditCards().then(res => setCreditCards(res.data));
+    }
   };
 
   const handleCategoryChange = async (catId: number) => {
@@ -131,6 +139,7 @@ const ScheduleModal: React.FC<Props> = ({ isOpen, onClose, schedule }) => {
         category: form.category ? { id: form.category.id } : undefined,
         subcategory: form.subcategory ? { id: form.subcategory.id } : undefined,
         item: form.item ? { id: form.item.id } : undefined,
+        credit_card_id: (form.payment_mode === 'CREDIT_CARD' && form.credit_card_id) ? { id: form.credit_card_id } : undefined,
       };
 
       if (schedule) {
@@ -200,7 +209,8 @@ const ScheduleModal: React.FC<Props> = ({ isOpen, onClose, schedule }) => {
                         className={`py-2.5 flex items-center justify-center rounded-lg transition-all ${isActive ? `bg-gradient-to-r ${typeColors[t as keyof typeof typeColors]} text-white shadow-lg` : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700/50'}`}
                         title={t}
                       >
-                        <Icon className="w-4 h-4" />
+                        <Icon className="w-4 h-4 md:hidden" />
+                        <span className="hidden text-sm md:inline">{t}</span>
                       </button>
                     )
                   })}
@@ -336,6 +346,25 @@ const ScheduleModal: React.FC<Props> = ({ isOpen, onClose, schedule }) => {
                     className={inputClass}
                   >
                     {PAYMENT_MODES.map(pm => <option key={pm.value} value={pm.value} className="dark:bg-slate-900">{pm.label}</option>)}
+                  </select>
+                </div>
+              )}
+
+              {form.transaction_type === TransactionType.EXPENSE && form.payment_mode === 'CREDIT_CARD' && (
+                <div className="space-y-1.5 animate-in slide-in-from-top-2 duration-300">
+                  <label className="text-sm font-semibold text-slate-600 dark:text-slate-400 ml-1">Select Credit Card</label>
+                  <select
+                    required
+                    value={form.credit_card_id || ''}
+                    onChange={(e) => setForm(f => ({ ...f, credit_card_id: Number(e.target.value) }))}
+                    className={inputClass}
+                  >
+                    <option value="" className="dark:bg-slate-900">Choose a Card</option>
+                    {creditCards.map(cc => (
+                      <option key={cc.id} value={cc.id} className="dark:bg-slate-900">
+                        {cc.nickname} ({cc.issuer})
+                      </option>
+                    ))}
                   </select>
                 </div>
               )}

@@ -47,6 +47,11 @@ public class ScheduledTransaction {
     @JsonProperty("payment_mode")
     String paymentMode;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "credit_card_id")
+    @JsonProperty("credit_card_id")
+    CreditCard creditCard;
+
     @Column(name = "is_in")
     @JsonProperty("is_in")
     Boolean isIn;
@@ -236,5 +241,13 @@ public class ScheduledTransaction {
 
     public LocalDateTime getUpdatedAt() {
         return updatedAt;
+    }
+
+    public CreditCard getCreditCard() {
+        return creditCard;
+    }
+
+    public void setCreditCard(CreditCard creditCard) {
+        this.creditCard = creditCard;
     }
 }

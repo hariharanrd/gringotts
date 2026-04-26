@@ -42,6 +42,9 @@ public class ScheduledTransactionService {
     @Autowired
     InvestmentGoalService investmentGoalService;
 
+    @Autowired
+    CreditCardService creditCardService;
+
     public ScheduledTransaction create(ScheduledTransaction s) {
         if (s.getStartDate() != null && s.getStartDate().isBefore(LocalDate.now())) {
             throw new IllegalArgumentException("Schedule Start Date cannot be in the past");
@@ -72,6 +75,7 @@ public class ScheduledTransactionService {
         existing.setSubCategory(incoming.getSubCategory());
         existing.setItem(incoming.getItem());
         existing.setPaymentMode(incoming.getPaymentMode());
+        existing.setCreditCard(incoming.getCreditCard());
         existing.setIsIn(incoming.getIsIn());
         existing.setFrequency(incoming.getFrequency());
         existing.setStartDate(incoming.getStartDate());
@@ -125,11 +129,15 @@ public class ScheduledTransactionService {
                 e.setSubCategory(s.getSubCategory());
                 e.setItem(s.getItem());
                 e.setPaymentMode(s.getPaymentMode());
+                e.setCreditCard(s.getCreditCard());
                 e.setImported(false);
                 e.setUser(owner);
                 e.setCreatedBy("SCHEDULE");
                 e.setScheduleId(s.getId());
                 created = expenseRepository.save(e);
+                if ("CREDIT_CARD".equals(e.getPaymentMode()) && e.getCreditCard() != null) {
+                    creditCardService.addExpenseToBill(e);
+                }
                 break;
             }
             case "INCOME": {

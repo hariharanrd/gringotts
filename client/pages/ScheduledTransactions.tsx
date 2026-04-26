@@ -13,6 +13,16 @@ const TYPE_CONFIG: Record<Exclude<TransactionType, TransactionType.REVOLVING>, {
   [TransactionType.SAVING]: { color: 'text-violet-500', bg: 'bg-violet-500/10' },
 };
 
+const formatDate = (dateStr: string | null) => {
+  if (!dateStr) return '—';
+  const date = new Date(dateStr);
+  return date.toLocaleDateString('en-IN', {
+    day: '2-digit',
+    month: 'short',
+    year: '2-digit'
+  });
+};
+
 const ScheduledTransactions: React.FC = () => {
   const [schedules, setSchedules] = useState<ScheduledTransaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -27,7 +37,12 @@ const ScheduledTransactions: React.FC = () => {
     setIsLoading(true);
     try {
       const res = await api.getScheduledTransactions();
-      setSchedules(res.data || []);
+      const sortedData = (res.data || []).sort((a, b) => {
+        const dateA = a.next_run_date ? new Date(a.next_run_date).getTime() : Infinity;
+        const dateB = b.next_run_date ? new Date(b.next_run_date).getTime() : Infinity;
+        return dateA - dateB;
+      });
+      setSchedules(sortedData);
     } catch (err: any) {
       showToast(err.message || 'Failed to load schedules', 'error');
     } finally {
@@ -55,7 +70,7 @@ const ScheduledTransactions: React.FC = () => {
 
   const handleRowClick = (e: React.MouseEvent, s: ScheduledTransaction) => {
     if ((e.target as HTMLElement).closest('button')) return;
-    navigate(`/schedule/${s.id}`);
+    navigate(`/schedules/${s.id}`);
   };
 
   const handleDeleteClick = (e: React.MouseEvent, id: number) => {
@@ -154,7 +169,7 @@ const ScheduledTransactions: React.FC = () => {
                           </div>
                         </td>
                         <td className="p-4">
-                          <div className="text-xs font-bold text-slate-500 tabular-nums">{s.next_run_date || '—'}</div>
+                          <div className="text-xs font-bold text-slate-500 tabular-nums">{formatDate(s.next_run_date)}</div>
                         </td>
                         <td className="p-4">
                           <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${s.is_active ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-500/10' : 'bg-slate-100 text-slate-600 dark:bg-slate-800'}`}>
@@ -162,7 +177,7 @@ const ScheduledTransactions: React.FC = () => {
                           </span>
                         </td>
                         <td className="p-4 text-right space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button onClick={() => navigate(`/schedule/${s.id}`)} title="View History" className="p-2 text-slate-400 hover:text-cyan-600 hover:bg-cyan-50 dark:hover:bg-cyan-500/10 rounded-xl transition-all">
+                          <button onClick={() => navigate(`/schedules/${s.id}`)} title="View History" className="p-2 text-slate-400 hover:text-cyan-600 hover:bg-cyan-50 dark:hover:bg-cyan-500/10 rounded-xl transition-all">
                             <SquareArrowOutUpRight className="w-4 h-4" />
                           </button>
                           <button onClick={() => handleEditSchedule(s)} title="Edit Schedule" className="p-2 text-slate-400 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-500/10 rounded-xl transition-all">
@@ -215,10 +230,10 @@ const ScheduledTransactions: React.FC = () => {
                     <div className="flex items-center justify-between pt-2 border-t border-slate-50 dark:border-slate-800/50">
                       <div className="text-[10px] font-bold text-slate-400 flex items-center gap-1.5 uppercase tracking-wider">
                         <Activity className="w-3 h-3" />
-                        Next: {s.next_run_date || '—'}
+                        Next: {formatDate(s.next_run_date)}
                       </div>
                       <div className="flex items-center gap-1">
-                        <button onClick={() => navigate(`/schedule/${s.id}`)} className="p-2 text-slate-400 hover:text-cyan-600 rounded-lg"><SquareArrowOutUpRight className="w-4 h-4" /></button>
+                        <button onClick={() => navigate(`/schedules/${s.id}`)} className="p-2 text-slate-400 hover:text-cyan-600 rounded-lg"><SquareArrowOutUpRight className="w-4 h-4" /></button>
                         <button onClick={() => handleEditSchedule(s)} className="p-2 text-slate-400 hover:text-amber-600 rounded-lg"><Edit2 className="w-4 h-4" /></button>
                         <button onClick={(e) => handleDeleteClick(e, s.id)} className="p-2 text-slate-400 hover:text-rose-600 rounded-lg"><Trash2 className="w-4 h-4" /></button>
                         <ChevronRight className="w-4 h-4 text-slate-300 ml-1" />
