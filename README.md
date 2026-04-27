@@ -18,8 +18,16 @@ Manage your finances across multiple categories with specialized views:
 - **Incomes**: Monitor various revenue streams (Salary, Cashback, etc.).
 - **Savings**: Track your wealth accumulation and growth over time.
 - **Revolvings**: Manage money lended and borrowed and keep track how much you owe and how much you need to settle.
+- **Credit Cards**: Full lifecycle management for credit cards, including automated billing cycles, payment status tracking (Overdue/Pending), and utilization monitoring.
 
-## Features
+### 💳 Intelligent Credit Card Tracking
+
+Manage your credit cards with a sophisticated lifecycle engine that automates the complexities of billing cycles and payment deadlines.
+
+- **Automated Billing Cycles**: Transactions are automatically organized into monthly statements based on the card's billing date.
+- **Smart Status Engine**: Real-time identification of statement statuses (Overdue, Pending, Fully Settled) with intelligent prompts for the next required action.
+- **Utilization & Thresholds**: Monitor credit limit usage with visual bars and system-wide alerts for when you cross safety thresholds.
+- **Statement History**: Deep-dive into historical billing cycles with statement-specific transaction breakdowns and payment tracking.
 
 ### Transactions
 

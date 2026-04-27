@@ -358,8 +358,8 @@ const ScheduleModal: React.FC<Props> = ({ isOpen, onClose, schedule }) => {
                   <label className="text-sm font-semibold text-slate-600 dark:text-slate-400 ml-1">Select Credit Card</label>
                   <select
                     required
-                    value={form.credit_card || ''}
-                    onChange={(e) => setForm(f => ({ ...f, credit_card: Number(e.target.value) }))}
+                    value={form.credit_card?.id || ''}
+                    onChange={(e) => setForm(f => ({ ...f, credit_card: creditCards.find(cc => cc.id === Number(e.target.value)) }))}
                     className={inputClass}
                   >
                     <option value="" className="dark:bg-slate-900">Choose a Card</option>
