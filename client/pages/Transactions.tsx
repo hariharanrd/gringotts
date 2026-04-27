@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
-import { Transaction, TransactionType, Category, SubCategory, Item } from '../types';
+import { Transaction, TransactionType, Category, SubCategory, Item, CreditCard } from '../types';
 import { PAYMENT_MODES, SAVING_DIRECTIONS, REVOLVING_DIRECTIONS, REVOLVING_STATUSES } from '../constants';
 import {
   Landmark,
@@ -21,7 +21,7 @@ import {
 import { useToast } from '../components/ToastContext';
 import Pagination from '../components/Pagination';
 import { TableSkeleton } from '../components/Skeleton';
-import { FilterMenu, FilterCriteria } from '../components/FilterMenu';
+import { FilterMenu, FilterCriteria, FilterChips } from '../components/FilterMenu';
 import ConfirmationDialog from '../components/ConfirmationDialog';
 import CategoryIcon from '../components/CategoryIcon';
 
@@ -41,7 +41,7 @@ const TABS: { id: TabType; label: string; icon: any; color: string }[] = [
   { id: 'revolving', label: 'Revolving', icon: RefreshCw, color: 'from-blue-500 to-cyan-600' },
 ];
 
-type BulkField = 'category' | 'subcategory' | 'item' | 'notes' | 'payment_mode' | 'is_in' | 'is_give' | 'closed';
+type BulkField = 'category' | 'subcategory' | 'item' | 'notes' | 'payment_mode' | 'is_in' | 'is_give' | 'closed' | 'credit_card';
 
 type ColumnKey = 'date' | 'description' | 'category' | 'subcategory' | 'item' | 'amount' | 'type' | 'payment_mode' | 'is_in' | 'is_give' | 'closed' | 'notes';
 
@@ -77,6 +77,14 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [filters, setFilters] = useState<FilterCriteria[]>(() => {
+    const fromUrl = searchParams.get('filters');
+    if (fromUrl) {
+      try {
+        return JSON.parse(decodeURIComponent(fromUrl));
+      } catch (e) {
+        console.error("Failed to parse filters from URL", e);
+      }
+    }
     const saved = localStorage.getItem('gringotts_transaction_filters');
     return saved ? JSON.parse(saved) : [];
   });
@@ -113,6 +121,8 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
   const [bulkIsIn, setBulkIsIn] = useState(true);
   const [bulkIsGive, setBulkIsGive] = useState(true);
   const [bulkClosed, setBulkClosed] = useState(false);
+  const [creditCards, setCreditCards] = useState<CreditCard[]>([]);
+  const [bulkCreditCardId, setBulkCreditCardId] = useState<number | ''>('');
   const [bulkLoading, setBulkLoading] = useState(false);
   const [isBulkEditDialogOpen, setIsBulkEditDialogOpen] = useState(false);
   const [isBulkDeleteDialogOpen, setIsBulkDeleteDialogOpen] = useState(false);
@@ -149,14 +159,17 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
 
   const fetchTransactions = async (page: number, currentFilters: FilterCriteria[] = []) => {
     setIsLoading(true);
+    // Strip label field as it's only for client-side display
+    const cleanedFilters = currentFilters.map(({ field, condition, value }) => ({ field, condition, value }));
+    
     try {
       let response;
       switch (currentTab) {
-        case 'expense': response = await api.getExpenses(page, currentFilters, sortDirection); break;
-        case 'income': response = await api.getIncomes(page, currentFilters, sortDirection); break;
-        case 'saving': response = await api.getSavings(page, currentFilters, sortDirection); break;
-        case 'revolving': response = await api.getRevolvings(page, currentFilters, sortDirection); break;
-        default: response = await api.getTransactions(page, currentFilters, sortDirection); break;
+        case 'expense': response = await api.getExpenses(page, cleanedFilters, sortDirection); break;
+        case 'income': response = await api.getIncomes(page, cleanedFilters, sortDirection); break;
+        case 'saving': response = await api.getSavings(page, cleanedFilters, sortDirection); break;
+        case 'revolving': response = await api.getRevolvings(page, cleanedFilters, sortDirection); break;
+        default: response = await api.getTransactions(page, cleanedFilters, sortDirection); break;
       }
       setTransactions(response.data);
       setTotalPages(Math.ceil(response.total_count / 10));
@@ -259,6 +272,7 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
       if (bulkField === 'is_in') fields['is_in'] = bulkIsIn;
       if (bulkField === 'is_give') fields['is_give'] = bulkIsGive;
       if (bulkField === 'closed') fields['closed'] = bulkClosed;
+      if (bulkField === 'credit_card') fields['credit_card'] = { id: bulkCreditCardId };
 
       await api.bulkUpdate(Array.from(selectedIds), fields);
       showToast(`Updated ${bulkField.replace('_', ' ')} for ${selectedIds.size} transaction(s)`, 'success');
@@ -336,24 +350,24 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
       { label: 'Description', value: 'description', type: 'string' },
       { label: 'Amount', value: 'value', type: 'number' },
       {
-        label: 'Category', value: 'category.name', type: 'string',
+        label: 'Category', value: 'category.id', type: 'number',
         fetchOptions: async (page) => {
           const res = await api.getCategoriesPaginated(page);
-          return { data: res.data.map(c => ({ label: c.name, value: c.name })), hasMore: res.has_more };
+          return { data: res.data.map(c => ({ label: c.name, value: c.id.toString() })), hasMore: res.has_more };
         }
       },
       {
-        label: 'Sub-Category', value: 'subcategory.name', type: 'string',
+        label: 'Sub-Category', value: 'subcategory.id', type: 'number',
         fetchOptions: async (page) => {
           const res = await api.getAllSubCategoriesPaginated(page);
-          return { data: res.data.map(sc => ({ label: sc.name, value: sc.name })), hasMore: res.has_more };
+          return { data: res.data.map(sc => ({ label: sc.name, value: sc.id.toString() })), hasMore: res.has_more };
         }
       },
       {
-        label: 'Item', value: 'item.name', type: 'string',
+        label: 'Item', value: 'item.id', type: 'number',
         fetchOptions: async (page) => {
           const res = await api.getAllItemsPaginated(page);
-          return { data: res.data.map(i => ({ label: i.name, value: i.name })), hasMore: res.has_more };
+          return { data: res.data.map(i => ({ label: i.name, value: i.id.toString() })), hasMore: res.has_more };
         }
       },
       { label: 'Notes', value: 'notes', type: 'string' },
@@ -363,6 +377,13 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
       baseFields.push({
         label: 'Payment Mode', value: 'payment_mode', type: 'string',
         options: PAYMENT_MODES
+      });
+      baseFields.push({
+        label: 'Credit Card', value: 'credit_card.id', type: 'number',
+        fetchOptions: async (page) => {
+          const res = await api.getCreditCards();
+          return { data: res.data.map(c => ({ label: c.nickname, value: c.id!.toString() })), hasMore: false };
+        }
       });
     } else if (currentTab === 'saving') {
       baseFields.push({ label: 'Direction', value: 'is_in', type: 'boolean', options: SAVING_DIRECTIONS });
@@ -523,6 +544,26 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
           )}
         </div>
       </div>
+
+      {filters.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2 p-1.5 px-3 bg-slate-50/50 dark:bg-slate-900/30 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800/50 animate-in fade-in slide-in-from-top-1">
+          <FilterChips
+            activeFilters={filters}
+            availableFields={getAvailableFields()}
+            onRemoveFilter={(idx) => {
+              const newFilters = filters.filter((_, i) => i !== idx);
+              setFilters(newFilters);
+              setCurrentPage(1);
+            }}
+          />
+          <button
+            onClick={() => { setFilters([]); setCurrentPage(1); }}
+            className="ml-auto text-[10px] font-black text-rose-500 uppercase tracking-widest px-3 py-1.5 hover:bg-rose-500/10 rounded-lg transition-colors whitespace-nowrap"
+          >
+            Clear All
+          </button>
+        </div>
+      )}
 
       <div className="glass overflow-hidden rounded-3xl border border-slate-200 dark:border-slate-800/50">
         {/* Desktop View: Table */}
@@ -774,6 +815,7 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
                 <option value="item">Item</option>
                 <option value="notes">Notes</option>
                 {currentTab === 'expense' && <option value="payment_mode">Payment Mode</option>}
+                {currentTab === 'expense' && <option value="credit_card">Credit Card</option>}
                 {currentTab === 'saving' && <option value="is_in">In/Out</option>}
                 {currentTab === 'revolving' && (
                   <>
@@ -845,6 +887,22 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
                 <select className={`${selectClass} w-full`} value={bulkClosed ? 'true' : 'false'} onChange={e => setBulkClosed(e.target.value === 'true')}>
                   <option value="">Select Status…</option>
                   {REVOLVING_STATUSES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+                </select>
+              )}
+
+              {bulkField === 'credit_card' && (
+                <select
+                  className={`${selectClass} w-full`}
+                  value={bulkCreditCardId}
+                  onChange={e => setBulkCreditCardId(e.target.value ? Number(e.target.value) : '')}
+                  onFocus={() => {
+                    if (creditCards.length === 0) {
+                      api.getCreditCards().then(res => setCreditCards(res.data));
+                    }
+                  }}
+                >
+                  <option value="">Select Credit Card…</option>
+                  {creditCards.map(cc => <option key={cc.id} value={cc.id}>{cc.nickname} ({cc.issuer})</option>)}
                 </select>
               )}
 

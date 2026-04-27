@@ -11,6 +11,8 @@ import ScheduleDetails from './pages/ScheduleDetails';
 import Configuration from './pages/Configuration';
 import Budget from './pages/Budget';
 import InvestmentPlanner from './pages/InvestmentPlanner';
+import CreditCards from './pages/CreditCards';
+import CreditCardDetails from './pages/CreditCardDetails';
 import TransactionDetails from './pages/TransactionDetails';
 import Account from './pages/Account';
 import { Login } from './pages/Login';
@@ -124,9 +126,12 @@ const GringottsApp: React.FC = () => {
   const handleLogout = async () => {
     try {
       await fetch('/api/v1/auth/logout', { method: 'POST' });
+      localStorage.clear();
       window.location.href = '/login';
     } catch (error) {
       console.error("Failed to logout:", error);
+      localStorage.clear();
+      window.location.href = '/login';
     }
   };
 
@@ -181,10 +186,12 @@ const GringottsApp: React.FC = () => {
                   <Route path="/transactions" element={<Transactions onEdit={handleEditTransaction} onAdd={handleAddTransaction} refreshTrigger={refreshKey} />} />
                   <Route path="/transaction/:id" element={<TransactionDetails />} />
                   <Route path="/schedules" element={<ScheduledTransactions />} />
-                  <Route path="/schedule/:id" element={<ScheduleDetails />} />
+                  <Route path="/schedules/:id" element={<ScheduleDetails />} />
                   <Route path="/configuration" element={<Configuration />} />
                   <Route path="/budget" element={<Budget />} />
-                  <Route path="/goals" element={<InvestmentPlanner />} />
+                  <Route path="/investment-planner" element={<InvestmentPlanner />} />
+                  <Route path="/credit-cards" element={<CreditCards />} />
+                  <Route path="/credit-cards/:id" element={<CreditCardDetails />} />
                   <Route path="/account" element={<Account onProfileUpdate={fetchUser} />} />
                   <Route path="/logout" element={<Logout onLogout={handleLogout} />} />
                   <Route path="*" element={

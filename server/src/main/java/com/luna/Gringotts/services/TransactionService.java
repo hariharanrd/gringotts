@@ -6,6 +6,7 @@ import com.luna.Gringotts.repository.IncomeRepository;
 import com.luna.Gringotts.repository.SavingRepository;
 import com.luna.Gringotts.repository.RevolvingRepository;
 import com.luna.Gringotts.repository.CategoryRepository;
+import com.luna.Gringotts.repository.CreditCardRepository;
 import com.luna.Gringotts.repository.SubCategoryRepository;
 import com.luna.Gringotts.repository.ItemRepository;
 import com.luna.Gringotts.repository.TransactionRepository;
@@ -59,10 +60,16 @@ public class TransactionService {
     UserRepository userRepository;
 
     @Autowired
+    CreditCardRepository creditCardRepository;
+
+    @Autowired
     IAMService iamService;
 
     @Autowired
     InvestmentGoalService investmentGoalService;
+
+    @Autowired
+    CreditCardService creditCardService;
 
     public Transaction getTransactionById(Long id) {
         return transactionRepository.findById(id).orElse(null);
@@ -95,6 +102,10 @@ public class TransactionService {
         }
         e.setUser(iamService.getCurrentUser());
         expenseRepository.save(e);
+        
+        if ("CREDIT_CARD".equals(e.getPaymentMode()) && e.getCreditCard() != null) {
+            creditCardService.addExpenseToBill(e);
+        }
     }
 
     public void saveIncome(Income i) {
@@ -176,6 +187,11 @@ public class TransactionService {
     }
 
     public void deleteExpense(Long id) {
+        expenseRepository.findById(id).ifPresent(existing -> {
+            if ("CREDIT_CARD".equals(existing.getPaymentMode()) && existing.getCreditCard() != null) {
+                creditCardService.removeExpenseFromBill(existing);
+            }
+        });
         expenseRepository.deleteById(id);
     }
 
@@ -226,35 +242,11 @@ public class TransactionService {
         target.setItem(source.getItem());
     }
 
-    /** Returns the child-table name for a given entity type. */
-    private String childTableOf(Transaction t) {
-        if (t instanceof Expense)
-            return "expense";
-        if (t instanceof Income)
-            return "income";
-        if (t instanceof Saving)
-            return "saving";
-        if (t instanceof Revolving)
-            return "revolving";
-        throw new IllegalStateException("Unknown transaction type: " + t.getClass().getSimpleName());
-    }
-
-    /**
-     * Deletes only the old child-table row and inserts a new one of the requested
-     * type, retaining the base transaction row (and therefore its ID).
-     */
-    private void swapChildTable(Long id, String oldTable, String newInsertSQL,
-            Object... params) {
-        entityManager.createNativeQuery(
-                "DELETE FROM public." + oldTable + " WHERE id = :id")
-                .setParameter("id", id).executeUpdate();
-        jakarta.persistence.Query q = entityManager.createNativeQuery(newInsertSQL);
-        q.setParameter("id", id);
-        // bind name=param pairs passed in as (name, value) pairs
-        for (int i = 0; i < params.length; i += 2) {
-            q.setParameter((String) params[i], params[i + 1]);
-        }
-        q.executeUpdate();
+    private void deleteFromOldTable(Long id, Transaction t) {
+        if (t instanceof Expense) expenseRepository.deleteExpenseRecord(id);
+        else if (t instanceof Income) incomeRepository.deleteIncomeRecord(id);
+        else if (t instanceof Saving) savingRepository.deleteSavingRecord(id);
+        else if (t instanceof Revolving) revolvingRepository.deleteRevolvingRecord(id);
     }
 
     // ── Cross-type-safe update methods ───────────────────────────────────────
@@ -263,19 +255,34 @@ public class TransactionService {
     public Expense updateToExpense(Long id, Expense incoming) {
         Transaction existing = transactionRepository.findById(id).orElseThrow();
         if (existing instanceof Expense current) {
+            if ("CREDIT_CARD".equals(current.getPaymentMode()) && current.getCreditCard() != null) {
+                creditCardService.removeExpenseFromBill(current);
+            }
             applyBaseFields(current, incoming);
             current.setPaymentMode(incoming.getPaymentMode());
-            return expenseRepository.save(current);
+            current.setCreditCard(incoming.getCreditCard());
+            Expense saved = expenseRepository.save(current);
+            if ("CREDIT_CARD".equals(saved.getPaymentMode()) && saved.getCreditCard() != null) {
+                creditCardService.addExpenseToBill(saved);
+            }
+            return saved;
         }
-        applyBaseFields(existing, incoming);
-        transactionRepository.save(existing);
-        entityManager.flush();
-        swapChildTable(id, childTableOf(existing),
-                "INSERT INTO public.expense (id, payment_mode) VALUES (:id, :mode)",
-                "mode", incoming.getPaymentMode());
+
+        // Cross-type swap
+        deleteFromOldTable(id, existing);
+        Long creditCardId = incoming.getCreditCard() != null ? incoming.getCreditCard().getId() : null;
+        expenseRepository.insertExpense(id, incoming.getPaymentMode(), creditCardId);
         entityManager.flush();
         entityManager.clear();
-        return expenseRepository.findById(id).orElseThrow();
+
+        Expense saved = expenseRepository.findById(id).orElseThrow();
+        applyBaseFields(saved, incoming);
+        saved = expenseRepository.save(saved);
+
+        if ("CREDIT_CARD".equals(saved.getPaymentMode()) && saved.getCreditCard() != null) {
+            creditCardService.addExpenseToBill(saved);
+        }
+        return saved;
     }
 
     @Transactional
@@ -286,15 +293,15 @@ public class TransactionService {
             current.setSource(incoming.getSource());
             return incomeRepository.save(current);
         }
-        applyBaseFields(existing, incoming);
-        transactionRepository.save(existing);
-        entityManager.flush();
-        swapChildTable(id, childTableOf(existing),
-                "INSERT INTO public.income (id, source) VALUES (:id, :source)",
-                "source", incoming.getSource());
+
+        deleteFromOldTable(id, existing);
+        incomeRepository.insertIncome(id, incoming.getSource());
         entityManager.flush();
         entityManager.clear();
-        return incomeRepository.findById(id).orElseThrow();
+
+        Income saved = incomeRepository.findById(id).orElseThrow();
+        applyBaseFields(saved, incoming);
+        return incomeRepository.save(saved);
     }
 
     @Transactional
@@ -313,20 +320,18 @@ public class TransactionService {
             investmentGoalService.adjustGoalsForSaving(saved, newDelta);
             return saved;
         }
-        // Type switch: existing is NOT a Saving — no goal adjustment needed for old row
-        applyBaseFields(existing, incoming);
-        transactionRepository.save(existing);
-        entityManager.flush();
-        boolean isIn = incoming.getIsIn() != null ? incoming.getIsIn() : Boolean.TRUE;
-        swapChildTable(id, childTableOf(existing),
-                "INSERT INTO public.saving (id, is_in) VALUES (:id, :isIn)",
-                "isIn", isIn);
+
+        deleteFromOldTable(id, existing);
+        savingRepository.insertSaving(id, Boolean.TRUE.equals(incoming.getIsIn()));
         entityManager.flush();
         entityManager.clear();
+
         Saving saved = savingRepository.findById(id).orElseThrow();
-        // Apply goal credit for newly created saving
-        double delta = Boolean.TRUE.equals(saved.getIsIn()) ? saved.getValue() : -saved.getValue();
-        investmentGoalService.adjustGoalsForSaving(saved, delta);
+        applyBaseFields(saved, incoming);
+        saved = savingRepository.save(saved);
+
+        double newDelta = Boolean.TRUE.equals(saved.getIsIn()) ? saved.getValue() : -saved.getValue();
+        investmentGoalService.adjustGoalsForSaving(saved, newDelta);
         return saved;
     }
 
@@ -339,16 +344,15 @@ public class TransactionService {
             current.setClosed(incoming.getClosed());
             return revolvingRepository.save(current);
         }
-        applyBaseFields(existing, incoming);
-        transactionRepository.save(existing);
-        entityManager.flush();
-        swapChildTable(id, childTableOf(existing),
-                "INSERT INTO public.revolving (id, is_give, closed) VALUES (:id, :isGive, :closed)",
-                "isGive", incoming.getIsGive() != null ? incoming.getIsGive() : Boolean.TRUE,
-                "closed", incoming.getClosed() != null ? incoming.getClosed() : Boolean.FALSE);
+
+        deleteFromOldTable(id, existing);
+        revolvingRepository.insertRevolving(id, Boolean.TRUE.equals(incoming.getIsGive()), Boolean.TRUE.equals(incoming.getClosed()));
         entityManager.flush();
         entityManager.clear();
-        return revolvingRepository.findById(id).orElseThrow();
+
+        Revolving saved = revolvingRepository.findById(id).orElseThrow();
+        applyBaseFields(saved, incoming);
+        return revolvingRepository.save(saved);
     }
 
     public List<Expense> getExpense(Example<Expense> example) {
@@ -448,6 +452,7 @@ public class TransactionService {
         Category category = null;
         SubCategory subCategory = null;
         Item item = null;
+        CreditCard creditCard = null;
 
         if (fields.containsKey("category_id")) {
             Long id = toLong(fields.get("category_id"));
@@ -467,10 +472,25 @@ public class TransactionService {
             subCategory = item.getSubCategory();
             category = subCategory.getCategory();
         }
+        if (fields.containsKey("credit_card_id") || fields.containsKey("credit_card")) {
+            Object ccVal = fields.get("credit_card");
+            if (ccVal == null) ccVal = fields.get("credit_card_id");
+
+            Long id;
+            if (ccVal instanceof Map<?, ?> ccMap) {
+                id = toLong(ccMap.get("id"));
+            } else {
+                id = toLong(ccVal);
+            }
+
+            creditCard = creditCardRepository.findById(id)
+                    .orElseThrow(() -> new IllegalArgumentException("Credit Card not found: " + id));
+        }
 
         final Category finalCategory = category;
         final SubCategory finalSubCategory = subCategory;
         final Item finalItem = item;
+        final CreditCard finalCreditCard = creditCard;
 
         for (Transaction t : transactions) {
             if (finalCategory != null)
@@ -483,8 +503,23 @@ public class TransactionService {
                 t.setNotes((String) fields.get("notes"));
 
             // Type-specific fields
-            if (t instanceof Expense e && fields.containsKey("payment_mode")) {
-                e.setPaymentMode((String) fields.get("payment_mode"));
+            if (t instanceof Expense e) {
+                if ("CREDIT_CARD".equals(e.getPaymentMode()) && e.getCreditCard() != null) {
+                    creditCardService.removeExpenseFromBill(e);
+                }
+
+                if (fields.containsKey("payment_mode")) {
+                    e.setPaymentMode((String) fields.get("payment_mode"));
+                }
+                
+                if (fields.containsKey("credit_card_id") || fields.containsKey("credit_card")) {
+                    e.setCreditCard(finalCreditCard);
+                    e.setPaymentMode("CREDIT_CARD"); // Force payment mode if card is explicitly set
+                }
+
+                if ("CREDIT_CARD".equals(e.getPaymentMode()) && e.getCreditCard() != null) {
+                    creditCardService.addExpenseToBill(e);
+                }
             }
             if (t instanceof Income i && fields.containsKey("source")) {
                 i.setSource((String) fields.get("source"));

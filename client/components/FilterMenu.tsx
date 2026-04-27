@@ -5,6 +5,7 @@ export interface FilterCriteria {
   field: string;
   condition: string;
   value: string;
+  label?: string; // For display purposes
 }
 
 export interface FilterFieldDef {
@@ -15,7 +16,7 @@ export interface FilterFieldDef {
   fetchOptions?: (page: number) => Promise<{ data: { label: string; value: string }[], hasMore: boolean }>;
 }
 
-const InfiniteSelect = ({ fetchOptions, value, onChange }: { fetchOptions: (page: number) => Promise<{ data: { label: string; value: string }[], hasMore: boolean }>, value: string, onChange: (val: string) => void }) => {
+const InfiniteSelect = ({ fetchOptions, value, label, onChange }: { fetchOptions: (page: number) => Promise<{ data: { label: string; value: string }[], hasMore: boolean }>, value: string, label?: string, onChange: (val: string, label: string) => void }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [options, setOptions] = useState<{ label: string; value: string }[]>([]);
   const [page, setPage] = useState(0);
@@ -36,7 +37,9 @@ const InfiniteSelect = ({ fetchOptions, value, onChange }: { fetchOptions: (page
           return [...prev, ...newOpts];
         });
         setHasMore(res.hasMore);
-      } catch (e) { }
+      } catch (e) {
+        setHasMore(false);
+      }
       setLoading(false);
     };
     loadOptions();
@@ -75,7 +78,7 @@ const InfiniteSelect = ({ fetchOptions, value, onChange }: { fetchOptions: (page
         className="w-full text-left text-sm sm:text-xs px-3 py-2 sm:py-1.5 rounded-lg bg-white dark:bg-slate-800 border shadow-sm border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-cyan-500/50 outline-none dark:text-slate-200"
         onClick={() => setIsOpen(!isOpen)}
       >
-        <span className="block truncate text-slate-700 dark:text-slate-200">{selectedLabel}</span>
+        <span className="block truncate text-slate-700 dark:text-slate-200">{label || options.find(o => o.value === value)?.label || value || 'Select Value...'}</span>
       </button>
       {isOpen && (
         <div className="absolute z-[60] w-full mt-1 max-h-48 overflow-y-auto bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg">
@@ -89,7 +92,7 @@ const InfiniteSelect = ({ fetchOptions, value, onChange }: { fetchOptions: (page
             <div
               key={opt.value}
               className="px-3 py-2 text-sm sm:text-xs hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer text-slate-700 dark:text-slate-200"
-              onClick={() => { onChange(opt.value); setIsOpen(false); }}
+              onClick={() => { onChange(opt.value, opt.label); setIsOpen(false); }}
             >
               {opt.label}
             </div>
@@ -107,6 +110,46 @@ interface FilterMenuProps {
   onApplyFilters: (filters: FilterCriteria[]) => void;
   availableFields: FilterFieldDef[];
 }
+
+export const FilterChips: React.FC<{
+  activeFilters: FilterCriteria[];
+  availableFields: FilterFieldDef[];
+  onRemoveFilter: (index: number) => void;
+}> = ({ activeFilters, availableFields, onRemoveFilter }) => {
+  const getFieldLabel = (val: string) => availableFields.find(f => f.value === val)?.label || val;
+  const getConditionLabel = (cond: string) => {
+    switch (cond) {
+      case 'eq': return 'equals';
+      case 'like': return 'contains';
+      case 'gt': return 'after';
+      case 'ge': return 'on or after';
+      case 'lt': return 'before';
+      case 'le': return 'on or before';
+      default: return cond;
+    }
+  };
+
+  if (activeFilters.length === 0) return null;
+
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      {activeFilters.map((filter, idx) => (
+        <div key={idx} className="flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/60 rounded-xl text-[11px] font-bold text-slate-600 dark:text-slate-300 shadow-sm animate-in fade-in zoom-in-95">
+          <span className="text-slate-400 uppercase tracking-tighter text-[9px]">{getFieldLabel(filter.field)}</span>
+          <span className="text-slate-400 dark:text-slate-500 lowercase font-medium">{getConditionLabel(filter.condition)}</span>
+          <span className="text-cyan-600 dark:text-cyan-400 truncate max-w-[120px]" title={filter.value}>"{filter.label || filter.value}"</span>
+          <button
+            onClick={() => onRemoveFilter(idx)}
+            className="ml-1 -mr-1 text-slate-400 hover:text-rose-500 transition-colors p-0.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800"
+            aria-label="Remove filter"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      ))}
+    </div>
+  );
+};
 
 export const FilterMenu: React.FC<FilterMenuProps> = ({ activeFilters, onApplyFilters, availableFields }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -139,19 +182,25 @@ export const FilterMenu: React.FC<FilterMenuProps> = ({ activeFilters, onApplyFi
     setDraftFilters([...draftFilters, { field: defaultField.value, condition: defaultCondition, value: '' }]);
   };
 
-  const updateFilter = (index: number, key: keyof FilterCriteria, val: string) => {
+  const updateFilter = (index: number, key: keyof FilterCriteria, val: string, label?: string) => {
     const newFilters = [...draftFilters];
-
+    
     if (key === 'field') {
       const fieldDef = availableFields.find(f => f.value === val);
       const conditions = getAvailableConditions(fieldDef?.type || 'string');
-      // If current condition is incompatible with new field type, reset to first available condition
       if (!conditions.find(c => c.value === newFilters[index].condition)) {
         newFilters[index].condition = conditions[0].value;
       }
     }
 
     newFilters[index][key] = val;
+    if (label !== undefined) {
+      newFilters[index].label = label;
+    } else if (key === 'value' && !label) {
+       // If value is updated without explicit label, clear old label
+       delete newFilters[index].label;
+    }
+    
     setDraftFilters(newFilters);
   };
 
@@ -178,8 +227,6 @@ export const FilterMenu: React.FC<FilterMenuProps> = ({ activeFilters, onApplyFi
     setIsOpen(false);
   };
 
-  const getFieldLabel = (val: string) => availableFields.find(f => f.value === val)?.label || val;
-
   const getAvailableConditions = (type: string) => {
     switch (type) {
       case 'number':
@@ -204,41 +251,9 @@ export const FilterMenu: React.FC<FilterMenuProps> = ({ activeFilters, onApplyFi
     }
   };
 
-  const getConditionLabel = (cond: string) => {
-    switch (cond) {
-      case 'eq': return 'equals';
-      case 'like': return 'contains';
-      case 'gt': return 'after';
-      case 'ge': return 'on or after';
-      case 'lt': return 'before';
-      case 'le': return 'on or before';
-      default: return cond;
-    }
-  };
-
   return (
     <div className="flex items-center gap-3 w-full sm:w-auto relative" ref={dropdownRef}>
-      {/* Applied Filters Badges */}
-      {activeFilters.length > 0 && (
-        <div className="flex flex-wrap items-center gap-2">
-          {activeFilters.map((filter, idx) => (
-            <div key={idx} className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60 rounded-xl text-xs font-medium text-slate-700 dark:text-slate-300 shadow-sm animate-in fade-in zoom-in-95">
-              <span>{getFieldLabel(filter.field)}</span>
-              <span className="text-slate-400 dark:text-slate-500">{getConditionLabel(filter.condition)}</span>
-              <span className="text-cyan-600 dark:text-cyan-400 max-w-[100px] truncate" title={filter.value}>"{filter.value}"</span>
-              <button
-                onClick={() => removeAppliedFilter(idx)}
-                className="ml-1 -mr-1 text-slate-400 hover:text-rose-500 transition-colors p-0.5 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700"
-                aria-label="Remove filter"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
 
-      {/* Filter Button */}
       <button
         onClick={isOpen ? () => setIsOpen(false) : handleOpen}
         className={`flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border shadow-sm transition-colors text-sm font-medium whitespace-nowrap w-full sm:w-auto ${activeFilters.length > 0
@@ -252,10 +267,8 @@ export const FilterMenu: React.FC<FilterMenuProps> = ({ activeFilters, onApplyFi
         {activeFilters.length > 0 && <span>({activeFilters.length})</span>}
       </button>
 
-      {/* Filter Dropdown */}
       {isOpen && (
         <>
-          {/* Mobile overlay */}
           <div
             className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-40 sm:hidden animate-in fade-in"
             onClick={() => setIsOpen(false)}
@@ -303,7 +316,8 @@ export const FilterMenu: React.FC<FilterMenuProps> = ({ activeFilters, onApplyFi
                           <InfiniteSelect
                             fetchOptions={fieldDef.fetchOptions}
                             value={filter.value}
-                            onChange={val => updateFilter(index, 'value', val)}
+                            label={filter.label}
+                            onChange={(val, label) => updateFilter(index, 'value', val, label)}
                           />
                         );
                       }
@@ -313,7 +327,10 @@ export const FilterMenu: React.FC<FilterMenuProps> = ({ activeFilters, onApplyFi
                           <select
                             className="flex-1 text-sm sm:text-xs px-3 py-2 sm:py-1.5 rounded-lg bg-white dark:bg-slate-800 border shadow-sm border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-cyan-500/50 outline-none dark:text-slate-200"
                             value={filter.value}
-                            onChange={e => updateFilter(index, 'value', e.target.value)}
+                            onChange={e => {
+                              const label = e.target.options[e.target.selectedIndex].text;
+                              updateFilter(index, 'value', e.target.value, label === 'Select Value...' ? '' : label);
+                            }}
                           >
                             <option value="">Select Value...</option>
                             {fieldDef.options.map(opt => (
