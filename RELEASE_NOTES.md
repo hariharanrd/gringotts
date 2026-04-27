@@ -1,5 +1,31 @@
 # 🚀 Release Notes
 
+## [April 27, 2026] Comprehensive Credit Card Management
+
+A major specialized update introducing advanced credit card tracking, automated billing cycle management, and a premium card-based dashboard.
+
+### 💳 Intelligent Credit Card Tracking
+
+Manage your credit cards with a dedicated interface that moves beyond simple expense tracking to full lifecycle management.
+
+- **Automated Billing Cycles**: The system now automatically organizes transactions into monthly statements based on your card's billing date.
+- **Smart Status Engine**: High-visibility status banners (Overdue, Pending, Fully Settled) are now calculated on the backend, ensuring your dashboard always reflects your true financial obligations.
+- **Real-Time Utilization**: Visual tracking of credit limit usage with customizable warning thresholds that trigger system-wide alerts when you approach your limit.
+- **Statement History**: A deep-dive view for every card, providing full access to historical statements and transaction breakdowns per billing cycle.
+
+### 🎨 Premium Card UI Redesign
+
+- **Action-First Dashboard**: Redesigned the card grid to prioritize actionable information. Overdue bills now feature pulsing animations and bold warnings that are impossible to miss.
+- **Interactive "Maximize" Flow**: A new navigation model that separates primary "View Details" actions from secondary management tasks, reducing accidental clicks and improving flow.
+- **Contextual Visuals**: Dynamic themes and hover-triggered management bars keep the interface clean while preserving power-user functionality.
+
+### ⏰ Full Ecosystem Integration
+
+- **Scheduled CC Expenses**: Credit cards are now fully supported in the scheduling engine, allowing you to automate recurring expenses directly to your cards.
+- **Unified Data Model**: Standardized the `credit_card` object across Expenses, Scheduled Transactions, and Bills for seamless data integrity.
+
+---
+
 ## [April 25, 2026] Scheduling, Account Management & System Reliability
 
 A major update introducing automated transaction scheduling, user personalization, and improved system-wide transparency.

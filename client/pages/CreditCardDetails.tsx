@@ -209,10 +209,7 @@ const CreditCardDetails: React.FC = () => {
           {/* Status Row */}
           <div className="flex items-center justify-end gap-2">
             <span className="px-2.5 py-1 bg-white/10 backdrop-blur-md rounded-full text-[9px] font-black text-white uppercase tracking-widest border border-white/10">
-              Statement Date: {card.billing_date}{getOrdinalSuffix(card.billing_date)} of every month
-            </span>
-            <span className={`px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${card.threshold_exceeded ? 'bg-rose-500 text-white shadow-lg shadow-rose-500/20' : 'bg-cyan-500 text-white'}`}>
-              {card.utilization_percent}% Used
+              Bill: {card.billing_date}{getOrdinalSuffix(card.billing_date)}
             </span>
             <div className="flex items-center gap-3">
               <div className="px-2.5 py-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-full shadow-sm flex items-center gap-3">
@@ -220,7 +217,7 @@ const CreditCardDetails: React.FC = () => {
                   <Wallet className="w-2 h-2 text-cyan-500" />
                 </div>
                 <div className="flex items-baseline gap-2">
-                  <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Total Outstanding</span>
+                  <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Outstanding</span>
                   <span className="text-xs font-black text-slate-900 dark:text-white tabular-nums">₹{card.total_outstanding?.toLocaleString()}</span>
                 </div>
               </div>
