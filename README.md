@@ -1,114 +1,43 @@
 # 🏦 Gringotts
 
-**Gringotts** is a simple personal finance management system designed for cool users. It offers a set of tools to track, categorize, and analyze your financial life with peace and ease.
+**Gringotts** is a personal finance app built for anyone who wants to keep their money life organized without the usual headache. Think of it as a financial command center that’s actually easy on the eyes.
 
 ---
 
-## ✨ Key Features (Web Client)
+## 🏠 The Big Picture
 
-### 📊 Unified Financial Dashboard
+Gringotts features a **Unified Dashboard** that gives a high-level view of financial health. It tracks income, spending, and savings growth with slick visualizations, making it easy to spot trends at a glance.
 
-Get a high-level view of your financial health. The dashboard provides real-time visualizations of your income, expenses, and savings, helping you identify trends and optimize your cash flow.
+### 💸 Handling the Day-to-Day
 
-### 💸 Transaction Management
+It goes way beyond a basic list of expenses. The system is broken down to manage every corner of a user's wallet:
 
-Manage your finances across multiple categories with specialized views:
+* **The Basics**: Detailed tracking for UPI spends, credit card swipes, and various income streams.
+* **The "IOUs"**: A dedicated **Revolvings** section keeps track of money lent to friends or borrowed funds, ensuring no debt slips through the cracks.
+* **Credit Card Ninja**: This is the heavy lifter. It handles the entire credit card lifecycle, automatically organizing transactions into billing cycles and sending alerts for overdue payments or high utilization.
 
-- **Expenses**: Detailed tracking of outbound cash flow with payment mode support (UPI, Credit Cards, etc.).
-- **Incomes**: Monitor various revenue streams (Salary, Cashback, etc.).
-- **Savings**: Track your wealth accumulation and growth over time.
-- **Revolvings**: Manage money lended and borrowed and keep track how much you owe and how much you need to settle.
-- **Credit Cards**: Full lifecycle management for credit cards, including automated billing cycles, payment status tracking (Overdue/Pending), and utilization monitoring.
+### 🤖 Automation (Because manual entry is a pain)
 
-### 💳 Intelligent Credit Card Tracking
+To save users from typing in every single coffee purchase, the app includes:
 
-Manage your credit cards with a sophisticated lifecycle engine that automates the complexities of billing cycles and payment deadlines.
+* **Statement Parsing**: Users can just upload bank statements, and the app handles the data entry automatically.
+* **Auto-Pilot**: For things like rent or SIPs, the **Recurring Template** engine logs transactions automatically or triggers them with a single click.
 
-- **Automated Billing Cycles**: Transactions are automatically organized into monthly statements based on the card's billing date.
-- **Smart Status Engine**: Real-time identification of statement statuses (Overdue, Pending, Fully Settled) with intelligent prompts for the next required action.
-- **Utilization & Thresholds**: Monitor credit limit usage with visual bars and system-wide alerts for when you cross safety thresholds.
-- **Statement History**: Deep-dive into historical billing cycles with statement-specific transaction breakdowns and payment tracking.
+### 🎯 Planning for the Future
 
-### Transactions
+* **Smart Budgeting**: The app uses "Master Templates" to define an ideal month. It tracks real-time performance and shows exactly how much is being overspent in specific categories.
+* **Goal Tracking**: Whether it’s an emergency fund or a major purchase, users can set specific goals. The system uses hierarchical auto-crediting, so any relevant saving is automatically added to the progress bar. It even does the advanced math to calculate exactly when a goal will be reached based on growth projections.
 
-- **Bulk Operations**: Edit or delete multiple transactions simultaneously to keep your records up-to-date efficiently.
-- **Custom Views**: Dynamic column selection allows you to tailor the interface to your specific data needs.
+### 🏷️ Ultimate Organization
 
-- 📑 Automated Statement Parsing
-Stop manual entry. Gringotts supports importing statements from major financial institutions:
-  - **HDFC Bank** (Savings & Credit Cards)
-  - **Amazon Pay ICICI Credit Card**
-  - *More parsers being added regularly.*
+For the organization enthusiasts, Gringotts uses a **Three-Tier System** (**Category > SubCategory > Item**). It supports custom icons and colors, so the transaction feed looks vibrant and is easy to scan.
 
-### ⏰ Automated Scheduled Transactions
+### 🛡️ 2FA Security
 
-Take the manual work out of your routine financial life with our powerful recurring transaction engine.
+Since financial data is sensitive, the app is locked down with:
 
-- **Recurring Templates**: Set up schedules for rent, salaries, or SIPs for Expenses, Income, or Savings.
-- **Flexible Frequencies**: Support for Daily, Monthly, and Yearly recurrences.
-- **Dual Mode Execution**: Manually trigger transactions for today or let the background scheduler process them at the set time .
-- **Execution History**: Full audit trail of every transaction generated by a schedule.
-- **Integrated UI**: Quick links from individual transactions back to their parent schedule for easy management.
-
-### 🎯 Smart Budgeting & Planning
-
-Take control of your future with our advanced budgeting engine:
-
-- **Master Templates**: Define your ideal monthly spending structure.
-- **Monthly Budgets**: Generate actual budgets from templates and track real-time performance.
-- **Category Allocations**: Assign specific limits to granular categories and monitor variances.
-- **Estimated Savings**: Automatically calculate projected savings based on your budget vs. actuals.
-
-### 📈 Investment Planner
-
-Visualize and track your journey toward financial freedom with our sophisticated goal-tracking module.
-
-- **Goal-Based Tracking**: Set targets for specific milestones like Emergency Funds, Home Purchases, or Retirement.
-- **Hierarchical Auto-Crediting**: Link goals to specific Categories, Subcategories, or Items (CSI). Any matching saving transaction is automatically credited to your goal's progress.
-- **Compound Growth Projections**: Advanced financial math (FV of Annuity) calculates exactly when you will reach your goal based on your monthly contributions and expected annual return rate.
-- **Visual Progress**: Real-time arc progress bars and achievement metrics keep you motivated.
-- **Manual Balance Maintenance**: While the system projects future growth, you maintain full control by manually updating your "Already Achieved" balance to reflect actual market gains.
-
-### 🏷️ Hierarchical Classification System (CSI)
-
-Organize your data exactly how you want it. Our three-tier system (**Category > SubCategory > Item**) ensures that every transaction is mapped to its most granular level for deep insights.
-
-- **Visual Classification**: Categories now support custom **Icons** and **Colors**, enabling instant visual identification of spending patterns across the dashboard and transaction views.
-
-### 🛡️ Enterprise-Grade Security
-
-Your financial data is sensitive. We protect it with:
-
-- **JWT-Based Authentication**: Secure, stateless user sessions.
-- **Multi-Factor Authentication (MFA)**: Built-in TOTP support for an extra layer of protection.
-- **Trusted Browser Sessions**: Options to trust your frequent devices for 90 days, balancing security and convenience.
-- **Multi-Tenancy**: Complete data isolation between users.
-
----
-
-## 🚀 Getting Started
-
-The Gringotts Web Client is the primary interface for managing your finances.
-
-1. **Access**: Navigate to the hosted web client URL.
-2. **Registration**: Create a secure account (subject to admin configuration).
-3. **Setup CSI**: Configure your Categories and SubCategories in the Configuration tab.
-4. **Import/Add**: Start by uploading your bank statements or manually adding your first transaction.
-
----
-
-## 🏗️ Technology Stack
-
-- **Backend**: Spring Boot 3 (Java 17), PostgreSQL, Spring Security.
-- **Frontend**: React, Vite, TypeScript, Tailwind CSS (or Vanilla CSS).
-- **Security**: JWT-encoded HttpOnly Cookies, TOTP MFA.
-- **Infrastructure**: Designed for modern cloud deployments (Firebase/Vercel/Self-hosted).
-
----
-
-## 📱 Project Status
-
-- **Web Client**: ✅ **Stable & Active** - Fully featured and ready for daily use.
-- **Android Client**: 🏗️ **Under Development** - Mobile companion app coming soon to provide on-the-go tracking and notifications.
+* **JWT & MFA**: Modern, secure session handling with multi-factor authentication.
+* **TOTP Support**: Built-in support for authenticator apps.
+* **Trusted Devices**: An option to trust frequent browsers for 90 days to balance security with convenience.
 
 ---
