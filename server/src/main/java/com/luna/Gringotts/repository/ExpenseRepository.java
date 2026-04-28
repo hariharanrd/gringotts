@@ -17,8 +17,8 @@ public interface ExpenseRepository extends TransactionRepository<Expense> {
     void deleteByUser(User user);
 
     @Modifying
-    @Query(value = "INSERT INTO public.expense (id, payment_mode, credit_card_id) VALUES (:id, :mode, :ccid)", nativeQuery = true)
-    void insertExpense(@Param("id") Long id, @Param("mode") String mode, @Param("ccid") Long ccid);
+    @Query(value = "INSERT INTO public.expense (id) VALUES (:id)", nativeQuery = true)
+    void insertExpense(@Param("id") Long id);
 
     @Modifying
     @Query(value = "DELETE FROM public.expense WHERE id = :id", nativeQuery = true)

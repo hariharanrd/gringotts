@@ -23,36 +23,11 @@ public class Expense extends Transaction {
 
     }
 
-    @Column(name = "payment_mode")
-    @JsonProperty("payment_mode")
-    String paymentMode;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "credit_card_id")
-    @JsonProperty("credit_card")
-    CreditCard creditCard;
-
     public Expense(String refNo, LocalDateTime date, String description, Double value, ExpenseMode mode) {
         super(refNo, date, description, value);
         if (mode != null) {
-            this.paymentMode = mode.toString();
+            setPaymentMode(mode.toString());
         }
-    }
-
-    public void setPaymentMode(String paymentMode) {
-        this.paymentMode = paymentMode;
-    }
-
-    public String getPaymentMode() {
-        return paymentMode;
-    }
-
-    public CreditCard getCreditCard() {
-        return creditCard;
-    }
-
-    public void setCreditCard(CreditCard creditCard) {
-        this.creditCard = creditCard;
     }
 
     public enum ExpenseMode {
