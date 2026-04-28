@@ -83,6 +83,11 @@ public class Transaction {
     @Column(name = "imported")
     Boolean imported = false;
 
+    @Column(name = "include_in_budget")
+    @JsonProperty("include_in_budget")
+    Boolean includeInBudget = true;
+
+
     @Column(name = "created_by")
     @JsonProperty("created_by")
     String createdBy = "USER"; // "USER" or "SCHEDULE"
@@ -224,7 +229,16 @@ public class Transaction {
         this.creditCard = creditCard;
     }
 
+    public Boolean getIncludeInBudget() {
+        return includeInBudget;
+    }
+
+    public void setIncludeInBudget(Boolean includeInBudget) {
+        this.includeInBudget = includeInBudget;
+    }
+
     @JsonProperty("type")
+
     public String getType() {
         if (this instanceof Expense) return "EXPENSE";
         if (this instanceof Income) return "INCOME";
