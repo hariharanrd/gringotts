@@ -1,5 +1,19 @@
 # 🚀 Release Notes
 
+## [April 28, 2026] Universal Payment Modes & Credit Card Integrations
+
+### 💳 Unified Payment & Credit Tracking
+
+- **Universal Credit Card Support**: Payment modes and credit card allocations are no longer exclusive to Expenses. You can now map credit instruments across **Income**, **Savings**, and **Revolving** workflows.
+- **Automated Bill Adjustments**: Background calculations adjust constraints predictably. Income payments clear outstanding debts efficiently.
+- **Cross-Type Safe Updates**: Modification mechanisms recalculate statement allocations smoothly.
+
+### 🧭 Refined Navigation
+
+- **Unified Transaction Redirection**: Statement queries bridge seamlessly into historical views.
+
+---
+
 ## [April 27, 2026] Comprehensive Credit Card Management
 
 A major specialized update introducing advanced credit card tracking, automated billing cycle management, and a premium card-based dashboard.
