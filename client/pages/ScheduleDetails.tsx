@@ -154,6 +154,7 @@ const ScheduleDetails: React.FC = () => {
               <DetailItem icon={Clock} label="Next Run" value={formatDate(schedule.next_run_date)} />
               <DetailItem icon={Tag} label="Category" value={schedule.category?.name || '—'} />
               {schedule.payment_mode && <DetailItem icon={CreditCard} label="Payment Mode" value={schedule.payment_mode} />}
+              {schedule.credit_card && <DetailItem icon={CreditCard} label="Credit Card" value={schedule.credit_card.nickname} />}
             </div>
           </div>
         </div>

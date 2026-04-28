@@ -248,20 +248,18 @@ const TransactionDetails: React.FC = () => {
 
           {/* ── Type-specific fields ── */}
 
-          {/* EXPENSE: payment mode */}
-          {type === TransactionType.EXPENSE && (
-            <>
-              <Field icon={CreditCard} label="Payment Mode"
-                value={
-                  <Badge className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
-                    {PAYMENT_MODE_MAP[transaction.payment_mode] ?? transaction.payment_mode ?? '—'}
-                  </Badge>
-                }
-              />
-              {(transaction as any).credit_card && (
-                <Field icon={CreditCard} label="Credit Card" value={(transaction as any).credit_card.nickname} />
-              )}
-            </>
+          {/* Payment mode and Credit Card */}
+          {transaction.payment_mode && (
+            <Field icon={CreditCard} label="Payment Mode"
+              value={
+                <Badge className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                  {PAYMENT_MODE_MAP[transaction.payment_mode] ?? transaction.payment_mode ?? '—'}
+                </Badge>
+              }
+            />
+          )}
+          {transaction.credit_card && (
+            <Field icon={CreditCard} label="Credit Card" value={transaction.credit_card.nickname} />
           )}
 
           {/* Schedule Info */}

@@ -155,7 +155,7 @@ const CreditCardDetails: React.FC = () => {
       { field: 'credit_card.id', condition: 'eq', value: card!.id!.toString(), label: card!.nickname }
     ];
     const filtersJson = encodeURIComponent(JSON.stringify(filters));
-    navigate(`/transactions?type=expense&filters=${filtersJson}`);
+    navigate(`/transactions?type=all&filters=${filtersJson}`);
   };
 
   if (isLoading) {

@@ -102,15 +102,13 @@ public class TransactionService {
         }
         e.setUser(iamService.getCurrentUser());
         expenseRepository.save(e);
-        
-        if ("CREDIT_CARD".equals(e.getPaymentMode()) && e.getCreditCard() != null) {
-            creditCardService.addExpenseToBill(e);
-        }
+        handleCreditCardDebit(e);
     }
 
     public void saveIncome(Income i) {
         i.setUser(iamService.getCurrentUser());
         incomeRepository.save(i);
+        handleCreditCardDebit(i);
     }
 
     public void saveSaving(Saving s) {
@@ -119,11 +117,13 @@ public class TransactionService {
         // Auto-credit linked investment goals.
         double delta = Boolean.TRUE.equals(s.getIsIn()) ? s.getValue() : -s.getValue();
         investmentGoalService.adjustGoalsForSaving(s, delta);
+        handleCreditCardDebit(s);
     }
 
     public void saveRevolving(Revolving r) {
         r.setUser(iamService.getCurrentUser());
         revolvingRepository.save(r);
+        handleCreditCardDebit(r);
     }
 
     public void saveTransactions(List<Transaction> transactions) {
@@ -188,28 +188,32 @@ public class TransactionService {
 
     public void deleteExpense(Long id) {
         expenseRepository.findById(id).ifPresent(existing -> {
-            if ("CREDIT_CARD".equals(existing.getPaymentMode()) && existing.getCreditCard() != null) {
-                creditCardService.removeExpenseFromBill(existing);
-            }
+            handleCreditCardCredit(existing);
         });
         expenseRepository.deleteById(id);
     }
 
     public void deleteIncome(Long id) {
+        incomeRepository.findById(id).ifPresent(existing -> {
+            handleCreditCardCredit(existing);
+        });
         incomeRepository.deleteById(id);
     }
 
     public void deleteSaving(Long id) {
-        // Reverse the goal credit before deleting
         Saving existing = savingRepository.findById(id).orElse(null);
         if (existing != null) {
             double reversal = Boolean.TRUE.equals(existing.getIsIn()) ? -existing.getValue() : existing.getValue();
             investmentGoalService.adjustGoalsForSaving(existing, reversal);
+            handleCreditCardCredit(existing);
         }
         savingRepository.deleteById(id);
     }
 
     public void deleteRevolving(Long id) {
+        revolvingRepository.findById(id).ifPresent(existing -> {
+            handleCreditCardCredit(existing);
+        });
         revolvingRepository.deleteById(id);
     }
 
@@ -244,6 +248,18 @@ public class TransactionService {
         target.setCreditCard(source.getCreditCard());
     }
 
+    private void handleCreditCardDebit(Transaction t) {
+        if (t != null && "CREDIT_CARD".equals(t.getPaymentMode()) && t.getCreditCard() != null) {
+            creditCardService.addTransactionToBill(t);
+        }
+    }
+
+    private void handleCreditCardCredit(Transaction t) {
+        if (t != null && "CREDIT_CARD".equals(t.getPaymentMode()) && t.getCreditCard() != null) {
+            creditCardService.removeTransactionFromBill(t);
+        }
+    }
+
     private void deleteFromOldTable(Long id, Transaction t) {
         if (t instanceof Expense) expenseRepository.deleteExpenseRecord(id);
         else if (t instanceof Income) incomeRepository.deleteIncomeRecord(id);
@@ -256,17 +272,14 @@ public class TransactionService {
     @Transactional
     public Expense updateToExpense(Long id, Expense incoming) {
         Transaction existing = transactionRepository.findById(id).orElseThrow();
+        handleCreditCardCredit(existing);
+
         if (existing instanceof Expense current) {
-            if ("CREDIT_CARD".equals(current.getPaymentMode()) && current.getCreditCard() != null) {
-                creditCardService.removeExpenseFromBill(current);
-            }
             applyBaseFields(current, incoming);
             current.setPaymentMode(incoming.getPaymentMode());
             current.setCreditCard(incoming.getCreditCard());
             Expense saved = expenseRepository.save(current);
-            if ("CREDIT_CARD".equals(saved.getPaymentMode()) && saved.getCreditCard() != null) {
-                creditCardService.addExpenseToBill(saved);
-            }
+            handleCreditCardDebit(saved);
             return saved;
         }
 
@@ -279,20 +292,21 @@ public class TransactionService {
         Expense saved = expenseRepository.findById(id).orElseThrow();
         applyBaseFields(saved, incoming);
         saved = expenseRepository.save(saved);
-
-        if ("CREDIT_CARD".equals(saved.getPaymentMode()) && saved.getCreditCard() != null) {
-            creditCardService.addExpenseToBill(saved);
-        }
+        handleCreditCardDebit(saved);
         return saved;
     }
 
     @Transactional
     public Income updateToIncome(Long id, Income incoming) {
         Transaction existing = transactionRepository.findById(id).orElseThrow();
+        handleCreditCardCredit(existing);
+
         if (existing instanceof Income current) {
             applyBaseFields(current, incoming);
             current.setSource(incoming.getSource());
-            return incomeRepository.save(current);
+            Income saved = incomeRepository.save(current);
+            handleCreditCardDebit(saved);
+            return saved;
         }
 
         deleteFromOldTable(id, existing);
@@ -302,12 +316,16 @@ public class TransactionService {
 
         Income saved = incomeRepository.findById(id).orElseThrow();
         applyBaseFields(saved, incoming);
-        return incomeRepository.save(saved);
+        saved = incomeRepository.save(saved);
+        handleCreditCardDebit(saved);
+        return saved;
     }
 
     @Transactional
     public Saving updateToSaving(Long id, Saving incoming) {
         Transaction existing = transactionRepository.findById(id).orElseThrow();
+        handleCreditCardCredit(existing);
+
         if (existing instanceof Saving current) {
             // Reverse old contribution then apply new one
             double oldDelta = Boolean.TRUE.equals(current.getIsIn()) ? current.getValue() : -current.getValue();
@@ -319,6 +337,7 @@ public class TransactionService {
 
             double newDelta = Boolean.TRUE.equals(saved.getIsIn()) ? saved.getValue() : -saved.getValue();
             investmentGoalService.adjustGoalsForSaving(saved, newDelta);
+            handleCreditCardDebit(saved);
             return saved;
         }
 
@@ -333,17 +352,22 @@ public class TransactionService {
 
         double newDelta = Boolean.TRUE.equals(saved.getIsIn()) ? saved.getValue() : -saved.getValue();
         investmentGoalService.adjustGoalsForSaving(saved, newDelta);
+        handleCreditCardDebit(saved);
         return saved;
     }
 
     @Transactional
     public Revolving updateToRevolving(Long id, Revolving incoming) {
         Transaction existing = transactionRepository.findById(id).orElseThrow();
+        handleCreditCardCredit(existing);
+
         if (existing instanceof Revolving current) {
             applyBaseFields(current, incoming);
             current.setIsGive(incoming.getIsGive());
             current.setClosed(incoming.getClosed());
-            return revolvingRepository.save(current);
+            Revolving saved = revolvingRepository.save(current);
+            handleCreditCardDebit(saved);
+            return saved;
         }
 
         deleteFromOldTable(id, existing);
@@ -353,7 +377,9 @@ public class TransactionService {
 
         Revolving saved = revolvingRepository.findById(id).orElseThrow();
         applyBaseFields(saved, incoming);
-        return revolvingRepository.save(saved);
+        saved = revolvingRepository.save(saved);
+        handleCreditCardDebit(saved);
+        return saved;
     }
 
     public List<Expense> getExpense(Example<Expense> example) {
@@ -503,25 +529,18 @@ public class TransactionService {
             if (fields.containsKey("notes"))
                 t.setNotes((String) fields.get("notes"));
 
-            // Type-specific fields
-            if (t instanceof Expense e) {
-                if ("CREDIT_CARD".equals(e.getPaymentMode()) && e.getCreditCard() != null) {
-                    creditCardService.removeExpenseFromBill(e);
-                }
+            handleCreditCardCredit(t);
 
-                if (fields.containsKey("payment_mode")) {
-                    e.setPaymentMode((String) fields.get("payment_mode"));
-                }
-                
-                if (fields.containsKey("credit_card_id") || fields.containsKey("credit_card")) {
-                    e.setCreditCard(finalCreditCard);
-                    e.setPaymentMode("CREDIT_CARD"); // Force payment mode if card is explicitly set
-                }
-
-                if ("CREDIT_CARD".equals(e.getPaymentMode()) && e.getCreditCard() != null) {
-                    creditCardService.addExpenseToBill(e);
-                }
+            if (fields.containsKey("payment_mode")) {
+                t.setPaymentMode((String) fields.get("payment_mode"));
             }
+            
+            if (fields.containsKey("credit_card_id") || fields.containsKey("credit_card")) {
+                t.setCreditCard(finalCreditCard);
+                t.setPaymentMode("CREDIT_CARD"); // Force payment mode if card is explicitly set
+            }
+
+            handleCreditCardDebit(t);
             if (t instanceof Income i && fields.containsKey("source")) {
                 i.setSource((String) fields.get("source"));
             }
