@@ -15,7 +15,7 @@ import org.springframework.data.repository.query.Param;
 @Repository
 public interface SavingRepository extends TransactionRepository<Saving> {
 
-    List<Saving> findByUserAndTransactionTimeBetweenAndIsInTrue(User user, LocalDateTime start, LocalDateTime end);
+    List<Saving> findByUserAndTransactionTimeBetweenAndIsInTrueAndIncludeInBudgetTrue(User user, LocalDateTime start, LocalDateTime end);
 
     void deleteByUser(User user);
 

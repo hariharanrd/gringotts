@@ -69,8 +69,8 @@ jobs:
 
   deploy-frontend:
     name: Deploy Frontend to Firebase
-    needs: changes
-    if: ${{ needs.changes.outputs.client == 'true' }}
+    needs: [changes, deploy-backend]
+    if: ${{ always() && needs.changes.result == 'success' && needs.changes.outputs.client == 'true' && (needs.deploy-backend.result == 'success' || needs.deploy-backend.result == 'skipped') }}
     runs-on: ubuntu-latest
     permissions:
       contents: 'read'

@@ -106,12 +106,16 @@ public class TransactionService {
     }
 
     public void saveIncome(Income i) {
+        i.setIncludeInBudget(true);
         i.setUser(iamService.getCurrentUser());
         incomeRepository.save(i);
         handleCreditCardDebit(i);
     }
 
     public void saveSaving(Saving s) {
+        if (Boolean.FALSE.equals(s.getIsIn())) {
+            s.setIncludeInBudget(true);
+        }
         s.setUser(iamService.getCurrentUser());
         savingRepository.save(s);
         // Auto-credit linked investment goals.
@@ -121,8 +125,12 @@ public class TransactionService {
     }
 
     public void saveRevolving(Revolving r) {
+        if (Boolean.FALSE.equals(r.getIsGive())) {
+            r.setIncludeInBudget(true);
+        }
         r.setUser(iamService.getCurrentUser());
         revolvingRepository.save(r);
+
         handleCreditCardDebit(r);
     }
 
@@ -246,6 +254,7 @@ public class TransactionService {
         target.setItem(source.getItem());
         target.setPaymentMode(source.getPaymentMode());
         target.setCreditCard(source.getCreditCard());
+        target.setIncludeInBudget(source.getIncludeInBudget());
     }
 
     private void handleCreditCardDebit(Transaction t) {
@@ -298,6 +307,7 @@ public class TransactionService {
 
     @Transactional
     public Income updateToIncome(Long id, Income incoming) {
+        incoming.setIncludeInBudget(true);
         Transaction existing = transactionRepository.findById(id).orElseThrow();
         handleCreditCardCredit(existing);
 
@@ -323,6 +333,9 @@ public class TransactionService {
 
     @Transactional
     public Saving updateToSaving(Long id, Saving incoming) {
+        if (Boolean.FALSE.equals(incoming.getIsIn())) {
+            incoming.setIncludeInBudget(true);
+        }
         Transaction existing = transactionRepository.findById(id).orElseThrow();
         handleCreditCardCredit(existing);
 
@@ -358,6 +371,9 @@ public class TransactionService {
 
     @Transactional
     public Revolving updateToRevolving(Long id, Revolving incoming) {
+        if (Boolean.FALSE.equals(incoming.getIsGive())) {
+            incoming.setIncludeInBudget(true);
+        }
         Transaction existing = transactionRepository.findById(id).orElseThrow();
         handleCreditCardCredit(existing);
 
@@ -535,6 +551,20 @@ public class TransactionService {
                 t.setPaymentMode((String) fields.get("payment_mode"));
             }
             
+            if (fields.containsKey("include_in_budget")) {
+                boolean val = toBoolean(fields.get("include_in_budget"));
+                if (!val) {
+                    if (t instanceof Income) {
+                        val = true;
+                    } else if (t instanceof Saving s && Boolean.FALSE.equals(s.getIsIn())) {
+                        val = true;
+                    } else if (t instanceof Revolving r && Boolean.FALSE.equals(r.getIsGive())) {
+                        val = true;
+                    }
+                }
+                t.setIncludeInBudget(val);
+            }
+
             if (fields.containsKey("credit_card_id") || fields.containsKey("credit_card")) {
                 t.setCreditCard(finalCreditCard);
                 t.setPaymentMode("CREDIT_CARD"); // Force payment mode if card is explicitly set

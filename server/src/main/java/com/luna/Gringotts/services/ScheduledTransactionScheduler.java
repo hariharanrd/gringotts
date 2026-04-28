@@ -16,8 +16,7 @@ public class ScheduledTransactionScheduler {
     @Autowired
     com.luna.Gringotts.repository.ScheduledTransactionRepository scheduledTransactionRepository;
 
-    // Run at 2 AM and 2 PM every day
-    @Scheduled(cron = "0 0 2,14 * * *")
+    @Scheduled(fixedRate = 12 * 60 * 60 * 1000, initialDelay = 5 * 60 * 1000) // Run every 12 hours after an initial delay of 5 minutes
     public void runDueSchedules() {
         LocalDate today = LocalDate.now();
         List<com.luna.Gringotts.records.ScheduledTransaction> due = scheduledTransactionRepository

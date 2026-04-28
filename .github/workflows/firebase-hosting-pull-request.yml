@@ -11,8 +11,25 @@ permissions:
   contents: read
   pull-requests: write
 jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      server: ${{ steps.filter.outputs.server }}
+      client: ${{ steps.filter.outputs.client }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            server:
+              - 'server/**'
+            client:
+              - 'client/**'
+
   build_and_preview:
-    if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
+    needs: changes
+    if: ${{ github.event.pull_request.head.repo.full_name == github.repository && needs.changes.outputs.client == 'true' && needs.changes.outputs.server == 'false' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

@@ -16,7 +16,7 @@ import org.springframework.stereotype.Repository;
 public interface RevolvingRepository extends TransactionRepository<Revolving> {
 
     @EntityGraph(attributePaths = {"category", "subCategory", "item"})
-    List<Revolving> findByUserAndTransactionTimeBetweenAndClosedFalseAndIsGiveTrue(User user, LocalDateTime start, LocalDateTime end);
+    List<Revolving> findByUserAndTransactionTimeBetweenAndClosedFalseAndIsGiveTrueAndIncludeInBudgetTrue(User user, LocalDateTime start, LocalDateTime end);
 
     @EntityGraph(attributePaths = {"category", "subCategory", "item"})
     List<Revolving> findByUserAndClosedFalse(User user);
