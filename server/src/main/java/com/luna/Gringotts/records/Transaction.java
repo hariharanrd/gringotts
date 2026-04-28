@@ -71,6 +71,15 @@ public class Transaction {
     @Column(columnDefinition = "text")
     String notes;
 
+    @Column(name = "payment_mode")
+    @JsonProperty("payment_mode")
+    String paymentMode;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "credit_card_id")
+    @JsonProperty("credit_card")
+    CreditCard creditCard;
+
     @Column(name = "imported")
     Boolean imported = false;
 
@@ -197,6 +206,22 @@ public class Transaction {
 
     public void setScheduleId(Long scheduleId) {
         this.scheduleId = scheduleId;
+    }
+
+    public String getPaymentMode() {
+        return paymentMode;
+    }
+
+    public void setPaymentMode(String paymentMode) {
+        this.paymentMode = paymentMode;
+    }
+
+    public CreditCard getCreditCard() {
+        return creditCard;
+    }
+
+    public void setCreditCard(CreditCard creditCard) {
+        this.creditCard = creditCard;
     }
 
     @JsonProperty("type")

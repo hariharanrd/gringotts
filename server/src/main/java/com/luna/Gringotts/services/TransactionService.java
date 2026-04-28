@@ -240,6 +240,8 @@ public class TransactionService {
         target.setCategory(source.getCategory());
         target.setSubCategory(source.getSubCategory());
         target.setItem(source.getItem());
+        target.setPaymentMode(source.getPaymentMode());
+        target.setCreditCard(source.getCreditCard());
     }
 
     private void deleteFromOldTable(Long id, Transaction t) {
@@ -270,8 +272,7 @@ public class TransactionService {
 
         // Cross-type swap
         deleteFromOldTable(id, existing);
-        Long creditCardId = incoming.getCreditCard() != null ? incoming.getCreditCard().getId() : null;
-        expenseRepository.insertExpense(id, incoming.getPaymentMode(), creditCardId);
+        expenseRepository.insertExpense(id);
         entityManager.flush();
         entityManager.clear();
 
