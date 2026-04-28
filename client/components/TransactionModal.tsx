@@ -475,18 +475,23 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, on
               </div>
             )}
 
-            <div className="flex items-center gap-3 mt-2 mb-2">
-              <input
-                type="checkbox"
-                id="exclude-budget-checkbox"
-                className="w-5 h-5 rounded border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-cyan-500 focus:ring-cyan-500/40 cursor-pointer accent-cyan-500"
-                checked={formData.include_in_budget === false}
-                onChange={(e) => setFormData(prev => ({ ...prev, include_in_budget: !e.target.checked }))}
-              />
-              <label htmlFor="exclude-budget-checkbox" className="text-sm font-medium text-slate-600 dark:text-slate-300 cursor-pointer">
-                Exclude from budget utilization
-              </label>
-            </div>
+            {(type === TransactionType.EXPENSE || 
+              (type === TransactionType.SAVING && formData.is_in) || 
+              (type === TransactionType.REVOLVING && formData.is_give !== false)) && (
+              <div className="flex items-center gap-3 mt-2 mb-2">
+                <input
+                  type="checkbox"
+                  id="exclude-budget-checkbox"
+                  className="w-5 h-5 rounded border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-cyan-500 focus:ring-cyan-500/40 cursor-pointer accent-cyan-500"
+                  checked={formData.include_in_budget === false}
+                  onChange={(e) => setFormData(prev => ({ ...prev, include_in_budget: !e.target.checked }))}
+                />
+                <label htmlFor="exclude-budget-checkbox" className="text-sm font-medium text-slate-600 dark:text-slate-300 cursor-pointer">
+                  Exclude from budget utilization
+                </label>
+              </div>
+            )}
+
 
             <div className="space-y-1.5">
               <label className="text-sm font-medium text-slate-600 dark:text-slate-300">Notes (Optional)</label>
