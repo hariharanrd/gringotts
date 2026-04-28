@@ -23,7 +23,7 @@ public interface TransactionRepository<T extends Transaction> extends JpaReposit
     List<T> findByUserAndTransactionTimeAfter(User user, LocalDateTime after);
 
     @EntityGraph(attributePaths = {"category", "subCategory", "item"})
-    List<T> findByUserAndTransactionTimeBetween(User user, LocalDateTime start, LocalDateTime end);
+    List<T> findByUserAndTransactionTimeBetweenAndIncludeInBudgetTrue(User user, LocalDateTime start, LocalDateTime end);
 
     @Override
     @EntityGraph(attributePaths = {"category", "subCategory", "item"})

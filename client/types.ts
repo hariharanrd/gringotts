@@ -44,6 +44,7 @@ export interface Transaction {
   created_by?: string;
   payment_mode?: string;
   credit_card?: CreditCard;
+  include_in_budget?: boolean;
 }
 
 

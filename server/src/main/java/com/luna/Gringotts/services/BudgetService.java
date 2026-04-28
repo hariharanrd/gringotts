@@ -249,9 +249,9 @@ public class BudgetService {
 
         // Fetch transactions for the period
         User user = iamService.getCurrentUser();
-        List<Expense> expenses = expenseRepository.findByUserAndTransactionTimeBetween(user, start, end);
-        List<Saving> savings = savingRepository.findByUserAndTransactionTimeBetweenAndIsInTrue(user, start, end);
-        List<Revolving> revolvings = revolvingRepository.findByUserAndTransactionTimeBetweenAndClosedFalseAndIsGiveTrue(user, start, end);
+        List<Expense> expenses = expenseRepository.findByUserAndTransactionTimeBetweenAndIncludeInBudgetTrue(user, start, end);
+        List<Saving> savings = savingRepository.findByUserAndTransactionTimeBetweenAndIsInTrueAndIncludeInBudgetTrue(user, start, end);
+        List<Revolving> revolvings = revolvingRepository.findByUserAndTransactionTimeBetweenAndClosedFalseAndIsGiveTrueAndIncludeInBudgetTrue(user, start, end);
 
         // Aggregate spent amounts by category (use category id as key)
         Map<Long, Double> spentByCategory = new HashMap<>();
@@ -277,6 +277,7 @@ public class BudgetService {
                 unCategorizedRevolving += r.getValue();
             }
         }
+
 
         double totalAllocated = budget.getTotalAmount();
         double totalSpent = spentByCategory.values().stream().mapToDouble(Double::doubleValue).sum() + unCategorizedSpendExpense + unCategorizedSaving + unCategorizedRevolving;

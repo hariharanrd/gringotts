@@ -246,6 +246,7 @@ public class TransactionService {
         target.setItem(source.getItem());
         target.setPaymentMode(source.getPaymentMode());
         target.setCreditCard(source.getCreditCard());
+        target.setIncludeInBudget(source.getIncludeInBudget());
     }
 
     private void handleCreditCardDebit(Transaction t) {
@@ -533,6 +534,10 @@ public class TransactionService {
 
             if (fields.containsKey("payment_mode")) {
                 t.setPaymentMode((String) fields.get("payment_mode"));
+            }
+            
+            if (fields.containsKey("include_in_budget")) {
+                t.setIncludeInBudget(toBoolean(fields.get("include_in_budget")));
             }
             
             if (fields.containsKey("credit_card_id") || fields.containsKey("credit_card")) {
