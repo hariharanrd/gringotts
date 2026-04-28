@@ -8,9 +8,10 @@
 - **Automated Bill Adjustments**: Background calculations adjust constraints predictably. Income payments clear outstanding debts efficiently.
 - **Cross-Type Safe Updates**: Modification mechanisms recalculate statement allocations smoothly.
 
-### 🧭 Refined Navigation
+### Exclude Transactions from Budget Calculation
 
-- **Unified Transaction Redirection**: Statement queries bridge seamlessly into historical views.
+- Have a transaction you made but it shouldn't be included in the Budget utilization? You can do it now.
+- Check the option "Exclude from budget utilization" and it is not accounted in budget.
 
 ---
 
