@@ -90,12 +90,12 @@ public class CreditCardService {
 
     // ── Billing Cycle Logic ──────────────────────────────────────────────────
 
-    public void addExpenseToBill(Expense expense) {
-        if (expense.getCreditCard() == null) return;
-        CreditCard card = creditCardRepository.findById(expense.getCreditCard().getId()).orElse(null);
+    public void addTransactionToBill(Transaction transaction) {
+        if (transaction.getCreditCard() == null) return;
+        CreditCard card = creditCardRepository.findById(transaction.getCreditCard().getId()).orElse(null);
         if (card == null) return;
 
-        Cycle cycle = getBillingCycle(card, expense.getTransactionTime());
+        Cycle cycle = getBillingCycle(card, transaction.getTransactionTime());
         CreditCardBill bill = creditCardBillRepository.findByCreditCardAndBillingMonthAndBillingYear(card, cycle.month, cycle.year)
                 .orElseGet(() -> {
                     CreditCardBill newBill = new CreditCardBill();
@@ -105,24 +105,46 @@ public class CreditCardService {
                     return newBill;
                 });
 
-        bill.setAmountDue(bill.getAmountDue() + expense.getValue());
-        // If it was PAID, and we add more, it might become PARTIALLY_PAID or UNPAID
-        // But usually, once paid, it stays paid? 
-        // Actually, let's re-resolve status if it's currently UNPAID/PARTIALLY_PAID
-        // If it's already PAID, adding more should probably revert it to PARTIALLY_PAID if amountPaid < newAmountDue
+        double delta = 0;
+        if (transaction instanceof Expense) {
+            delta = transaction.getValue();
+        } else if (transaction instanceof Income) {
+            delta = -transaction.getValue();
+        } else if (transaction instanceof Saving) {
+            Saving s = (Saving) transaction;
+            delta = Boolean.TRUE.equals(s.getIsIn()) ? transaction.getValue() : -transaction.getValue();
+        } else if (transaction instanceof Revolving) {
+            Revolving r = (Revolving) transaction;
+            delta = Boolean.TRUE.equals(r.getIsGive()) ? transaction.getValue() : -transaction.getValue();
+        }
+
+        bill.setAmountDue(bill.getAmountDue() + delta);
         resolveStatus(bill);
         creditCardBillRepository.save(bill);
     }
 
-    public void removeExpenseFromBill(Expense expense) {
-        if (expense.getCreditCard() == null) return;
-        CreditCard card = creditCardRepository.findById(expense.getCreditCard().getId()).orElse(null);
+    public void removeTransactionFromBill(Transaction transaction) {
+        if (transaction.getCreditCard() == null) return;
+        CreditCard card = creditCardRepository.findById(transaction.getCreditCard().getId()).orElse(null);
         if (card == null) return;
 
-        Cycle cycle = getBillingCycle(card, expense.getTransactionTime());
+        Cycle cycle = getBillingCycle(card, transaction.getTransactionTime());
         creditCardBillRepository.findByCreditCardAndBillingMonthAndBillingYear(card, cycle.month, cycle.year)
                 .ifPresent(bill -> {
-                    bill.setAmountDue(Math.max(0.0, bill.getAmountDue() - expense.getValue()));
+                    double delta = 0;
+                    if (transaction instanceof Expense) {
+                        delta = transaction.getValue();
+                    } else if (transaction instanceof Income) {
+                        delta = -transaction.getValue();
+                    } else if (transaction instanceof Saving) {
+                        Saving s = (Saving) transaction;
+                        delta = Boolean.TRUE.equals(s.getIsIn()) ? transaction.getValue() : -transaction.getValue();
+                    } else if (transaction instanceof Revolving) {
+                        Revolving r = (Revolving) transaction;
+                        delta = Boolean.TRUE.equals(r.getIsGive()) ? transaction.getValue() : -transaction.getValue();
+                    }
+
+                    bill.setAmountDue(Math.max(0.0, bill.getAmountDue() - delta));
                     resolveStatus(bill);
                     creditCardBillRepository.save(bill);
                 });

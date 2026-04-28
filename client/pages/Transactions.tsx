@@ -373,19 +373,19 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
       { label: 'Notes', value: 'notes', type: 'string' },
     ];
 
-    if (currentTab === 'expense') {
-      baseFields.push({
-        label: 'Payment Mode', value: 'payment_mode', type: 'string',
-        options: PAYMENT_MODES
-      });
-      baseFields.push({
-        label: 'Credit Card', value: 'credit_card.id', type: 'number',
-        fetchOptions: async (page) => {
-          const res = await api.getCreditCards();
-          return { data: res.data.map(c => ({ label: c.nickname, value: c.id!.toString() })), hasMore: false };
-        }
-      });
-    } else if (currentTab === 'saving') {
+    baseFields.push({
+      label: 'Payment Mode', value: 'payment_mode', type: 'string',
+      options: PAYMENT_MODES
+    });
+    baseFields.push({
+      label: 'Credit Card', value: 'credit_card.id', type: 'number',
+      fetchOptions: async (page) => {
+        const res = await api.getCreditCards();
+        return { data: res.data.map(c => ({ label: c.nickname, value: c.id!.toString() })), hasMore: false };
+      }
+    });
+
+    if (currentTab === 'saving') {
       baseFields.push({ label: 'Direction', value: 'is_in', type: 'boolean', options: SAVING_DIRECTIONS });
     } else if (currentTab === 'revolving') {
       baseFields.push({ label: 'Direction', value: 'is_give', type: 'boolean', options: REVOLVING_DIRECTIONS });
@@ -814,8 +814,8 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
                 <option value="subcategory">Sub-Category</option>
                 <option value="item">Item</option>
                 <option value="notes">Notes</option>
-                {currentTab === 'expense' && <option value="payment_mode">Payment Mode</option>}
-                {currentTab === 'expense' && <option value="credit_card">Credit Card</option>}
+                <option value="payment_mode">Payment Mode</option>
+                <option value="credit_card">Credit Card</option>
                 {currentTab === 'saving' && <option value="is_in">In/Out</option>}
                 {currentTab === 'revolving' && (
                   <>

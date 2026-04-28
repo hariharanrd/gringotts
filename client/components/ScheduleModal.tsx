@@ -62,9 +62,7 @@ const ScheduleModal: React.FC<Props> = ({ isOpen, onClose, schedule }) => {
         const cats = await api.getCategories(typeToUse);
         setCategories(cats);
 
-        if (typeToUse === TransactionType.EXPENSE) {
-          api.getCreditCards().then(res => setCreditCards(res.data));
-        }
+        api.getCreditCards().then(res => setCreditCards(res.data));
 
         if (schedule) {
           setForm({
@@ -105,9 +103,7 @@ const ScheduleModal: React.FC<Props> = ({ isOpen, onClose, schedule }) => {
     setCategories(cats);
     setSubCategories([]);
     setItems([]);
-    if (type === TransactionType.EXPENSE) {
-      api.getCreditCards().then(res => setCreditCards(res.data));
-    }
+    api.getCreditCards().then(res => setCreditCards(res.data));
   };
 
   const handleCategoryChange = async (catId: number) => {
@@ -340,20 +336,18 @@ const ScheduleModal: React.FC<Props> = ({ isOpen, onClose, schedule }) => {
                 </select>
               </div>
 
-              {form.transaction_type === TransactionType.EXPENSE && (
-                <div className="space-y-1.5">
-                  <label className="text-sm font-semibold text-slate-600 dark:text-slate-400 ml-1">Payment Mode</label>
-                  <select
-                    value={form.payment_mode}
-                    onChange={(e) => setForm(f => ({ ...f, payment_mode: e.target.value }))}
-                    className={inputClass}
-                  >
-                    {PAYMENT_MODES.map(pm => <option key={pm.value} value={pm.value} className="dark:bg-slate-900">{pm.label}</option>)}
-                  </select>
-                </div>
-              )}
+              <div className="space-y-1.5">
+                <label className="text-sm font-semibold text-slate-600 dark:text-slate-400 ml-1">Payment Mode</label>
+                <select
+                  value={form.payment_mode}
+                  onChange={(e) => setForm(f => ({ ...f, payment_mode: e.target.value }))}
+                  className={inputClass}
+                >
+                  {PAYMENT_MODES.map(pm => <option key={pm.value} value={pm.value} className="dark:bg-slate-900">{pm.label}</option>)}
+                </select>
+              </div>
 
-              {form.transaction_type === TransactionType.EXPENSE && form.payment_mode === 'CREDIT_CARD' && (
+              {form.payment_mode === 'CREDIT_CARD' && (
                 <div className="space-y-1.5 animate-in slide-in-from-top-2 duration-300">
                   <label className="text-sm font-semibold text-slate-600 dark:text-slate-400 ml-1">Select Credit Card</label>
                   <select

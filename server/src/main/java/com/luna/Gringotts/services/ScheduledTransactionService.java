@@ -136,7 +136,7 @@ public class ScheduledTransactionService {
                 e.setScheduleId(s.getId());
                 created = expenseRepository.save(e);
                 if ("CREDIT_CARD".equals(e.getPaymentMode()) && e.getCreditCard() != null) {
-                    creditCardService.addExpenseToBill(e);
+                    creditCardService.addTransactionToBill(e);
                 }
                 break;
             }
@@ -148,10 +148,15 @@ public class ScheduledTransactionService {
                 i.setCategory(s.getCategory());
                 i.setSubCategory(s.getSubCategory());
                 i.setItem(s.getItem());
+                i.setPaymentMode(s.getPaymentMode());
+                i.setCreditCard(s.getCreditCard());
                 i.setUser(owner);
                 i.setCreatedBy("SCHEDULE");
                 i.setScheduleId(s.getId());
                 created = incomeRepository.save(i);
+                if ("CREDIT_CARD".equals(i.getPaymentMode()) && i.getCreditCard() != null) {
+                    creditCardService.addTransactionToBill(i);
+                }
                 break;
             }
             case "SAVING": {
@@ -163,6 +168,8 @@ public class ScheduledTransactionService {
                 sv.setSubCategory(s.getSubCategory());
                 sv.setItem(s.getItem());
                 sv.setIsIn(s.getIsIn() != null ? s.getIsIn() : Boolean.TRUE);
+                sv.setPaymentMode(s.getPaymentMode());
+                sv.setCreditCard(s.getCreditCard());
                 sv.setUser(owner);
                 sv.setCreatedBy("SCHEDULE");
                 sv.setScheduleId(s.getId());
@@ -170,6 +177,9 @@ public class ScheduledTransactionService {
                 // adjust goals similar to TransactionService.saveSaving
                 double delta = Boolean.TRUE.equals(sv.getIsIn()) ? sv.getValue() : -sv.getValue();
                 investmentGoalService.adjustGoalsForSaving(sv, delta);
+                if ("CREDIT_CARD".equals(sv.getPaymentMode()) && sv.getCreditCard() != null) {
+                    creditCardService.addTransactionToBill(sv);
+                }
                 break;
             }
             default:

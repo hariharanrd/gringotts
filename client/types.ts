@@ -42,6 +42,8 @@ export interface Transaction {
   type: TransactionType;
   schedule_id?: number;
   created_by?: string;
+  payment_mode?: string;
+  credit_card?: CreditCard;
 }
 
 
@@ -189,7 +191,5 @@ export interface CreditCardBill {
 }
 
 export interface Expense extends Transaction {
-  payment_mode?: string;
-  credit_card?: CreditCard;
   type: TransactionType.EXPENSE;
 }
