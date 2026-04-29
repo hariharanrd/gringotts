@@ -4,12 +4,11 @@ This document is designed to help AI agents understand the structure and purpose
 
 ## Overview
 
-Gringotts is a multi-user, full-stack financial tracking application. It manages accounts, transactions (Income, Expense, Saving, Revolving), categorizations, and budgets with strict data isolation.
+Gringotts is a multi-user, full-stack financial tracking application. It manages accounts, transactions (Income, Expense, Saving, Revolving), categorizations, budgets, credit cards, scheduled automation, and investment goals with strict data isolation.
 
 The repository is a monorepo:
 - **`server/`**: Spring Boot backend (Java 21).
-- **`web-client/`**: React frontend (TypeScript + Vite).
-- **`android-client/`**: Android native app (Kotlin + Jetpack Compose).
+- **`client/`**: React frontend (TypeScript + Vite).
 
 ## Multi-User Architecture
 
@@ -46,6 +45,9 @@ The application implements strict multi-tenancy at the database level:
 - **Dynamic List Views**: Features a **Column Chooser** to toggle visibility of fields.
 - **Integrated Bulk Actions**: Field updates (Category, Notes, etc.) are integrated directly into the list headers for efficiency.
 - **Transaction Modal**: Supports cross-type updates (changing type mid-edit).
+- **Credit Card Management**: Tracks limits, statement dates, and billing cycles.
+- **Investment Planner**: Projects goal completion and integrates CSI auto-crediting.
+- **Automated Scheduling**: Recurring transactions powered by background workers.
 
 ## Workflows & Best Practices
 
