@@ -3,7 +3,6 @@
 target/*
 .idea/*
 .DS_Store
-*.md
 .vscode/*
 .env
 client/.vite/*
