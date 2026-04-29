@@ -1,4 +1,4 @@
-package com.luna.Gringotts.controlller;
+package com.luna.Gringotts.controller;
 
 import com.luna.Gringotts.records.Budget;
 import com.luna.Gringotts.services.BudgetService;
