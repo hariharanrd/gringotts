@@ -3,12 +3,14 @@ package com.luna.Gringotts.services;
 import com.luna.Gringotts.records.*;
 import com.luna.Gringotts.repository.CreditCardBillRepository;
 import com.luna.Gringotts.repository.CreditCardRepository;
+import com.luna.Gringotts.repository.TransactionRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.YearMonth;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -24,6 +26,9 @@ public class CreditCardService {
     @Autowired
     private IAMService iamService;
 
+    @Autowired
+    private TransactionRepository<Transaction> transactionRepository;
+
     // ── CRUD ──────────────────────────────────────────────────────────────────
 
     public List<Map<String, Object>> getAllCards() {
@@ -36,7 +41,24 @@ public class CreditCardService {
         CreditCard card = requireCard(id);
         Map<String, Object> dto = toDto(card);
         List<CreditCardBill> bills = creditCardBillRepository.findAllByCreditCardOrderByBillingYearDescBillingMonthDesc(card);
-        dto.put("bills", bills);
+        
+        List<Map<String, Object>> billDtos = bills.stream().map(bill -> {
+            Map<String, Object> billDto = new LinkedHashMap<>();
+            billDto.put("id", bill.getId());
+            billDto.put("billing_month", bill.getBillingMonth());
+            billDto.put("billing_year", bill.getBillingYear());
+            billDto.put("amount_due", bill.getAmountDue());
+            billDto.put("amount_paid", bill.getAmountPaid());
+            billDto.put("payment_status", bill.getPaymentStatus());
+            billDto.put("created_at", bill.getCreatedAt());
+
+            // Calculate category-wise spending
+            billDto.put("category_spending", getCategorySpendingForBill(card, bill));
+            
+            return billDto;
+        }).collect(Collectors.toList());
+
+        dto.put("bills", billDtos);
         return dto;
     }
 
@@ -105,19 +127,7 @@ public class CreditCardService {
                     return newBill;
                 });
 
-        double delta = 0;
-        if (transaction instanceof Expense) {
-            delta = transaction.getValue();
-        } else if (transaction instanceof Income) {
-            delta = -transaction.getValue();
-        } else if (transaction instanceof Saving) {
-            Saving s = (Saving) transaction;
-            delta = Boolean.TRUE.equals(s.getIsIn()) ? transaction.getValue() : -transaction.getValue();
-        } else if (transaction instanceof Revolving) {
-            Revolving r = (Revolving) transaction;
-            delta = Boolean.TRUE.equals(r.getIsGive()) ? transaction.getValue() : -transaction.getValue();
-        }
-
+        double delta = getTransactionDelta(transaction);
         bill.setAmountDue(bill.getAmountDue() + delta);
         resolveStatus(bill);
         creditCardBillRepository.save(bill);
@@ -131,23 +141,32 @@ public class CreditCardService {
         Cycle cycle = getBillingCycle(card, transaction.getTransactionTime());
         creditCardBillRepository.findByCreditCardAndBillingMonthAndBillingYear(card, cycle.month, cycle.year)
                 .ifPresent(bill -> {
-                    double delta = 0;
-                    if (transaction instanceof Expense) {
-                        delta = transaction.getValue();
-                    } else if (transaction instanceof Income) {
-                        delta = -transaction.getValue();
-                    } else if (transaction instanceof Saving) {
-                        Saving s = (Saving) transaction;
-                        delta = Boolean.TRUE.equals(s.getIsIn()) ? transaction.getValue() : -transaction.getValue();
-                    } else if (transaction instanceof Revolving) {
-                        Revolving r = (Revolving) transaction;
-                        delta = Boolean.TRUE.equals(r.getIsGive()) ? transaction.getValue() : -transaction.getValue();
-                    }
-
+                    double delta = getTransactionDelta(transaction);
                     bill.setAmountDue(Math.max(0.0, bill.getAmountDue() - delta));
                     resolveStatus(bill);
                     creditCardBillRepository.save(bill);
                 });
+    }
+
+    @Transactional
+    public void resyncBills(Long cardId) {
+        CreditCard card = requireCard(cardId);
+        List<CreditCardBill> bills = creditCardBillRepository.findAllByCreditCardOrderByBillingYearDescBillingMonthDesc(card);
+        
+        for (CreditCardBill bill : bills) {
+            LocalDateTime[] range = getCycleStartAndEnd(card, bill.getBillingMonth(), bill.getBillingYear());
+            List<Transaction> txns = transactionRepository.findByUserAndCreditCardAndTransactionTimeBetween(
+                    iamService.getCurrentUser(), card, range[0], range[1]);
+            
+            double totalDue = 0;
+            for (Transaction t : txns) {
+                totalDue += getTransactionDelta(t);
+            }
+            
+            bill.setAmountDue(Math.max(0.0, totalDue));
+            resolveStatus(bill);
+            creditCardBillRepository.save(bill);
+        }
     }
 
     private void resolveStatus(CreditCardBill bill) {
@@ -172,10 +191,10 @@ public class CreditCardService {
         int month = date.getMonthValue();
         int year = date.getYear();
 
-        if (day > card.getBillingDate()) {
-            // Belongs to previous cycle
+        if (day >= card.getBillingDate()) {
+            // Belongs to next cycle
             month++;
-            if (month == 12) {
+            if (month > 12) {
                 month = 1;
                 year++;
             }
@@ -285,6 +304,59 @@ public class CreditCardService {
         status.put("label", "Next Bill");
         status.put("date", card.getBillingDate());
         return status;
+    }
+
+    private List<Map<String, Object>> getCategorySpendingForBill(CreditCard card, CreditCardBill bill) {
+        LocalDateTime[] range = getCycleStartAndEnd(card, bill.getBillingMonth(), bill.getBillingYear());
+        List<Transaction> txns = transactionRepository.findByUserAndCreditCardAndTransactionTimeBetween(
+                iamService.getCurrentUser(), card, range[0], range[1]);
+
+        Map<String, Double> spendingMap = new HashMap<>();
+        for (Transaction t : txns) {
+            String categoryName = (t.getCategory() != null) ? t.getCategory().getName() : "Uncategorized";
+            double value = t.getValue();
+            
+            // For credit cards, Expenses increase the due amount, Incomes/Payments decrease it
+            // We want to show spending, so we focus on positive values (Expenses)
+            // But let's follow the same delta logic as addTransactionToBill
+            double delta = getTransactionDelta(t);
+            if (delta > 0) { // Only count spending
+                spendingMap.put(categoryName, spendingMap.getOrDefault(categoryName, 0.0) + delta);
+            }
+        }
+
+        return spendingMap.entrySet().stream()
+                .map(entry -> {
+                    Map<String, Object> item = new LinkedHashMap<>();
+                    item.put("name", entry.getKey());
+                    item.put("value", entry.getValue());
+                    return item;
+                })
+                .sorted((a, b) -> Double.compare((Double) b.get("value"), (Double) a.get("value")))
+                .collect(Collectors.toList());
+    }
+
+    private LocalDateTime[] getCycleStartAndEnd(CreditCard card, int month, int year) {
+        YearMonth ym = YearMonth.of(year, month);
+        int day = Math.min(card.getBillingDate(), ym.lengthOfMonth());
+        
+        // Cycle ends at 23:59:59 of the day BEFORE the billing date
+        LocalDateTime end = LocalDateTime.of(year, month, day, 0, 0, 0).minusSeconds(1);
+        
+        // Cycle starts at 00:00:00 of the billing date in the previous month
+        YearMonth prevYm = ym.minusMonths(1);
+        int prevDay = Math.min(card.getBillingDate(), prevYm.lengthOfMonth());
+        LocalDateTime start = LocalDateTime.of(prevYm.getYear(), prevYm.getMonthValue(), prevDay, 0, 0, 0);
+        
+        return new LocalDateTime[]{start, end};
+    }
+
+    private double getTransactionDelta(Transaction t) {
+        if (t instanceof Expense) return t.getValue();
+        if (t instanceof Income) return -t.getValue();
+        if (t instanceof Saving) return Boolean.TRUE.equals(((Saving) t).getIsIn()) ? t.getValue() : -t.getValue();
+        if (t instanceof Revolving) return Boolean.TRUE.equals(((Revolving) t).getIsGive()) ? t.getValue() : -t.getValue();
+        return 0;
     }
 
     private CreditCard requireCard(Long id) {

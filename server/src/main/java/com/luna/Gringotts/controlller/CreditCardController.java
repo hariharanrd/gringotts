@@ -96,4 +96,16 @@ public class CreditCardController {
             return ResponseEntity.status(403).body(Map.of("error", e.getMessage()));
         }
     }
+
+    @PostMapping("/{id}/resync")
+    public ResponseEntity<Map<String, Object>> resyncBills(@PathVariable Long id) {
+        try {
+            creditCardService.resyncBills(id);
+            return ResponseEntity.ok(Map.of("status", "success"));
+        } catch (NoSuchElementException e) {
+            return ResponseEntity.status(404).body(Map.of("error", e.getMessage()));
+        } catch (SecurityException e) {
+            return ResponseEntity.status(403).body(Map.of("error", e.getMessage()));
+        }
+    }
 }

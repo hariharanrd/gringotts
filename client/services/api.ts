@@ -1,5 +1,5 @@
 
-import { Transaction, Expense, Income, Saving, Revolving, Category, SubCategory, Item, TransactionType, Budget, BudgetUtilization, InvestmentGoal, CreditCard, CreditCardBill } from '../types';
+import { Transaction, Expense, Income, Saving, Revolving, Category, SubCategory, Item, TransactionType, Budget, BudgetUtilization, InvestmentGoal, CreditCard, CreditCardBill, TimeRange } from '../types';
 
 const BASE_URL = "/api/v1";
 
@@ -67,8 +67,8 @@ export const api = {
 
   // Transaction API Start
 
-  getSummary: async (days: number = 30): Promise<any> => {
-    const response = await fetchWithCredentials(`${BASE_URL}/summary?days=${days}`);
+  getSummary: async (range: TimeRange = TimeRange.LAST_30_DAYS): Promise<any> => {
+    const response = await fetchWithCredentials(`${BASE_URL}/summary?range=${range}`);
     return handleResponse(response);
   },
 
@@ -560,6 +560,12 @@ export const api = {
     const response = await fetchWithCredentials(`${BASE_URL}/credit-cards/bills/${billId}`, {
       method: 'PUT',
       body: JSON.stringify({ amount_paid: amountPaid }),
+    });
+    await handleResponse(response);
+  },
+  resyncCreditCardBills: async (id: number) => {
+    const response = await fetchWithCredentials(`${BASE_URL}/credit-cards/${id}/resync`, {
+      method: 'POST',
     });
     await handleResponse(response);
   },

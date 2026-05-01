@@ -10,8 +10,21 @@ import {
   Clock,
   ShieldCheck,
   AlertTriangle,
-  ExternalLink
+  ExternalLink,
+  PieChart as PieChartIcon,
+  BarChart3,
+  RefreshCw
 } from 'lucide-react';
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  Cell,
+  CartesianGrid
+} from 'recharts';
 import { api } from '../services/api';
 import { CreditCard, CreditCardBill } from '../types';
 import { useToast } from '../components/ToastContext';
@@ -55,6 +68,53 @@ const CARD_THEMES = [
   }
 ];
 
+const PIE_COLORS = ['#06b6d4', '#10b981', '#8b5cf6', '#f43f5e', '#f59e0b', '#ec4899', '#14b8a6', '#a855f7'];
+
+const CategorySpendingChart: React.FC<{ data: { name: string; value: number }[] }> = ({ data }) => {
+  if (!data || data.length === 0) return null;
+
+  return (
+    <div className="h-[200px] w-full mt-6 pt-6 border-t border-slate-100 dark:border-slate-800/50">
+      <div className="flex items-center gap-2 mb-4">
+        <BarChart3 className="w-3.5 h-3.5 text-slate-400" />
+        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Spending Breakdown</span>
+      </div>
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart data={data} layout="vertical" margin={{ left: -20, right: 20 }}>
+          <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="rgba(148,163,184,0.1)" />
+          <XAxis type="number" hide />
+          <YAxis
+            type="category"
+            dataKey="name"
+            axisLine={false}
+            tickLine={false}
+            tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 700 }}
+            width={100}
+          />
+          <Tooltip
+            cursor={{ fill: 'rgba(148,163,184,0.05)' }}
+            contentStyle={{
+              borderRadius: '12px',
+              border: 'none',
+              backgroundColor: 'rgba(15,23,42,0.9)',
+              boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)',
+              padding: '8px 12px'
+            }}
+            itemStyle={{ color: '#fff', fontSize: '10px', fontWeight: 900 }}
+            labelStyle={{ display: 'none' }}
+            formatter={(value: number) => [`₹${value.toLocaleString()}`, 'Spent']}
+          />
+          <Bar dataKey="value" radius={[0, 4, 4, 0]} maxBarSize={16}>
+            {data.map((_, index) => (
+              <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
+            ))}
+          </Bar>
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  );
+};
+
 const CreditCardDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -62,6 +122,7 @@ const CreditCardDetails: React.FC = () => {
   const [card, setCard] = useState<CreditCard | null>(null);
   const [bills, setBills] = useState<CreditCardBill[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isResyncing, setIsResyncing] = useState(false);
   const [settleAmounts, setSettleAmounts] = useState<Record<number, string>>({});
 
   const fetchCardDetails = async () => {
@@ -96,6 +157,21 @@ const CreditCardDetails: React.FC = () => {
     } catch (error) {
       console.error("Failed to update payment:", error);
       showToast("Failed to update payment", "error");
+    }
+  };
+  
+  const handleResync = async () => {
+    if (!id) return;
+    setIsResyncing(true);
+    try {
+      await api.resyncCreditCardBills(Number(id));
+      showToast("Bills resynced successfully", "success");
+      fetchCardDetails();
+    } catch (error) {
+      console.error("Failed to resync bills:", error);
+      showToast("Failed to resync bills", "error");
+    } finally {
+      setIsResyncing(false);
     }
   };
 
@@ -289,8 +365,18 @@ const CreditCardDetails: React.FC = () => {
             </div>
             <h3 className="text-xl font-black text-slate-900 dark:text-white tracking-tight">Full Billing History</h3>
           </div>
-          <div className="text-xs font-bold text-slate-400 uppercase tracking-widest">
-            {bills.length} Statements Found
+          <div className="flex items-center gap-4">
+            <button
+              onClick={handleResync}
+              disabled={isResyncing}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 text-[10px] font-black uppercase tracking-widest transition-all ${isResyncing ? 'bg-slate-50 dark:bg-slate-800/50 text-slate-400 cursor-not-allowed' : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 active:scale-95'}`}
+            >
+              <RefreshCw className={`w-3 h-3 ${isResyncing ? 'animate-spin' : ''}`} />
+              {isResyncing ? 'Resyncing...' : 'Resync History'}
+            </button>
+            <div className="text-xs font-bold text-slate-400 uppercase tracking-widest">
+              {bills.length} Statements Found
+            </div>
           </div>
         </div>
 
@@ -445,6 +531,13 @@ const CreditCardDetails: React.FC = () => {
                         )}
                       </div>
                     </div>
+
+                    {/* Chart Section */}
+                    {bill.category_spending && bill.category_spending.length > 0 && (
+                      <div className="px-6 md:px-8 pb-8">
+                        <CategorySpendingChart data={bill.category_spending} />
+                      </div>
+                    )}
                   </div>
                 );
               })}

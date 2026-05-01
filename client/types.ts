@@ -1,4 +1,14 @@
 
+export enum TimeRange {
+  LAST_WEEK = 'LAST_WEEK',
+  LAST_30_DAYS = 'LAST_30_DAYS',
+  LAST_90_DAYS = 'LAST_90_DAYS',
+  THIS_MONTH = 'THIS_MONTH',
+  PREVIOUS_MONTH = 'PREVIOUS_MONTH',
+  THIS_YEAR = 'THIS_YEAR',
+  LAST_YEAR = 'LAST_YEAR'
+}
+
 export enum TransactionType {
   EXPENSE = 'EXPENSE',
   INCOME = 'INCOME',
@@ -189,6 +199,7 @@ export interface CreditCardBill {
   amount_paid: number;
   payment_status: 'PAID' | 'UNPAID' | 'PARTIALLY_PAID';
   created_at?: string;
+  category_spending?: { name: string; value: number }[];
 }
 
 export interface Expense extends Transaction {

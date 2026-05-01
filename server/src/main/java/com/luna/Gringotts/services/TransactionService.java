@@ -23,6 +23,8 @@ import org.springframework.transaction.annotation.Transactional;
 import com.luna.Gringotts.repository.TransactionSpecification;
 
 import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.temporal.TemporalAdjusters;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -414,13 +416,14 @@ public class TransactionService {
         return revolvingRepository.findAll(example);
     }
 
-    public Map<String, Object> getSummary(int days) {
-        LocalDateTime since = LocalDateTime.now().minusDays(days);
+    public Map<String, Object> getSummary(TimeRange range) {
+        LocalDateTime start = range.getFrom();
+        LocalDateTime end = range.getTo();
         User user = iamService.getCurrentUser();
 
-        List<Expense> expenses = expenseRepository.findByUserAndTransactionTimeAfter(user, since);
-        List<Income> incomes = incomeRepository.findByUserAndTransactionTimeAfter(user, since);
-        List<Saving> savings = savingRepository.findByUserAndTransactionTimeAfter(user, since);
+        List<Expense> expenses = expenseRepository.findByUserAndTransactionTimeBetween(user, start, end);
+        List<Income> incomes = incomeRepository.findByUserAndTransactionTimeBetween(user, start, end);
+        List<Saving> savings = savingRepository.findByUserAndTransactionTimeBetween(user, start, end);
 
         double totalExpenses = expenses.stream().mapToDouble(Transaction::getValue).sum();
         double totalIncomes = incomes.stream().mapToDouble(Transaction::getValue).sum();
@@ -447,7 +450,7 @@ public class TransactionService {
         allTransactions.addAll(incomes);
         allTransactions.addAll(savings);
 
-        List<Revolving> revolvings = revolvingRepository.findByUserAndTransactionTimeAfter(user, since);
+        List<Revolving> revolvings = revolvingRepository.findByUserAndTransactionTimeBetween(user, start, end);
         allTransactions.addAll(revolvings);
 
         // Open Revolvings Summary (All-time balance)
@@ -465,13 +468,15 @@ public class TransactionService {
         List<Transaction> recentTransactions = allTransactions.stream().limit(10).collect(Collectors.toList());
 
         Map<String, Object> summary = new LinkedHashMap<>();
-        summary.put("days", days);
+        summary.put("range", range.name());
+        summary.put("start_date", start);
+        summary.put("end_date", end);
         summary.put("total_expenses", totalExpenses);
         summary.put("total_incomes", totalIncomes);
         summary.put("total_savings", totalSavings);
         summary.put("total_i_owe", totalIOwe);
         summary.put("total_others_owe_me", totalOthersOweMe);
-        summary.put("net_balance", totalIncomes - totalExpenses);
+        summary.put("net_balance", totalIncomes - totalExpenses - totalSavings - totalOthersOweMe + totalIOwe);
         summary.put("expense_count", expenses.size());
         summary.put("income_count", incomes.size());
         summary.put("saving_count", savings.size());
