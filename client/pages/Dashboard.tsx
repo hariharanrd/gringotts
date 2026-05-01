@@ -9,7 +9,8 @@ import {
   PiggyBank,
   HeartHandshake,
   CircleDollarSign,
-  ChevronDown
+  ChevronDown,
+  Info
 } from 'lucide-react';
 
 import {
@@ -274,6 +275,7 @@ const Dashboard: React.FC = () => {
           accentTo="to-blue-600"
           glow="shadow-cyan-500/15"
           highlight={summary.net_balance >= 0 ? 'text-emerald-500 dark:text-emerald-400' : 'text-rose-500 dark:text-rose-400'}
+          info="Net balance = Total Incomes - Total Expenses - Total Savings - Total Lent + Total Borrowed"
         />
       </div>
 
@@ -494,9 +496,10 @@ interface StatCardProps {
   glow: string;
   count?: number;
   highlight?: string;
+  info?: string;
 }
 
-const StatCard: React.FC<StatCardProps> = ({ label, value, icon: Icon, accentFrom, accentTo, glow, count, highlight }) => (
+const StatCard: React.FC<StatCardProps> = ({ label, value, icon: Icon, accentFrom, accentTo, glow, count, highlight, info }) => (
   <div className={`glass-card rounded-2xl p-5 group hover:border-slate-300 dark:hover:border-slate-600/30 transition-all duration-300 ${glow}`}>
     <div className="flex items-center justify-between mb-3">
       <div className={`bg-gradient-to-br ${accentFrom} ${accentTo} p-2 rounded-xl shadow-lg ${glow} transition-transform group-hover:scale-110 duration-300`}>
@@ -506,7 +509,18 @@ const StatCard: React.FC<StatCardProps> = ({ label, value, icon: Icon, accentFro
         <span className="text-[11px] text-slate-400 dark:text-slate-500 font-medium">{count} txn{count !== 1 ? 's' : ''}</span>
       )}
     </div>
-    <p className="text-slate-500 dark:text-slate-400 text-xs font-medium uppercase tracking-wider">{label}</p>
+    <div className="flex items-center gap-1.5">
+      <p className="text-slate-500 dark:text-slate-400 text-xs font-medium uppercase tracking-wider">{label}</p>
+      {info && (
+        <div className="group/info relative">
+          <Info className="w-3 h-3 text-slate-400 dark:text-slate-600 cursor-help" />
+          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover/info:block w-48 p-2.5 bg-slate-900/90 dark:bg-slate-800 backdrop-blur-md text-[10px] text-slate-200 dark:text-slate-300 rounded-xl shadow-2xl border border-slate-700/50 z-50 animate-in fade-in zoom-in-95 duration-200">
+            {info}
+            <div className="absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-slate-900/90 dark:border-t-slate-800"></div>
+          </div>
+        </div>
+      )}
+    </div>
     <p className={`text-xl font-bold mt-1 ${highlight || 'text-slate-900 dark:text-white'}`}>{value}</p>
   </div>
 );
