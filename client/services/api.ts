@@ -563,6 +563,12 @@ export const api = {
     });
     await handleResponse(response);
   },
+  resyncCreditCardBills: async (id: number) => {
+    const response = await fetchWithCredentials(`${BASE_URL}/credit-cards/${id}/resync`, {
+      method: 'POST',
+    });
+    await handleResponse(response);
+  },
   // Credit Card API End
 };
 

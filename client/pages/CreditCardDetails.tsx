@@ -12,7 +12,8 @@ import {
   AlertTriangle,
   ExternalLink,
   PieChart as PieChartIcon,
-  BarChart3
+  BarChart3,
+  RefreshCw
 } from 'lucide-react';
 import {
   BarChart,
@@ -121,6 +122,7 @@ const CreditCardDetails: React.FC = () => {
   const [card, setCard] = useState<CreditCard | null>(null);
   const [bills, setBills] = useState<CreditCardBill[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isResyncing, setIsResyncing] = useState(false);
   const [settleAmounts, setSettleAmounts] = useState<Record<number, string>>({});
 
   const fetchCardDetails = async () => {
@@ -155,6 +157,21 @@ const CreditCardDetails: React.FC = () => {
     } catch (error) {
       console.error("Failed to update payment:", error);
       showToast("Failed to update payment", "error");
+    }
+  };
+  
+  const handleResync = async () => {
+    if (!id) return;
+    setIsResyncing(true);
+    try {
+      await api.resyncCreditCardBills(Number(id));
+      showToast("Bills resynced successfully", "success");
+      fetchCardDetails();
+    } catch (error) {
+      console.error("Failed to resync bills:", error);
+      showToast("Failed to resync bills", "error");
+    } finally {
+      setIsResyncing(false);
     }
   };
 
@@ -348,8 +365,18 @@ const CreditCardDetails: React.FC = () => {
             </div>
             <h3 className="text-xl font-black text-slate-900 dark:text-white tracking-tight">Full Billing History</h3>
           </div>
-          <div className="text-xs font-bold text-slate-400 uppercase tracking-widest">
-            {bills.length} Statements Found
+          <div className="flex items-center gap-4">
+            <button
+              onClick={handleResync}
+              disabled={isResyncing}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 text-[10px] font-black uppercase tracking-widest transition-all ${isResyncing ? 'bg-slate-50 dark:bg-slate-800/50 text-slate-400 cursor-not-allowed' : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 active:scale-95'}`}
+            >
+              <RefreshCw className={`w-3 h-3 ${isResyncing ? 'animate-spin' : ''}`} />
+              {isResyncing ? 'Resyncing...' : 'Resync History'}
+            </button>
+            <div className="text-xs font-bold text-slate-400 uppercase tracking-widest">
+              {bills.length} Statements Found
+            </div>
           </div>
         </div>
 
