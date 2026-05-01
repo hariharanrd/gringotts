@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import {
   HandCoins,
   Plus,
@@ -15,6 +15,54 @@ import { Budget, BudgetCategoryAllocation, Category, BudgetUtilization } from '.
 import { useToast } from '../components/ToastContext';
 import ConfirmationDialog from '../components/ConfirmationDialog';
 import CategoryIcon from '../components/CategoryIcon';
+
+const BudgetCard: React.FC<{
+  budget: Budget;
+  isSelected: boolean;
+  onSelect: () => void;
+  onEdit: () => void;
+  onDelete: () => void;
+  isEditing: boolean;
+}> = ({ budget, isSelected, onSelect, onEdit, onDelete, isEditing }) => {
+  return (
+    <div
+      onClick={onSelect}
+      className={`
+        group p-4 rounded-2xl border transition-all cursor-pointer relative overflow-hidden
+        ${isSelected
+          ? 'bg-white dark:bg-slate-900 border-cyan-500/50 shadow-xl shadow-cyan-500/5 ring-1 ring-cyan-500/20'
+          : 'bg-white/50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'}
+        ${isEditing ? 'opacity-50 pointer-events-none' : ''}
+      `}
+    >
+      {budget.is_master && (
+        <div className="absolute top-0 right-0 p-1.5 bg-cyan-500 text-white transform rotate-0 rounded-bl-xl shadow-lg">
+          <HandCoins className="w-3 h-3" />
+        </div>
+      )}
+      <div className="flex items-center justify-between mb-2">
+        <span className={`text-[10px] font-bold uppercase tracking-widest ${budget.is_master ? 'text-cyan-500' : 'text-slate-400'}`}>
+          {budget.is_master ? 'Master Template' : `${budget.year} • Month ${budget.month}`}
+        </span>
+        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          <button onClick={(e) => { e.stopPropagation(); onEdit(); }} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 hover:text-cyan-500 transition-colors">
+            <Edit2 className="w-3.5 h-3.5" />
+          </button>
+          {!budget.is_master && (
+            <button onClick={(e) => { e.stopPropagation(); onDelete(); }} className="p-1.5 hover:bg-rose-100 dark:hover:bg-rose-900/30 rounded-lg text-slate-400 hover:text-rose-500 transition-colors">
+              <Trash2 className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
+      </div>
+      <h4 className="font-bold text-slate-900 dark:text-white truncate pr-6">{budget.name}</h4>
+      <div className="flex items-baseline gap-1 mt-2">
+        <span className="text-lg font-bold text-slate-800 dark:text-slate-200">₹{(budget.total_amount || 0).toLocaleString()}</span>
+        <span className="text-xs text-slate-400">allocated</span>
+      </div>
+    </div>
+  );
+};
 
 const BudgetPage: React.FC = () => {
   const [budgets, setBudgets] = useState<Budget[]>([]);
@@ -58,7 +106,28 @@ const BudgetPage: React.FC = () => {
 
       if (newBudgets.length > 0) {
         const idToSelect = selectId || selectedBudget?.id;
-        const updatedSelection = newBudgets.find((b: Budget) => b.id === idToSelect) || newBudgets[0];
+        
+        const now = new Date();
+        const currentMonth = now.getMonth() + 1;
+        const currentYear = now.getFullYear();
+
+        let updatedSelection = newBudgets.find((b: Budget) => b.id === idToSelect);
+        
+        if (!updatedSelection) {
+          // If no explicit selection, look for current month budget
+          updatedSelection = newBudgets.find((b: Budget) => b.month === currentMonth && b.year === currentYear);
+        }
+        
+        if (!updatedSelection) {
+          // If still no selection, look for master budget
+          updatedSelection = newBudgets.find((b: Budget) => b.is_master);
+        }
+        
+        if (!updatedSelection) {
+          // Fallback to first available
+          updatedSelection = newBudgets[0];
+        }
+
         setSelectedBudget(updatedSelection);
       }
     } catch (error) {
@@ -203,6 +272,39 @@ const BudgetPage: React.FC = () => {
   const totalAllocated = formData.allocations?.reduce((sum, a) => sum + a.allocated_amount, 0) || 0;
   const isOverAllocated = totalAllocated > (formData.total_amount || 0);
 
+  const groupedBudgets = useMemo(() => {
+    const now = new Date();
+    const currentMonth = now.getMonth() + 1;
+    const currentYear = now.getFullYear();
+
+    const sections = {
+      active: [] as Budget[],
+      master: [] as Budget[],
+      past: [] as Budget[],
+      future: [] as Budget[]
+    };
+
+    budgets.forEach(b => {
+      if (b.is_master) {
+        sections.master.push(b);
+      } else if (b.year === currentYear && b.month === currentMonth) {
+        sections.active.push(b);
+      } else if (b.year! < currentYear || (b.year === currentYear && b.month! < currentMonth)) {
+        sections.past.push(b);
+      } else {
+        sections.future.push(b);
+      }
+    });
+
+    // Sort past budgets by year/month descending
+    sections.past.sort((a, b) => {
+      if (b.year !== a.year) return b.year! - a.year!;
+      return b.month! - a.month!;
+    });
+
+    return sections;
+  }, [budgets]);
+
   if (loading && budgets.length === 0) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -245,49 +347,89 @@ const BudgetPage: React.FC = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Sidebar: Budget List */}
-        <div className="lg:col-span-1 space-y-4">
-          <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider ml-1">Templates & Versions</h3>
-          <div className="space-y-2">
-            {budgets.map(budget => (
-              <div
-                key={budget.id}
-                onClick={() => !isEditing && setSelectedBudget(budget)}
-                className={`
-                  group p-4 rounded-2xl border transition-all cursor-pointer relative overflow-hidden
-                  ${selectedBudget?.id === budget.id
-                    ? 'bg-white dark:bg-slate-900 border-cyan-500/50 shadow-xl shadow-cyan-500/5 ring-1 ring-cyan-500/20'
-                    : 'bg-white/50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'}
-                  ${isEditing ? 'opacity-50 pointer-events-none' : ''}
-                `}
-              >
-                {budget.is_master && (
-                  <div className="absolute top-0 right-0 p-1.5 bg-cyan-500 text-white transform rotate-0 rounded-bl-xl shadow-lg">
-                    <HandCoins className="w-3 h-3" />
-                  </div>
-                )}
-                <div className="flex items-center justify-between mb-2">
-                  <span className={`text-[10px] font-bold uppercase tracking-widest ${budget.is_master ? 'text-cyan-500' : 'text-slate-400'}`}>
-                    {budget.is_master ? 'Master Template' : `${budget.year} • Month ${budget.month}`}
-                  </span>
-                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button onClick={(e) => { e.stopPropagation(); handleEdit(budget); }} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 hover:text-cyan-500 transition-colors">
-                      <Edit2 className="w-3.5 h-3.5" />
-                    </button>
-                    {!budget.is_master && (
-                      <button onClick={(e) => { e.stopPropagation(); handleDelete(budget.id!); }} className="p-1.5 hover:bg-rose-100 dark:hover:bg-rose-900/30 rounded-lg text-slate-400 hover:text-rose-500 transition-colors">
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    )}
-                  </div>
-                </div>
-                <h4 className="font-bold text-slate-900 dark:text-white truncate pr-6">{budget.name}</h4>
-                <div className="flex items-baseline gap-1 mt-2">
-                  <span className="text-lg font-bold text-slate-800 dark:text-slate-200">₹{(budget.total_amount || 0).toLocaleString()}</span>
-                  <span className="text-xs text-slate-400">allocated</span>
-                </div>
+        <div className="lg:col-span-1 space-y-6">
+          {/* Active Budget Section */}
+          {groupedBudgets.active.length > 0 && (
+            <div className="space-y-3">
+              <h3 className="text-xs font-bold text-cyan-600/60 dark:text-cyan-400/60 uppercase tracking-widest ml-1 flex items-center gap-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-cyan-500 animate-pulse" />
+                Current Budget
+              </h3>
+              <div className="space-y-2">
+                {groupedBudgets.active.map(budget => (
+                  <BudgetCard
+                    key={budget.id}
+                    budget={budget}
+                    isSelected={selectedBudget?.id === budget.id}
+                    onSelect={() => !isEditing && setSelectedBudget(budget)}
+                    onEdit={() => handleEdit(budget)}
+                    onDelete={() => handleDelete(budget.id!)}
+                    isEditing={isEditing}
+                  />
+                ))}
               </div>
-            ))}
-          </div>
+            </div>
+          )}
+
+          {/* Master Template Section */}
+          {groupedBudgets.master.length > 0 && (
+            <div className="space-y-3">
+              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Master Template</h3>
+              <div className="space-y-2">
+                {groupedBudgets.master.map(budget => (
+                  <BudgetCard
+                    key={budget.id}
+                    budget={budget}
+                    isSelected={selectedBudget?.id === budget.id}
+                    onSelect={() => !isEditing && setSelectedBudget(budget)}
+                    onEdit={() => handleEdit(budget)}
+                    onDelete={() => handleDelete(budget.id!)}
+                    isEditing={isEditing}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Upcoming Budgets Section */}
+          {groupedBudgets.future.length > 0 && (
+            <div className="space-y-3">
+              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Upcoming</h3>
+              <div className="space-y-2">
+                {groupedBudgets.future.map(budget => (
+                  <BudgetCard
+                    key={budget.id}
+                    budget={budget}
+                    isSelected={selectedBudget?.id === budget.id}
+                    onSelect={() => !isEditing && setSelectedBudget(budget)}
+                    onEdit={() => handleEdit(budget)}
+                    onDelete={() => handleDelete(budget.id!)}
+                    isEditing={isEditing}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Past Budgets Section */}
+          {groupedBudgets.past.length > 0 && (
+            <div className="space-y-3">
+              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Past Budgets</h3>
+              <div className="space-y-2">
+                {groupedBudgets.past.map(budget => (
+                  <BudgetCard
+                    key={budget.id}
+                    budget={budget}
+                    isSelected={selectedBudget?.id === budget.id}
+                    onSelect={() => !isEditing && setSelectedBudget(budget)}
+                    onEdit={() => handleEdit(budget)}
+                    onDelete={() => handleDelete(budget.id!)}
+                    isEditing={isEditing}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Main Content Area */}
