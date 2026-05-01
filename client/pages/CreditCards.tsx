@@ -10,7 +10,8 @@ import {
   Calendar,
   ShieldCheck,
   ExternalLink,
-  Maximize2
+  Maximize2,
+  Info
 } from 'lucide-react';
 import { api } from '../services/api';
 import { CreditCard } from '../types';
@@ -417,7 +418,16 @@ const CreditCards: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Billing Date</label>
+                  <div className="flex items-center gap-1.5 ml-1">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Billing Date</label>
+                    <div className="relative group/tooltip">
+                      <Info className="w-3.5 h-3.5 text-slate-300 dark:text-slate-600 cursor-help transition-colors hover:text-cyan-500" />
+                      <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-3 w-56 p-3 bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-[10px] leading-relaxed rounded-2xl opacity-0 group-hover/tooltip:opacity-100 transition-all pointer-events-none z-[70] shadow-2xl border border-white/10 dark:border-slate-200 translate-y-2 group-hover/tooltip:translate-y-0">
+                        <p className="font-black mb-1 text-cyan-400 dark:text-cyan-600 uppercase tracking-tighter">How cycles are calculated</p>
+                        Cycle starts on the selected billing date and ends on the day before the next billing date.
+                      </div>
+                    </div>
+                  </div>
                   <select
                     className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-2xl focus:ring-2 focus:ring-cyan-500/40 outline-none text-sm font-semibold text-slate-900 dark:text-white"
                     value={formData.billing_date}
