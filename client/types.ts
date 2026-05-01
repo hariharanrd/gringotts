@@ -1,4 +1,14 @@
 
+export enum TimeRange {
+  LAST_WEEK = 'LAST_WEEK',
+  LAST_30_DAYS = 'LAST_30_DAYS',
+  LAST_90_DAYS = 'LAST_90_DAYS',
+  THIS_MONTH = 'THIS_MONTH',
+  PREVIOUS_MONTH = 'PREVIOUS_MONTH',
+  THIS_YEAR = 'THIS_YEAR',
+  LAST_YEAR = 'LAST_YEAR'
+}
+
 export enum TransactionType {
   EXPENSE = 'EXPENSE',
   INCOME = 'INCOME',

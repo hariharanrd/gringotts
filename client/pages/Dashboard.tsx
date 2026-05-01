@@ -8,7 +8,8 @@ import {
   Target,
   PiggyBank,
   HeartHandshake,
-  CircleDollarSign
+  CircleDollarSign,
+  ChevronDown
 } from 'lucide-react';
 
 import {
@@ -27,7 +28,7 @@ import { api } from '../services/api';
 import { TransactionType } from '../types';
 import { useTheme } from '../components/ThemeContext';
 import { DashboardSkeleton } from '../components/Skeleton';
-import { BudgetUtilization } from '../types';
+import { BudgetUtilization, TimeRange } from '../types';
 import { useNavigate } from 'react-router-dom';
 import CategoryIcon from '../components/CategoryIcon';
 
@@ -35,7 +36,9 @@ import CategoryIcon from '../components/CategoryIcon';
 const PIE_COLORS = ['#06b6d4', '#10b981', '#8b5cf6', '#f43f5e', '#f59e0b', '#ec4899', '#14b8a6', '#a855f7'];
 
 interface SummaryData {
-  days: number;
+  range: string;
+  start_date: string;
+  end_date: string;
   total_expenses: number;
   total_incomes: number;
   total_savings: number;
@@ -67,12 +70,26 @@ const Dashboard: React.FC = () => {
   const { theme } = useTheme();
   // Fetch full categories list for dashboard charts so they have icons
   const [categories, setCategories] = useState<any[]>([]);
+  const [range, setRange] = useState<TimeRange>(() => {
+    const saved = localStorage.getItem('dashboard_range');
+    return (saved as TimeRange) || TimeRange.LAST_30_DAYS;
+  });
+
+  const fetchSummary = async (selectedRange: TimeRange) => {
+    try {
+      const summaryData = await api.getSummary(selectedRange);
+      setSummary(summaryData);
+    } catch (err) {
+      console.error('Failed to fetch summary:', err);
+      setError('Failed to load summary data');
+    }
+  };
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         const [summaryData, budgetData, categoriesData] = await Promise.all([
-          api.getSummary(30),
+          api.getSummary(range),
           api.getActiveBudgetUtilization().catch(() => null),
           api.getCategories()
         ]);
@@ -89,6 +106,27 @@ const Dashboard: React.FC = () => {
     fetchData();
 
   }, []);
+
+  const handleRangeChange = async (newRange: TimeRange) => {
+    setRange(newRange);
+    localStorage.setItem('dashboard_range', newRange);
+    setLoading(true);
+    await fetchSummary(newRange);
+    setLoading(false);
+  };
+
+  const getRangeLabel = (r: TimeRange) => {
+    switch (r) {
+      case TimeRange.LAST_WEEK: return 'Last Week';
+      case TimeRange.LAST_30_DAYS: return 'Last 30 Days';
+      case TimeRange.LAST_90_DAYS: return 'Last 90 Days';
+      case TimeRange.THIS_MONTH: return 'This Month';
+      case TimeRange.PREVIOUS_MONTH: return 'Previous Month';
+      case TimeRange.THIS_YEAR: return 'This Year';
+      case TimeRange.LAST_YEAR: return 'Last Year';
+      default: return r;
+    }
+  };
 
   if (loading) {
     return <DashboardSkeleton />;
@@ -170,12 +208,33 @@ const Dashboard: React.FC = () => {
 
   return (
     <div className="space-y-8">
-      {/* Period badge */}
-      <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400">
-        <Calendar className="w-4 h-4" />
-        <span className="text-sm font-medium">Last {summary.days} days summary</span>
-        <span className="text-xs text-slate-300 dark:text-slate-600">•</span>
-        <span className="text-xs text-slate-400 dark:text-slate-500">{totalCount} transactions</span>
+      {/* Period badge and range selector */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400">
+          <Calendar className="w-4 h-4" />
+          <span className="text-sm font-medium">{getRangeLabel(range)} summary</span>
+          <span className="text-xs text-slate-300 dark:text-slate-600">•</span>
+          <span className="text-xs text-slate-400 dark:text-slate-50">{totalCount} transactions</span>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <label htmlFor="range-selector" className="text-xs font-bold text-slate-400 uppercase tracking-wider">Time Range:</label>
+          <div className="relative">
+            <select
+              id="range-selector"
+              value={range}
+              onChange={(e) => handleRangeChange(e.target.value as TimeRange)}
+              className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg pl-3 pr-8 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-cyan-500/20 transition-all appearance-none cursor-pointer shadow-sm hover:border-slate-300 dark:hover:border-slate-600"
+            >
+              {Object.values(TimeRange).map((r) => (
+                <option key={r} value={r}>{getRangeLabel(r)}</option>
+              ))}
+            </select>
+            <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+              <ChevronDown className="w-3.5 h-3.5" />
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* ── Stat Cards ── */}
@@ -417,7 +476,7 @@ const Dashboard: React.FC = () => {
             </div>
           ))}
           {summary.recent_transactions.length === 0 && (
-            <p className="text-slate-400 dark:text-slate-500 text-sm text-center py-10">No transactions in the last {summary.days} days</p>
+            <p className="text-slate-400 dark:text-slate-500 text-sm text-center py-10">No transactions for the selected period</p>
           )}
         </div>
       </div>

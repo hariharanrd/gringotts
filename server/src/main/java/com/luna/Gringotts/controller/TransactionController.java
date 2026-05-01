@@ -10,6 +10,7 @@ import com.luna.Gringotts.records.Income;
 import com.luna.Gringotts.records.Saving;
 import com.luna.Gringotts.records.Revolving;
 import com.luna.Gringotts.records.Transaction;
+import com.luna.Gringotts.records.TimeRange;
 import com.luna.Gringotts.services.TransactionService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -56,8 +57,8 @@ public class TransactionController {
     }
 
     @GetMapping("/summary")
-    public ResponseEntity<Map<String, Object>> getSummary(@RequestParam(value = "days", defaultValue = "30") int days) {
-        Map<String, Object> summary = transactionService.getSummary(days);
+    public ResponseEntity<Map<String, Object>> getSummary(@RequestParam(value = "range", defaultValue = "LAST_30_DAYS") TimeRange range) {
+        Map<String, Object> summary = transactionService.getSummary(range);
         return ResponseEntity.ok(summary);
     }
 
