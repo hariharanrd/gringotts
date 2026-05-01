@@ -84,7 +84,7 @@ const InfiniteSelect = ({ fetchOptions, value, label, onChange }: { fetchOptions
         <div className="absolute z-[60] w-full mt-1 max-h-48 overflow-y-auto bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg">
           <div
             className="px-3 py-2 text-sm sm:text-xs hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer text-slate-500 dark:text-slate-400"
-            onClick={() => { onChange(''); setIsOpen(false); }}
+            onClick={() => { onChange('', ''); setIsOpen(false); }}
           >
             Select Value...
           </div>
@@ -117,14 +117,14 @@ export const FilterChips: React.FC<{
   onRemoveFilter: (index: number) => void;
 }> = ({ activeFilters, availableFields, onRemoveFilter }) => {
   const getFieldLabel = (val: string) => availableFields.find(f => f.value === val)?.label || val;
-  const getConditionLabel = (cond: string) => {
+  const getConditionLabel = (cond: string, type: string) => {
     switch (cond) {
       case 'eq': return 'equals';
       case 'like': return 'contains';
-      case 'gt': return 'after';
-      case 'ge': return 'on or after';
-      case 'lt': return 'before';
-      case 'le': return 'on or before';
+      case 'gt': return type === 'number' ? 'greater than' : 'after';
+      case 'ge': return type === 'number' ? 'greater than or equal to' : 'on or after';
+      case 'lt': return type === 'number' ? 'lesser than' : 'before';
+      case 'le': return type === 'number' ? 'lesser than or equal to' : 'on or before';
       default: return cond;
     }
   };
@@ -133,20 +133,24 @@ export const FilterChips: React.FC<{
 
   return (
     <div className="flex flex-wrap items-center gap-2">
-      {activeFilters.map((filter, idx) => (
-        <div key={idx} className="flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/60 rounded-xl text-[11px] font-bold text-slate-600 dark:text-slate-300 shadow-sm animate-in fade-in zoom-in-95">
-          <span className="text-slate-400 uppercase tracking-tighter text-[9px]">{getFieldLabel(filter.field)}</span>
-          <span className="text-slate-400 dark:text-slate-500 lowercase font-medium">{getConditionLabel(filter.condition)}</span>
-          <span className="text-cyan-600 dark:text-cyan-400 truncate max-w-[120px]" title={filter.value}>"{filter.label || filter.value}"</span>
-          <button
-            onClick={() => onRemoveFilter(idx)}
-            className="ml-1 -mr-1 text-slate-400 hover:text-rose-500 transition-colors p-0.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800"
-            aria-label="Remove filter"
-          >
-            <X className="w-3.5 h-3.5" />
-          </button>
-        </div>
-      ))}
+      {activeFilters.map((filter, idx) => {
+        const fieldDef = availableFields.find(f => f.value === filter.field);
+        const type = fieldDef?.type || 'string';
+        return (
+          <div key={idx} className="flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/60 rounded-xl text-[11px] font-bold text-slate-600 dark:text-slate-300 shadow-sm animate-in fade-in zoom-in-95">
+            <span className="text-slate-400 uppercase tracking-tighter text-[9px]">{getFieldLabel(filter.field)}</span>
+            <span className="text-slate-400 dark:text-slate-500 lowercase font-medium">{getConditionLabel(filter.condition, type)}</span>
+            <span className="text-cyan-600 dark:text-cyan-400 truncate max-w-[120px]" title={filter.value}>"{filter.label || filter.value}"</span>
+            <button
+              onClick={() => onRemoveFilter(idx)}
+              className="ml-1 -mr-1 text-slate-400 hover:text-rose-500 transition-colors p-0.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800"
+              aria-label="Remove filter"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        );
+      })}
     </div>
   );
 };
@@ -184,7 +188,7 @@ export const FilterMenu: React.FC<FilterMenuProps> = ({ activeFilters, onApplyFi
 
   const updateFilter = (index: number, key: keyof FilterCriteria, val: string, label?: string) => {
     const newFilters = [...draftFilters];
-    
+
     if (key === 'field') {
       const fieldDef = availableFields.find(f => f.value === val);
       const conditions = getAvailableConditions(fieldDef?.type || 'string');
@@ -197,10 +201,10 @@ export const FilterMenu: React.FC<FilterMenuProps> = ({ activeFilters, onApplyFi
     if (label !== undefined) {
       newFilters[index].label = label;
     } else if (key === 'value' && !label) {
-       // If value is updated without explicit label, clear old label
-       delete newFilters[index].label;
+      // If value is updated without explicit label, clear old label
+      delete newFilters[index].label;
     }
-    
+
     setDraftFilters(newFilters);
   };
 
@@ -230,6 +234,13 @@ export const FilterMenu: React.FC<FilterMenuProps> = ({ activeFilters, onApplyFi
   const getAvailableConditions = (type: string) => {
     switch (type) {
       case 'number':
+        return [
+          { value: 'eq', label: 'equals' },
+          { value: 'gt', label: 'greater than' },
+          { value: 'ge', label: 'greater than or equal to' },
+          { value: 'lt', label: 'lesser than' },
+          { value: 'le', label: 'lesser than or equal to' }
+        ];
       case 'date':
         return [
           { value: 'eq', label: 'equals' },
