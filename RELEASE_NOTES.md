@@ -1,5 +1,30 @@
 # 🚀 Release Notes
 
+## [May 1, 2026] Visual Analytics & Precision Credit Management
+
+A significant enhancement to the financial visualization and credit card management module, focusing on data clarity, robust cycle logic, and dashboard efficiency.
+
+### 📊 Rich Financial Visualization
+- **Category-Wise Spending Charts**: Every credit card statement now features a dedicated bar chart visualizing spending patterns by category (e.g., Dining, Shopping, Travel).
+- **"Uncategorized" Tracking**: High visibility for uncategorized transactions within charts, encouraging better financial organization.
+- **Interactive Tooltips**: Recharts-powered interactive data points provide precise spending values on hover.
+
+### 💳 Advanced Credit Correction Tools
+- **Forceful Bill Resync**: Introduced a manual "Resync History" engine that recalculates historical bill amounts from scratch. This tool resolves discrepancies caused by manual transaction edits or billing date changes.
+- **Centralized Balance Engine**: Refactored the core transaction-to-balance mapping logic into a single, high-precision service to ensure consistency across the entire ecosystem.
+
+### 📅 Precision Billing Cycles
+- **Redefined Boundaries**: Standardized billing cycles so the Billing Date is now the **start** of a new cycle (00:00:00). Transactions on the billing date correctly attribute to the following month's bill.
+- **Safe Date Handling**: Integrated `java.time.YearMonth` logic to safely handle months of varying lengths. Billing dates like the 31st now automatically adjust to the last day of shorter months (e.g., Feb 28th), preventing system-wide date exceptions.
+- **Year-End Stability**: Resolved edge cases in year-rollover logic for December-to-January transitions.
+
+### 🚀 Dashboard & Budget Optimizations
+- **Standardized Time Ranges**: Introduced a global Time Range selector on the dashboard (30, 90, 180, 365 days) for unified financial summaries.
+- **Budget Priority View**: The Budget details page now automatically selects the current active month by default, prioritizing it over the Master Template for faster access.
+- **Historical Grouping**: Past budgets are now intelligently grouped to reduce clutter while preserving access to historical performance data.
+
+---
+
 ## [April 28, 2026] Universal Payment Modes & Credit Card Integrations
 
 ### 💳 Unified Payment & Credit Tracking
