@@ -29,6 +29,9 @@ public class AuthenticationController {
     @Autowired
     AppConfigurationService appConfigurationService;
 
+    @Value("${jwt.expiration:86400000}")
+    private long jwtExpiration;
+
     public AuthenticationController(AuthenticationService service, UserRepository userRepository) {
         this.service = service;
         this.userRepository = userRepository;
@@ -89,7 +92,7 @@ public class AuthenticationController {
                 .httpOnly(true)
                 .secure(Boolean.parseBoolean(production))
                 .path("/")
-                .maxAge(7 * 24 * 60 * 60)
+                .maxAge(jwtExpiration / 1000)
                 .sameSite("Lax")
                 .build();
         response.addHeader("Set-Cookie", cookie.toString());
