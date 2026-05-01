@@ -10,8 +10,20 @@ import {
   Clock,
   ShieldCheck,
   AlertTriangle,
-  ExternalLink
+  ExternalLink,
+  PieChart as PieChartIcon,
+  BarChart3
 } from 'lucide-react';
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  Cell,
+  CartesianGrid
+} from 'recharts';
 import { api } from '../services/api';
 import { CreditCard, CreditCardBill } from '../types';
 import { useToast } from '../components/ToastContext';
@@ -54,6 +66,53 @@ const CARD_THEMES = [
     border: 'border-blue-900/50'
   }
 ];
+
+const PIE_COLORS = ['#06b6d4', '#10b981', '#8b5cf6', '#f43f5e', '#f59e0b', '#ec4899', '#14b8a6', '#a855f7'];
+
+const CategorySpendingChart: React.FC<{ data: { name: string; value: number }[] }> = ({ data }) => {
+  if (!data || data.length === 0) return null;
+
+  return (
+    <div className="h-[200px] w-full mt-6 pt-6 border-t border-slate-100 dark:border-slate-800/50">
+      <div className="flex items-center gap-2 mb-4">
+        <BarChart3 className="w-3.5 h-3.5 text-slate-400" />
+        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Spending Breakdown</span>
+      </div>
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart data={data} layout="vertical" margin={{ left: -20, right: 20 }}>
+          <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="rgba(148,163,184,0.1)" />
+          <XAxis type="number" hide />
+          <YAxis
+            type="category"
+            dataKey="name"
+            axisLine={false}
+            tickLine={false}
+            tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 700 }}
+            width={100}
+          />
+          <Tooltip
+            cursor={{ fill: 'rgba(148,163,184,0.05)' }}
+            contentStyle={{
+              borderRadius: '12px',
+              border: 'none',
+              backgroundColor: 'rgba(15,23,42,0.9)',
+              boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)',
+              padding: '8px 12px'
+            }}
+            itemStyle={{ color: '#fff', fontSize: '10px', fontWeight: 900 }}
+            labelStyle={{ display: 'none' }}
+            formatter={(value: number) => [`₹${value.toLocaleString()}`, 'Spent']}
+          />
+          <Bar dataKey="value" radius={[0, 4, 4, 0]} maxBarSize={16}>
+            {data.map((_, index) => (
+              <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
+            ))}
+          </Bar>
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  );
+};
 
 const CreditCardDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -445,6 +504,13 @@ const CreditCardDetails: React.FC = () => {
                         )}
                       </div>
                     </div>
+
+                    {/* Chart Section */}
+                    {bill.category_spending && bill.category_spending.length > 0 && (
+                      <div className="px-6 md:px-8 pb-8">
+                        <CategorySpendingChart data={bill.category_spending} />
+                      </div>
+                    )}
                   </div>
                 );
               })}

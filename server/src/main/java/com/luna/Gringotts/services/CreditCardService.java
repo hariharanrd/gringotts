@@ -3,6 +3,7 @@ package com.luna.Gringotts.services;
 import com.luna.Gringotts.records.*;
 import com.luna.Gringotts.repository.CreditCardBillRepository;
 import com.luna.Gringotts.repository.CreditCardRepository;
+import com.luna.Gringotts.repository.TransactionRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,6 +25,9 @@ public class CreditCardService {
     @Autowired
     private IAMService iamService;
 
+    @Autowired
+    private TransactionRepository<Transaction> transactionRepository;
+
     // ── CRUD ──────────────────────────────────────────────────────────────────
 
     public List<Map<String, Object>> getAllCards() {
@@ -36,7 +40,24 @@ public class CreditCardService {
         CreditCard card = requireCard(id);
         Map<String, Object> dto = toDto(card);
         List<CreditCardBill> bills = creditCardBillRepository.findAllByCreditCardOrderByBillingYearDescBillingMonthDesc(card);
-        dto.put("bills", bills);
+        
+        List<Map<String, Object>> billDtos = bills.stream().map(bill -> {
+            Map<String, Object> billDto = new LinkedHashMap<>();
+            billDto.put("id", bill.getId());
+            billDto.put("billing_month", bill.getBillingMonth());
+            billDto.put("billing_year", bill.getBillingYear());
+            billDto.put("amount_due", bill.getAmountDue());
+            billDto.put("amount_paid", bill.getAmountPaid());
+            billDto.put("payment_status", bill.getPaymentStatus());
+            billDto.put("created_at", bill.getCreatedAt());
+
+            // Calculate category-wise spending
+            billDto.put("category_spending", getCategorySpendingForBill(card, bill));
+            
+            return billDto;
+        }).collect(Collectors.toList());
+
+        dto.put("bills", billDtos);
         return dto;
     }
 
@@ -285,6 +306,54 @@ public class CreditCardService {
         status.put("label", "Next Bill");
         status.put("date", card.getBillingDate());
         return status;
+    }
+
+    private List<Map<String, Object>> getCategorySpendingForBill(CreditCard card, CreditCardBill bill) {
+        LocalDateTime[] range = getCycleStartAndEnd(card, bill.getBillingMonth(), bill.getBillingYear());
+        List<Transaction> txns = transactionRepository.findByUserAndCreditCardAndTransactionTimeBetween(
+                iamService.getCurrentUser(), card, range[0], range[1]);
+
+        Map<String, Double> spendingMap = new HashMap<>();
+        for (Transaction t : txns) {
+            String categoryName = (t.getCategory() != null) ? t.getCategory().getName() : "Uncategorized";
+            double value = t.getValue();
+            
+            // For credit cards, Expenses increase the due amount, Incomes/Payments decrease it
+            // We want to show spending, so we focus on positive values (Expenses)
+            // But let's follow the same delta logic as addTransactionToBill
+            double delta = 0;
+            if (t instanceof Expense) {
+                delta = t.getValue();
+            } else if (t instanceof Income) {
+                delta = -t.getValue();
+            } else if (t instanceof Saving) {
+                Saving s = (Saving) t;
+                delta = Boolean.TRUE.equals(s.getIsIn()) ? t.getValue() : -t.getValue();
+            } else if (t instanceof Revolving) {
+                Revolving r = (Revolving) t;
+                delta = Boolean.TRUE.equals(r.getIsGive()) ? t.getValue() : -t.getValue();
+            }
+
+            if (delta > 0) { // Only count spending
+                spendingMap.put(categoryName, spendingMap.getOrDefault(categoryName, 0.0) + delta);
+            }
+        }
+
+        return spendingMap.entrySet().stream()
+                .map(entry -> {
+                    Map<String, Object> item = new LinkedHashMap<>();
+                    item.put("name", entry.getKey());
+                    item.put("value", entry.getValue());
+                    return item;
+                })
+                .sorted((a, b) -> Double.compare((Double) b.get("value"), (Double) a.get("value")))
+                .collect(Collectors.toList());
+    }
+
+    private LocalDateTime[] getCycleStartAndEnd(CreditCard card, int month, int year) {
+        LocalDateTime end = LocalDateTime.of(year, month, card.getBillingDate(), 23, 59, 59);
+        LocalDateTime start = end.minusMonths(1).plusDays(1).withHour(0).withMinute(0).withSecond(0);
+        return new LocalDateTime[]{start, end};
     }
 
     private CreditCard requireCard(Long id) {

@@ -199,6 +199,7 @@ export interface CreditCardBill {
   amount_paid: number;
   payment_status: 'PAID' | 'UNPAID' | 'PARTIALLY_PAID';
   created_at?: string;
+  category_spending?: { name: string; value: number }[];
 }
 
 export interface Expense extends Transaction {
