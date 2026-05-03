@@ -1,24 +1,57 @@
 # 🚀 Release Notes
 
+## [May 03, 2026] Advanced Schedule Management & Financial Visibility
+
+### 🔄 Schedule Workflows
+
+- **Stable Progression**: The system now preserves the `Next Run Date` during edits unless the Start Date is explicitly changed, ensuring recurring patterns are not disrupted by cosmetic updates.
+- **Hard Delete vs. Pause**: Introduced a clear distinction between **Pausing** (temporarily disabling automated runs) and **Deleting** (permanent removal). Dedicated "Pause/Resume" controls are now available in both list and detail views.
+
+### 💳 Proactive Credit Card Tracking
+
+- **Dashboard Bill Alerts**: Introduced a "Pending & Overdue" tracker on the main dashboard. The system now highlights upcoming and missed credit card payments, providing a clear view of debt obligations alongside liquid assets.
+
+### 🎨 UI/UX & Filtering Refinements
+
+- **Advanced Filter Overhaul**: Redesigned the transaction filtering interface for web users, moving away from cramped layouts to a more spacious and intuitive grid system.
+- **Context-Aware Forms**: Category selectors in Income and Expense pages are now context-aware, automatically filtering the list to show only relevant categories for the active transaction type.
+
+### 🛠️ Backend Hardening
+
+- **Timestamp Protection**: Secured audit fields (`createdAt`/`updatedAt`) by enforcing server-side management and making them read-only for client requests.
+- **Sorted Data Delivery**: Standardized the default sorting for schedules to prioritize those running soonest, improving the relevance of the "Schedules" overview.
+
+### Bugfixes
+
+- **Partial Updates & Persistence**: Fix issue where updating schdules required updating startdate. Fixed the logic to update only the fields that are being updated.
+
+- **Relational Integrity**: Resolved JSON deserialization issue for Category, Item, and Credit Card mappings.
+
+---
+
 ## [May 1, 2026] Visual Analytics & Precision Credit Management
 
 A significant enhancement to the financial visualization and credit card management module, focusing on data clarity, robust cycle logic, and dashboard efficiency.
 
 ### 📊 Rich Financial Visualization
+
 - **Category-Wise Spending Charts**: Every credit card statement now features a dedicated bar chart visualizing spending patterns by category (e.g., Dining, Shopping, Travel).
 - **"Uncategorized" Tracking**: High visibility for uncategorized transactions within charts, encouraging better financial organization.
 - **Interactive Tooltips**: Recharts-powered interactive data points provide precise spending values on hover.
 
 ### 💳 Advanced Credit Correction Tools
+
 - **Forceful Bill Resync**: Introduced a manual "Resync History" engine that recalculates historical bill amounts from scratch. This tool resolves discrepancies caused by manual transaction edits or billing date changes.
 - **Centralized Balance Engine**: Refactored the core transaction-to-balance mapping logic into a single, high-precision service to ensure consistency across the entire ecosystem.
 
 ### 📅 Precision Billing Cycles
+
 - **Redefined Boundaries**: Standardized billing cycles so the Billing Date is now the **start** of a new cycle (00:00:00). Transactions on the billing date correctly attribute to the following month's bill.
 - **Safe Date Handling**: Integrated `java.time.YearMonth` logic to safely handle months of varying lengths. Billing dates like the 31st now automatically adjust to the last day of shorter months (e.g., Feb 28th), preventing system-wide date exceptions.
 - **Year-End Stability**: Resolved edge cases in year-rollover logic for December-to-January transitions.
 
 ### 🚀 Dashboard & Budget Optimizations
+
 - **Standardized Time Ranges**: Introduced a global Time Range selector on the dashboard (30, 90, 180, 365 days) for unified financial summaries.
 - **Budget Priority View**: The Budget details page now automatically selects the current active month by default, prioritizing it over the Master Template for faster access.
 - **Historical Grouping**: Past budgets are now intelligently grouped to reduce clutter while preserving access to historical performance data.
