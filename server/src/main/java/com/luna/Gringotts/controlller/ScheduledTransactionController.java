@@ -54,9 +54,15 @@ public class ScheduledTransactionController {
         return ResponseEntity.ok(Map.of("status", "success"));
     }
 
+    @PostMapping("/{id}/toggle-active")
+    public ResponseEntity<Map<String, Object>> toggleActive(@PathVariable Long id) {
+        ScheduledTransaction s = scheduledTransactionService.toggleActive(id);
+        return ResponseEntity.ok(Map.of("data", s));
+    }
+
     @GetMapping("/{id}/history")
     public ResponseEntity<Map<String, Object>> history(@PathVariable Long id,
-                                                       @RequestParam(value = "page", defaultValue = "1") int page) {
+            @RequestParam(value = "page", defaultValue = "1") int page) {
         var result = scheduledTransactionService.getHistory(id, PageRequest.of(Math.max(0, page - 1), 20));
         Map<String, Object> resp = new HashMap<>();
         resp.put("data", result.getContent());

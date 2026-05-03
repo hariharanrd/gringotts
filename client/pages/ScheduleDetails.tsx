@@ -5,8 +5,11 @@ import { ScheduledTransaction, TransactionType } from '../types';
 import { useToast } from '../components/ToastContext';
 import {
   ArrowLeft, Clock, Calendar, Play, Tag,
-  Hash, Activity, List, ChevronRight, CreditCard
+  Hash, Activity, List, ChevronRight, CreditCard,
+  Pencil, Trash2, PauseCircle, PlayCircle
 } from 'lucide-react';
+import ScheduleModal from '../components/ScheduleModal';
+import ConfirmationDialog from '../components/ConfirmationDialog';
 
 const TYPE_CONFIG: Record<TransactionType, { gradient: string; amountClass: string }> = {
   [TransactionType.EXPENSE]: { gradient: 'from-rose-500 to-pink-600', amountClass: 'text-rose-500 dark:text-rose-400' },
@@ -40,6 +43,8 @@ const ScheduleDetails: React.FC = () => {
   const [schedule, setSchedule] = useState<ScheduledTransaction | null>(null);
   const [history, setHistory] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const { showToast } = useToast();
   const navigate = useNavigate();
 
@@ -54,6 +59,29 @@ const ScheduleDetails: React.FC = () => {
     } catch (err: any) {
       setError(err.message || 'Failed to load schedule');
       showToast(err.message || 'Failed to load schedule', 'error');
+    }
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!schedule) return;
+    try {
+      await api.deleteScheduledTransaction(schedule.id);
+      showToast('Schedule deleted successfully', 'success');
+      setIsDeleteDialogOpen(false);
+      navigate('/schedules');
+    } catch (e: any) {
+      showToast(e.message || 'Delete failed', 'error');
+    }
+  };
+
+  const handleToggleStatus = async () => {
+    if (!schedule) return;
+    try {
+      await api.toggleScheduledTransactionStatus(schedule.id);
+      showToast('Status updated successfully', 'success');
+      fetch();
+    } catch (err: any) {
+      showToast(err.message || 'Failed to update status', 'error');
     }
   };
 
@@ -94,21 +122,56 @@ const ScheduleDetails: React.FC = () => {
           <span className="text-xs font-bold tracking-tight uppercase">Back to Schedules</span>
         </button>
 
-        <button
-          onClick={async () => {
-            try {
-              await api.triggerScheduledTransaction(schedule.id);
-              showToast('Executed successfully', 'success');
-              fetch();
-            } catch (e: any) {
-              showToast(e.message || 'Execution failed', 'error');
-            }
-          }}
-          className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white font-bold rounded-xl shadow-lg shadow-cyan-500/20 transition-all active:scale-95 text-xs"
-        >
-          <Play className="w-3.5 h-3.5 fill-current" />
-          Run Now
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={handleToggleStatus}
+            className={`flex items-center gap-2 px-4 py-2 font-bold rounded-xl transition-all active:scale-95 text-xs ${schedule.is_active ? 'bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-500/20' : 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-500/20'}`}
+          >
+            {schedule.is_active ? (
+              <>
+                <PauseCircle className="w-3.5 h-3.5" />
+                Pause
+              </>
+            ) : (
+              <>
+                <PlayCircle className="w-3.5 h-3.5" />
+                Resume
+              </>
+            )}
+          </button>
+
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold rounded-xl transition-all active:scale-95 text-xs"
+          >
+            <Pencil className="w-3.5 h-3.5" />
+            Edit
+          </button>
+
+          <button
+            onClick={() => setIsDeleteDialogOpen(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-rose-50 dark:bg-rose-500/10 hover:bg-rose-100 dark:hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 font-bold rounded-xl transition-all active:scale-95 text-xs"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+            Delete
+          </button>
+
+          <button
+            onClick={async () => {
+              try {
+                await api.triggerScheduledTransaction(schedule.id);
+                showToast('Executed successfully', 'success');
+                fetch();
+              } catch (e: any) {
+                showToast(e.message || 'Execution failed', 'error');
+              }
+            }}
+            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white font-bold rounded-xl shadow-lg shadow-cyan-500/20 transition-all active:scale-95 text-xs"
+          >
+            <Play className="w-3.5 h-3.5 fill-current" />
+            Run Now
+          </button>
+        </div>
       </div>
 
       {/* Hero Card */}
@@ -219,6 +282,24 @@ const ScheduleDetails: React.FC = () => {
           </div>
         </div>
       </div>
+      <ScheduleModal
+        isOpen={isModalOpen}
+        onClose={() => {
+          setIsModalOpen(false);
+          fetch();
+        }}
+        schedule={schedule}
+      />
+      <ConfirmationDialog
+        isOpen={isDeleteDialogOpen}
+        onClose={() => setIsDeleteDialogOpen(false)}
+        onConfirm={handleDeleteConfirm}
+        title="Delete Schedule"
+        message={`Are you sure you want to delete "${schedule.name}"? This action cannot be undone.`}
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        type="danger"
+      />
     </div>
   );
 };

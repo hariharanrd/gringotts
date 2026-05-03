@@ -383,6 +383,13 @@ export const api = {
     return handleResponse(response);
   },
 
+  toggleScheduledTransactionStatus: async (id: number) => {
+    const response = await fetchWithCredentials(`${BASE_URL}/scheduled-transactions/${id}/toggle-active`, {
+      method: 'POST',
+    });
+    return handleResponseAndGetData(response);
+  },
+
   getScheduledTransactionHistory: async (id: number, page: number = 1) => {
     const response = await fetchWithCredentials(`${BASE_URL}/scheduled-transactions/${id}/history?page=${page}`);
     return handleResponse(response);
