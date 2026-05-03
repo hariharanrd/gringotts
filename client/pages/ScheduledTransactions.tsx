@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Edit2, Eye, Trash2, Plus, Calendar, Clock, Activity, ChevronRight, SquareArrowOutUpRight } from 'lucide-react';
+import { Edit2, Eye, Trash2, Plus, Calendar, Clock, Activity, ChevronRight, SquareArrowOutUpRight, PauseCircle, PlayCircle } from 'lucide-react';
 import { api } from '../services/api';
 import { ScheduledTransaction, TransactionType } from '../types';
 import { useNavigate } from 'react-router-dom';
@@ -71,6 +71,17 @@ const ScheduledTransactions: React.FC = () => {
   const handleRowClick = (e: React.MouseEvent, s: ScheduledTransaction) => {
     if ((e.target as HTMLElement).closest('button')) return;
     navigate(`/schedules/${s.id}`);
+  };
+
+  const handleToggleStatus = async (e: React.MouseEvent, id: number) => {
+    e.stopPropagation();
+    try {
+      await api.toggleScheduledTransactionStatus(id);
+      showToast('Status updated successfully', 'success');
+      fetch();
+    } catch (err: any) {
+      showToast(err.message || 'Failed to update status', 'error');
+    }
   };
 
   const handleDeleteClick = (e: React.MouseEvent, id: number) => {
@@ -177,6 +188,9 @@ const ScheduledTransactions: React.FC = () => {
                           </span>
                         </td>
                         <td className="p-4 text-right space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button onClick={(e) => handleToggleStatus(e, s.id)} title={s.is_active ? "Pause Schedule" : "Resume Schedule"} className={`p-2 rounded-xl transition-all ${s.is_active ? 'text-slate-400 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-500/10' : 'text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-500/10'}`}>
+                            {s.is_active ? <PauseCircle className="w-4 h-4" /> : <PlayCircle className="w-4 h-4" />}
+                          </button>
                           <button onClick={() => navigate(`/schedules/${s.id}`)} title="View History" className="p-2 text-slate-400 hover:text-cyan-600 hover:bg-cyan-50 dark:hover:bg-cyan-500/10 rounded-xl transition-all">
                             <SquareArrowOutUpRight className="w-4 h-4" />
                           </button>
@@ -233,6 +247,9 @@ const ScheduledTransactions: React.FC = () => {
                         Next: {formatDate(s.next_run_date)}
                       </div>
                       <div className="flex items-center gap-1">
+                        <button onClick={(e) => handleToggleStatus(e, s.id)} className={`p-2 rounded-lg ${s.is_active ? 'text-slate-400' : 'text-emerald-500'}`}>
+                          {s.is_active ? <PauseCircle className="w-4 h-4" /> : <PlayCircle className="w-4 h-4" />}
+                        </button>
                         <button onClick={() => navigate(`/schedules/${s.id}`)} className="p-2 text-slate-400 hover:text-cyan-600 rounded-lg"><SquareArrowOutUpRight className="w-4 h-4" /></button>
                         <button onClick={() => handleEditSchedule(s)} className="p-2 text-slate-400 hover:text-amber-600 rounded-lg"><Edit2 className="w-4 h-4" /></button>
                         <button onClick={(e) => handleDeleteClick(e, s.id)} className="p-2 text-slate-400 hover:text-rose-600 rounded-lg"><Trash2 className="w-4 h-4" /></button>
@@ -258,7 +275,7 @@ const ScheduledTransactions: React.FC = () => {
         onClose={() => setIsDeleteDialogOpen(false)}
         onConfirm={confirmDelete}
         title="Delete Schedule"
-        message="Are you sure you want to delete this automated schedule? Future transactions will no longer be generated."
+        message="Are you sure you want to permanently delete this automated schedule?"
         confirmLabel="Delete"
         type="danger"
       />

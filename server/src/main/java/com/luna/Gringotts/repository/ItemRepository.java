@@ -12,5 +12,7 @@ public interface ItemRepository extends JpaRepository<Item, Long> {
 
     Page<Item> findBySubCategoryCategoryUserOrderByNameAsc(com.luna.Gringotts.records.User user, org.springframework.data.domain.Pageable pageable);
 
+    Page<Item> findBySubCategoryCategoryTypeAndSubCategoryCategoryUserOrderByNameAsc(String type, com.luna.Gringotts.records.User user, org.springframework.data.domain.Pageable pageable);
+
     boolean existsBySubCategoryId(Long subCategoryId);
 }

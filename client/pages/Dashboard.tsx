@@ -60,6 +60,12 @@ interface SummaryData {
     subcategory?: { id: number; name: string };
     item?: { id: number; name: string };
   }>;
+  credit_card_bills: {
+    overdue_amount: number;
+    pending_amount: number;
+    overdue_count: number;
+    pending_count: number;
+  };
 }
 
 const Dashboard: React.FC = () => {
@@ -297,9 +303,49 @@ const Dashboard: React.FC = () => {
           accentFrom="from-amber-500"
           accentTo="to-orange-600"
           glow="shadow-amber-500/15"
-          highlight="text-emerald-500 dark:text-emerald-400"
+        highlight="text-emerald-500 dark:text-emerald-400"
         />
       </div>
+
+      {/* ── Credit Card Bills Alerts ── */}
+      {summary.credit_card_bills && (summary.credit_card_bills.overdue_count > 0 || summary.credit_card_bills.pending_count > 0) && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 animate-in fade-in slide-in-from-top-4 duration-500">
+          {summary.credit_card_bills.overdue_count > 0 && (
+            <div 
+              onClick={() => navigate('/credit-cards')}
+              className="bg-gradient-to-br from-rose-50 to-white dark:from-rose-500/10 dark:to-slate-800/50 border border-rose-200 dark:border-rose-500/20 rounded-2xl p-5 flex items-center justify-between group cursor-pointer hover:shadow-xl hover:shadow-rose-500/5 transition-all active:scale-[0.98]"
+            >
+              <div className="flex items-center gap-4">
+                <div className="bg-rose-500 p-3 rounded-2xl shadow-lg shadow-rose-500/30 group-hover:scale-110 transition-transform">
+                  <Info className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h4 className="text-[10px] font-black text-rose-500 uppercase tracking-[0.2em] mb-1">Overdue CC Bills ({summary.credit_card_bills.overdue_count})</h4>
+                  <p className="text-2xl font-black text-slate-900 dark:text-white">₹{summary.credit_card_bills.overdue_amount.toLocaleString('en-IN')}</p>
+                </div>
+              </div>
+              <button className="text-xs font-bold text-rose-600 dark:text-rose-400 bg-white dark:bg-slate-900 px-4 py-2 rounded-xl border border-rose-100 dark:border-rose-500/20 shadow-sm group-hover:bg-rose-500 group-hover:text-white transition-all">PAY NOW</button>
+            </div>
+          )}
+          {summary.credit_card_bills.pending_count > 0 && (
+            <div 
+              onClick={() => navigate('/credit-cards')}
+              className="bg-gradient-to-br from-amber-50 to-white dark:from-amber-500/10 dark:to-slate-800/50 border border-amber-200 dark:border-amber-500/20 rounded-2xl p-5 flex items-center justify-between group cursor-pointer hover:shadow-xl hover:shadow-amber-500/5 transition-all active:scale-[0.98]"
+            >
+              <div className="flex items-center gap-4">
+                <div className="bg-amber-500 p-3 rounded-2xl shadow-lg shadow-amber-500/30 group-hover:scale-110 transition-transform">
+                  <Calendar className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h4 className="text-[10px] font-black text-amber-600 dark:text-amber-400 uppercase tracking-[0.2em] mb-1">Pending CC Bills ({summary.credit_card_bills.pending_count})</h4>
+                  <p className="text-2xl font-black text-slate-900 dark:text-white">₹{summary.credit_card_bills.pending_amount.toLocaleString('en-IN')}</p>
+                </div>
+              </div>
+              <button className="text-xs font-bold text-amber-600 dark:text-amber-400 bg-white dark:bg-slate-900 px-4 py-2 rounded-xl border border-amber-100 dark:border-amber-500/20 shadow-sm group-hover:bg-amber-500 group-hover:text-white transition-all">VIEW BILLS</button>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* ── Budget Utilization Widget ── */}
       <div className="glass-card rounded-3xl p-6 border-cyan-500/10 shadow-xl shadow-cyan-500/5 relative overflow-hidden">

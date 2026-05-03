@@ -58,38 +58,59 @@ public class ScheduledTransactionService {
 
     public ScheduledTransaction update(Long id, ScheduledTransaction incoming) {
         ScheduledTransaction existing = scheduledTransactionRepository.findById(id).orElseThrow();
-        
-        // If start date is changing, ensure it's not in the past
+
+        if (incoming.getName() != null)
+            existing.setName(incoming.getName());
+        if (incoming.getTransactionType() != null)
+            existing.setTransactionType(incoming.getTransactionType());
+        if (incoming.getAmount() != null)
+            existing.setAmount(incoming.getAmount());
+        if (incoming.getDescription() != null)
+            existing.setDescription(incoming.getDescription());
+        if (incoming.getCategory() != null)
+            existing.setCategory(incoming.getCategory());
+        if (incoming.getSubCategory() != null)
+            existing.setSubCategory(incoming.getSubCategory());
+        if (incoming.getItem() != null)
+            existing.setItem(incoming.getItem());
+        if (incoming.getPaymentMode() != null)
+            existing.setPaymentMode(incoming.getPaymentMode());
+        if (incoming.getCreditCard() != null)
+            existing.setCreditCard(incoming.getCreditCard());
+        if (incoming.getIsIn() != null)
+            existing.setIsIn(incoming.getIsIn());
+        if (incoming.getFrequency() != null)
+            existing.setFrequency(incoming.getFrequency());
+        if (incoming.getEndDate() != null)
+            existing.setEndDate(incoming.getEndDate());
+        if (incoming.getIsActive() != null)
+            existing.setIsActive(incoming.getIsActive());
+
+        // Only validate/reset if start date is actually changing and provided
         if (incoming.getStartDate() != null && !incoming.getStartDate().equals(existing.getStartDate())) {
             if (incoming.getStartDate().isBefore(LocalDate.now())) {
                 throw new IllegalArgumentException("Schedule Start Date cannot be in the past");
             }
+            existing.setStartDate(incoming.getStartDate());
             existing.setNextRunDate(incoming.getStartDate());
         }
-        
-        existing.setName(incoming.getName());
-        existing.setTransactionType(incoming.getTransactionType());
-        existing.setAmount(incoming.getAmount());
-        existing.setDescription(incoming.getDescription());
-        existing.setCategory(incoming.getCategory());
-        existing.setSubCategory(incoming.getSubCategory());
-        existing.setItem(incoming.getItem());
-        existing.setPaymentMode(incoming.getPaymentMode());
-        existing.setCreditCard(incoming.getCreditCard());
-        existing.setIsIn(incoming.getIsIn());
-        existing.setFrequency(incoming.getFrequency());
-        existing.setStartDate(incoming.getStartDate());
-        existing.setEndDate(incoming.getEndDate());
-        existing.setIsActive(incoming.getIsActive());
-        
+
         return scheduledTransactionRepository.save(existing);
     }
 
     public void delete(Long id) {
-        // Soft delete
+        // first disable and save and then attempt delete, so if delete fails, it is
+        // still disabled
         ScheduledTransaction s = scheduledTransactionRepository.findById(id).orElseThrow();
         s.setIsActive(false);
         scheduledTransactionRepository.save(s);
+        scheduledTransactionRepository.delete(s);
+    }
+
+    public ScheduledTransaction toggleActive(Long id) {
+        ScheduledTransaction s = scheduledTransactionRepository.findById(id).orElseThrow();
+        s.setIsActive(!s.getIsActive());
+        return scheduledTransactionRepository.save(s);
     }
 
     public ScheduledTransaction getById(Long id) {
@@ -98,7 +119,7 @@ public class ScheduledTransactionService {
 
     public List<ScheduledTransaction> getAllForUser() {
         User user = iamService.getCurrentUser();
-        return scheduledTransactionRepository.findByUser(user);
+        return scheduledTransactionRepository.findByUserOrderByNextRunDateAscIdAsc(user);
     }
 
     public Page<Transaction> getHistory(Long scheduleId, Pageable pageable) {
@@ -111,9 +132,11 @@ public class ScheduledTransactionService {
     @Transactional
     public Transaction executeSchedule(Long scheduleId, boolean isManual) {
         ScheduledTransaction s = scheduledTransactionRepository.findById(scheduleId).orElseThrow();
-        if (!isManual && !Boolean.TRUE.equals(s.getIsActive())) return null;
+        if (!isManual && !Boolean.TRUE.equals(s.getIsActive()))
+            return null;
 
-        LocalDate runDate = isManual ? LocalDate.now() : (s.getNextRunDate() != null ? s.getNextRunDate() : s.getStartDate());
+        LocalDate runDate = isManual ? LocalDate.now()
+                : (s.getNextRunDate() != null ? s.getNextRunDate() : s.getStartDate());
         LocalDateTime txTime = runDate.atStartOfDay();
 
         Transaction created = null;
@@ -207,7 +230,8 @@ public class ScheduledTransactionService {
 
     public LocalDate calculateNextRunDate(ScheduledTransaction s) {
         LocalDate current = s.getNextRunDate() != null ? s.getNextRunDate() : s.getStartDate();
-        if (current == null) return null;
+        if (current == null)
+            return null;
         switch (s.getFrequency()) {
             case "ONE_TIME":
                 return null;

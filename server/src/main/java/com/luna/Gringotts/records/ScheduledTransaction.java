@@ -86,11 +86,12 @@ public class ScheduledTransaction {
 
     @Column(name = "created_at", nullable = false, updatable = false)
     @CreationTimestamp
-    @JsonProperty("created_at")
+    @JsonProperty(value = "created_at", access = JsonProperty.Access.READ_ONLY)
     LocalDateTime createdAt;
 
     @Column(name = "updated_at")
     @UpdateTimestamp
+    @JsonProperty(value = "updated_at", access = JsonProperty.Access.READ_ONLY)
     LocalDateTime updatedAt;
 
     public ScheduledTransaction() {

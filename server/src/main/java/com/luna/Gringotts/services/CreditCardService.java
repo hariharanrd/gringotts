@@ -13,6 +13,8 @@ import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.logging.Logger;
+import java.util.logging.Level;
 
 @Service
 public class CreditCardService {
@@ -367,5 +369,35 @@ public class CreditCardService {
             throw new SecurityException("Access denied to credit card: " + id);
         }
         return card;
+    }
+
+    public Map<String, Object> getBillSummary() {
+        User user = iamService.getCurrentUser();
+        List<CreditCard> cards = creditCardRepository.findAllByUserOrderByCreatedAtDesc(user);
+        
+        double totalOverdue = 0;
+        double totalPending = 0;
+        int overdueCount = 0;
+        int pendingCount = 0;
+
+        for (CreditCard card : cards) {
+            List<CreditCardBill> allBills = creditCardBillRepository.findAllByCreditCardOrderByBillingYearDescBillingMonthDesc(card);
+            Map<String, Object> smartStatus = getSmartStatus(card, allBills);
+            
+            if ("overdue".equals(smartStatus.get("type"))) {
+                totalOverdue += (Double) smartStatus.get("amount");
+                overdueCount++;
+            } else if ("pending".equals(smartStatus.get("type"))) {
+                totalPending += (Double) smartStatus.get("amount");
+                pendingCount++;
+            }
+        }
+
+        Map<String, Object> summary = new LinkedHashMap<>();
+        summary.put("overdue_amount", totalOverdue);
+        summary.put("pending_amount", totalPending);
+        summary.put("overdue_count", overdueCount);
+        summary.put("pending_count", pendingCount);
+        return summary;
     }
 }

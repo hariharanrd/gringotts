@@ -12,7 +12,7 @@ import java.util.List;
 @Repository
 public interface ScheduledTransactionRepository extends JpaRepository<ScheduledTransaction, Long> {
 
-    List<ScheduledTransaction> findByUser(User user);
+    List<ScheduledTransaction> findByUserOrderByNextRunDateAscIdAsc(User user);
 
     List<ScheduledTransaction> findByUserAndIsActiveTrue(User user);
 

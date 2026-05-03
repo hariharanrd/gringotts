@@ -66,8 +66,7 @@ const ScheduleModal: React.FC<Props> = ({ isOpen, onClose, schedule }) => {
 
         if (schedule) {
           setForm({
-            ...schedule,
-            credit_card: (schedule.credit_card as any)?.id
+            ...schedule
           });
           if (schedule.category) {
             const subs = await getSubCategories(schedule.category.id);
@@ -133,18 +132,61 @@ const ScheduleModal: React.FC<Props> = ({ isOpen, onClose, schedule }) => {
     e.preventDefault();
     setLoading(true);
     try {
-      const payload = {
-        ...form,
-        category: form.category ? { id: form.category.id } : undefined,
-        subcategory: form.subcategory ? { id: form.subcategory.id } : undefined,
-        item: form.item ? { id: form.item.id } : undefined,
-        credit_card: (form.payment_mode === 'CREDIT_CARD' && form.credit_card) ? { id: form.credit_card } : undefined,
-      };
-
       if (schedule) {
-        await api.updateScheduledTransaction(schedule.id, payload as any);
+        // Partial Update: Only include fields that changed
+        const changes: any = {};
+        
+        if (form.name !== schedule.name) changes.name = form.name;
+        if (form.transaction_type !== schedule.transaction_type) changes.transaction_type = form.transaction_type;
+        if (form.amount !== schedule.amount) changes.amount = form.amount;
+        if (form.frequency !== schedule.frequency) changes.frequency = form.frequency;
+        if (form.start_date !== schedule.start_date) changes.start_date = form.start_date;
+        if (form.end_date !== (schedule.end_date || '')) changes.end_date = form.end_date || null;
+        if (form.is_active !== schedule.is_active) changes.is_active = form.is_active;
+        if (form.description !== schedule.description) changes.description = form.description;
+        if (form.payment_mode !== schedule.payment_mode) changes.payment_mode = form.payment_mode;
+        if (form.is_in !== schedule.is_in) changes.is_in = form.is_in;
+
+        // Relation changes
+        const getRelId = (val: any) => typeof val === 'object' ? val?.id : val;
+
+        if (getRelId(form.category) !== schedule.category?.id) {
+          const id = getRelId(form.category);
+          changes.category = id ? { id } : null;
+        }
+        if (getRelId(form.subcategory) !== schedule.subcategory?.id) {
+          const id = getRelId(form.subcategory);
+          changes.subcategory = id ? { id } : null;
+        }
+        if (getRelId(form.item) !== schedule.item?.id) {
+          const id = getRelId(form.item);
+          changes.item = id ? { id } : null;
+        }
+        
+        const currentCardId = (schedule.credit_card as any)?.id;
+        if (getRelId(form.credit_card) !== currentCardId) {
+          const id = getRelId(form.credit_card);
+          changes.credit_card = (form.payment_mode === 'CREDIT_CARD' && id) ? { id } : null;
+        }
+
+        // If nothing changed, just close
+        if (Object.keys(changes).length === 0) {
+          onClose();
+          return;
+        }
+
+        await api.updateScheduledTransaction(schedule.id, changes);
         showToast('Schedule updated successfully', 'success');
       } else {
+        // Full Create
+        const getRelId = (val: any) => typeof val === 'object' ? val?.id : val;
+        const payload = {
+          ...form,
+          category: form.category ? { id: getRelId(form.category) } : undefined,
+          subcategory: form.subcategory ? { id: getRelId(form.subcategory) } : undefined,
+          item: form.item ? { id: getRelId(form.item) } : undefined,
+          credit_card: (form.payment_mode === 'CREDIT_CARD' && form.credit_card) ? { id: getRelId(form.credit_card) } : undefined,
+        };
         await api.createScheduledTransaction(payload as any);
         showToast('Schedule created successfully', 'success');
       }
@@ -253,9 +295,9 @@ const ScheduleModal: React.FC<Props> = ({ isOpen, onClose, schedule }) => {
                 <div className="space-y-1.5">
                   <label className="text-sm font-semibold text-slate-600 dark:text-slate-400 ml-1">Start Date</label>
                   <input
-                    required
+                    required={!schedule}
                     type="date"
-                    min={new Date().toISOString().split('T')[0]}
+                    min={schedule ? undefined : new Date().toISOString().split('T')[0]}
                     value={form.start_date || ''}
                     onChange={(e) => setForm(f => ({ ...f, start_date: e.target.value }))}
                     className={`${inputClass} text-sm [color-scheme:light] dark:[color-scheme:dark]`}
