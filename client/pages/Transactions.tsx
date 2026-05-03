@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
-import { Transaction, TransactionType, Category, SubCategory, Item, CreditCard } from '../types';
+import { Transaction, TransactionType, Category, SubCategory, Item, CreditCard, Saving, Revolving } from '../types';
 import { PAYMENT_MODES, SAVING_DIRECTIONS, REVOLVING_DIRECTIONS, REVOLVING_STATUSES } from '../constants';
 import {
   Landmark,
@@ -323,6 +323,15 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
   };
 
   const activeTabInfo = TABS.find(t => t.id === currentTab) || TABS[0];
+  
+  const pageTotal = transactions.reduce((acc, t) => {
+    const val = t.value;
+    if (t.type === TransactionType.INCOME) return acc + val;
+    if (t.type === TransactionType.EXPENSE) return acc - val;
+    if (t.type === TransactionType.SAVING) return (t as Saving).is_in ? acc + val : acc - val;
+    if (t.type === TransactionType.REVOLVING) return (t as Revolving).is_give ? acc - val : acc + val;
+    return acc;
+  }, 0);
 
   const getAmountColor = (t: Transaction) => {
     if (t.type === 'INCOME') return 'text-emerald-500 dark:text-emerald-400';
@@ -782,6 +791,14 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
             ))
           )}
         </div>
+        {currentTab !== 'all' && transactions.length > 0 && (
+          <div className="p-4 px-6 border-t border-slate-100 dark:border-slate-800/50 bg-slate-50/50 dark:bg-slate-900/50 flex justify-between lg:justify-end items-center gap-4">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Page Total</span>
+            <span className={`text-lg font-black tabular-nums ${pageTotal >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
+              {pageTotal >= 0 ? '+' : '-'}₹{Math.abs(pageTotal).toLocaleString('en-IN')}
+            </span>
+          </div>
+        )}
       </div>
 
       <Pagination currentPage={currentPage} totalPages={totalPages} hasMore={hasMore} onPageChange={setCurrentPage} />
