@@ -483,6 +483,7 @@ public class TransactionService {
         summary.put("category_breakdown", categoryBreakdown);
         summary.put("savings_breakdown", savingsBreakdown);
         summary.put("recent_transactions", recentTransactions);
+        summary.put("credit_card_bills", creditCardService.getBillSummary());
 
         return summary;
     }
