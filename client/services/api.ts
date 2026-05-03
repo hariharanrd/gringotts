@@ -234,8 +234,9 @@ export const api = {
     return handleResponseAndGetData(response);
   },
 
-  getCategoriesPaginated: async (page: number = 0): Promise<{data: Category[], has_more: boolean}> => {
-    const response = await fetchWithCredentials(`${BASE_URL}/categories?page=${page}&size=50`);
+  getCategoriesPaginated: async (page: number = 0, type?: string): Promise<{data: Category[], has_more: boolean}> => {
+    const url = type ? `${BASE_URL}/categories?page=${page}&size=50&type=${type}` : `${BASE_URL}/categories?page=${page}&size=50`;
+    const response = await fetchWithCredentials(url);
     return handleResponse(response);
   },
 
@@ -245,8 +246,9 @@ export const api = {
     return data.data;
   },
 
-  getAllSubCategoriesPaginated: async (page: number = 0): Promise<{data: SubCategory[], has_more: boolean}> => {
-    const response = await fetchWithCredentials(`${BASE_URL}/subcategories/all?page=${page}&size=50`);
+  getAllSubCategoriesPaginated: async (page: number = 0, type?: string): Promise<{data: SubCategory[], has_more: boolean}> => {
+    const url = type ? `${BASE_URL}/subcategories/all?page=${page}&size=50&type=${type}` : `${BASE_URL}/subcategories/all?page=${page}&size=50`;
+    const response = await fetchWithCredentials(url);
     return handleResponse(response);
   },
 
@@ -256,8 +258,9 @@ export const api = {
     return data.data;
   },
 
-  getAllItemsPaginated: async (page: number = 0): Promise<{data: Item[], has_more: boolean}> => {
-    const response = await fetchWithCredentials(`${BASE_URL}/items/all?page=${page}&size=50`);
+  getAllItemsPaginated: async (page: number = 0, type?: string): Promise<{data: Item[], has_more: boolean}> => {
+    const url = type ? `${BASE_URL}/items/all?page=${page}&size=50&type=${type}` : `${BASE_URL}/items/all?page=${page}&size=50`;
+    const response = await fetchWithCredentials(url);
     return handleResponse(response);
   },
 

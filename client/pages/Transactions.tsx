@@ -361,21 +361,24 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
       {
         label: 'Category', value: 'category.id', type: 'number',
         fetchOptions: async (page) => {
-          const res = await api.getCategoriesPaginated(page);
+          const type = currentTab !== 'all' ? currentTab.toUpperCase() : undefined;
+          const res = await api.getCategoriesPaginated(page, type);
           return { data: res.data.map(c => ({ label: c.name, value: c.id.toString() })), hasMore: res.has_more };
         }
       },
       {
         label: 'Sub-Category', value: 'subcategory.id', type: 'number',
         fetchOptions: async (page) => {
-          const res = await api.getAllSubCategoriesPaginated(page);
+          const type = currentTab !== 'all' ? currentTab.toUpperCase() : undefined;
+          const res = await api.getAllSubCategoriesPaginated(page, type);
           return { data: res.data.map(sc => ({ label: sc.name, value: sc.id.toString() })), hasMore: res.has_more };
         }
       },
       {
         label: 'Item', value: 'item.id', type: 'number',
         fetchOptions: async (page) => {
-          const res = await api.getAllItemsPaginated(page);
+          const type = currentTab !== 'all' ? currentTab.toUpperCase() : undefined;
+          const res = await api.getAllItemsPaginated(page, type);
           return { data: res.data.map(i => ({ label: i.name, value: i.id.toString() })), hasMore: res.has_more };
         }
       },

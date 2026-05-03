@@ -6,6 +6,7 @@ import com.luna.Gringotts.records.SubCategory;
 import com.luna.Gringotts.services.CSIService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
@@ -25,142 +26,158 @@ public class CSIController {
     private CSIService CSIService;
 
     @GetMapping("/categories")
-    public ResponseEntity<Map<String,Object>> getCategories(@RequestParam(required = false) String type){
-        Pageable pageable = Pageable.ofSize(100);
+    public ResponseEntity<Map<String, Object>> getCategories(@RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "50") int size, @RequestParam(required = false) String type) {
+        Pageable pageable = PageRequest.of(page, size);
         Page<Category> categories;
         if (type != null && !type.isEmpty()) {
             categories = CSIService.getCategoriesByType(type, pageable);
         } else {
             categories = CSIService.getCategories(pageable);
         }
-        HashMap<String,Object> response = new HashMap<>();
-        response.put("data",categories.getContent());
-        response.put("total_count",categories.getTotalElements());
-        response.put("page",pageable.getPageNumber());
-        response.put("has_more",categories.hasNext());
+        HashMap<String, Object> response = new HashMap<>();
+        response.put("data", categories.getContent());
+        response.put("total_count", categories.getTotalElements());
+        response.put("page", pageable.getPageNumber());
+        response.put("has_more", categories.hasNext());
         return ResponseEntity.ok(response);
     }
 
     @GetMapping("/categories/{categoryId}/subcategories")
-    public ResponseEntity<Map<String,Object>> getSubCategories(@PathVariable String categoryId){
+    public ResponseEntity<Map<String, Object>> getSubCategories(@PathVariable String categoryId) {
         Pageable pageable = Pageable.ofSize(100);
         Category category = CSIService.getCategoryById(Long.parseLong(categoryId));
-        if(category == null){
+        if (category == null) {
             return ResponseEntity.notFound().build();
         }
         Page<SubCategory> result = CSIService.getSubCategories(category.getId(), pageable);
-        HashMap<String,Object> response = new HashMap<>();
-        response.put("data",result.getContent());
-        response.put("total_count",result.getTotalElements());
-        response.put("page",pageable.getPageNumber());
-        response.put("has_more",result.hasNext());
+        HashMap<String, Object> response = new HashMap<>();
+        response.put("data", result.getContent());
+        response.put("total_count", result.getTotalElements());
+        response.put("page", pageable.getPageNumber());
+        response.put("has_more", result.hasNext());
         return ResponseEntity.ok(response);
     }
 
     @GetMapping("/subcategories/{subCategoryId}/items")
-    public ResponseEntity<Map<String,Object>> getItems(@PathVariable String subCategoryId){
+    public ResponseEntity<Map<String, Object>> getItems(@PathVariable String subCategoryId) {
         Pageable pageable = Pageable.ofSize(100);
 
         SubCategory subCategory = CSIService.getSubCategoryById(Long.parseLong(subCategoryId));
-        if(subCategory == null){
+        if (subCategory == null) {
             return ResponseEntity.notFound().build();
         }
 
-        Page<com.luna.Gringotts.records.Item> result = CSIService.getItems(Long.parseLong(subCategoryId),pageable);
-        HashMap<String,Object> response = new HashMap<>();
-        response.put("data",result.getContent());
-        response.put("total_count",result.getTotalElements());
-        response.put("page",pageable.getPageNumber());
-        response.put("has_more",result.hasNext());
+        Page<com.luna.Gringotts.records.Item> result = CSIService.getItems(Long.parseLong(subCategoryId), pageable);
+        HashMap<String, Object> response = new HashMap<>();
+        response.put("data", result.getContent());
+        response.put("total_count", result.getTotalElements());
+        response.put("page", pageable.getPageNumber());
+        response.put("has_more", result.hasNext());
         return ResponseEntity.ok(response);
     }
 
     @GetMapping("/subcategories/all")
-    public ResponseEntity<Map<String,Object>> getAllUserSubCategories(@RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "50") int size){
-        Pageable pageable = Pageable.ofSize(size).withPage(page);
-        Page<SubCategory> result = CSIService.getAllUserSubCategories(pageable);
-        HashMap<String,Object> response = new HashMap<>();
-        response.put("data",result.getContent());
-        response.put("total_count",result.getTotalElements());
-        response.put("page",pageable.getPageNumber());
-        response.put("has_more",result.hasNext());
+    public ResponseEntity<Map<String, Object>> getAllUserSubCategories(@RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "50") int size, @RequestParam(required = false) String type) {
+        Pageable pageable = PageRequest.of(page, size);
+        Page<SubCategory> result;
+        if (type != null && !type.isEmpty()) {
+            result = CSIService.getSubCategoriesByType(type, pageable);
+        } else {
+            result = CSIService.getAllUserSubCategories(pageable);
+        }
+        HashMap<String, Object> response = new HashMap<>();
+        response.put("data", result.getContent());
+        response.put("total_count", result.getTotalElements());
+        response.put("page", pageable.getPageNumber());
+        response.put("has_more", result.hasNext());
         return ResponseEntity.ok(response);
     }
 
     @GetMapping("/items/all")
-    public ResponseEntity<Map<String,Object>> getAllUserItems(@RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "50") int size){
-        Pageable pageable = Pageable.ofSize(size).withPage(page);
-        Page<Item> result = CSIService.getAllUserItems(pageable);
-        HashMap<String,Object> response = new HashMap<>();
-        response.put("data",result.getContent());
-        response.put("total_count",result.getTotalElements());
-        response.put("page",pageable.getPageNumber());
-        response.put("has_more",result.hasNext());
+    public ResponseEntity<Map<String, Object>> getAllUserItems(@RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "50") int size, @RequestParam(required = false) String type) {
+        Pageable pageable = PageRequest.of(page, size);
+        Page<Item> result;
+        if (type != null && !type.isEmpty()) {
+            result = CSIService.getItemsByType(type, pageable);
+        } else {
+            result = CSIService.getAllUserItems(pageable);
+        }
+        HashMap<String, Object> response = new HashMap<>();
+        response.put("data", result.getContent());
+        response.put("total_count", result.getTotalElements());
+        response.put("page", pageable.getPageNumber());
+        response.put("has_more", result.hasNext());
         return ResponseEntity.ok(response);
     }
 
     @GetMapping("/categories/{id}")
-    public ResponseEntity<Map<String,Object>> getCategoryById(@PathVariable Long id){
+    public ResponseEntity<Map<String, Object>> getCategoryById(@PathVariable Long id) {
         Category category = CSIService.getCategoryById(id);
-        if(category == null){
+        if (category == null) {
             return ResponseEntity.notFound().build();
         }
-        return ResponseEntity.ok(Map.of("category",category,"status","success"));
+        return ResponseEntity.ok(Map.of("category", category, "status", "success"));
     }
 
     @GetMapping("/subcategories/{id}")
-    public ResponseEntity<Map<String,Object>> getSubCategoryById(@PathVariable Long id){
+    public ResponseEntity<Map<String, Object>> getSubCategoryById(@PathVariable Long id) {
 
         SubCategory subCategory = CSIService.getSubCategoryById(id);
-        if(subCategory == null){
+        if (subCategory == null) {
             return ResponseEntity.notFound().build();
         }
-        return ResponseEntity.ok(Map.of("sub_category",subCategory,"status","success"));
+        return ResponseEntity.ok(Map.of("sub_category", subCategory, "status", "success"));
     }
 
     @GetMapping("/items/{id}")
-    public ResponseEntity<Map<String,Object>> getItemById(@PathVariable Long id){
+    public ResponseEntity<Map<String, Object>> getItemById(@PathVariable Long id) {
         Item item = CSIService.getItemById(id);
-        if(item == null){
+        if (item == null) {
             return ResponseEntity.notFound().build();
         }
 
-        return ResponseEntity.ok(Map.of("item",item,"status","success"));
+        return ResponseEntity.ok(Map.of("item", item, "status", "success"));
     }
 
     @PostMapping("/categories")
-    public ResponseEntity<Map<String,Object>> addCategory(@RequestBody Category category){
+    public ResponseEntity<Map<String, Object>> addCategory(@RequestBody Category category) {
         if (category.getType() == null || !VALID_CATEGORY_TYPES.contains(category.getType())) {
-            return ResponseEntity.badRequest().body(Map.of("message", "Category type must be one of: EXPENSE, INCOME, SAVING, REVOLVING", "status", "error"));
+            return ResponseEntity.badRequest().body(Map.of("message",
+                    "Category type must be one of: EXPENSE, INCOME, SAVING, REVOLVING", "status", "error"));
         }
         Category added = CSIService.addCategory(category);
-        return ResponseEntity.ok(Map.of("category",added,"status","success"));
+        return ResponseEntity.ok(Map.of("category", added, "status", "success"));
     }
 
     @PostMapping("/subcategories")
-    public ResponseEntity<Map<String,Object>> addSubCategory(@RequestBody SubCategory subCategory) {
+    public ResponseEntity<Map<String, Object>> addSubCategory(@RequestBody SubCategory subCategory) {
         SubCategory added = CSIService.addSubCategory(subCategory);
         return ResponseEntity.ok(Map.of("sub_category", added, "status", "success"));
     }
 
     @PostMapping("/items")
-    public ResponseEntity<Map<String,Object>> addItem(@RequestBody Item item) {
+    public ResponseEntity<Map<String, Object>> addItem(@RequestBody Item item) {
         Item added = CSIService.addItem(item);
-        return ResponseEntity.ok(Map.of("item",added,"status", "success"));
+        return ResponseEntity.ok(Map.of("item", added, "status", "success"));
     }
 
     @PutMapping("/categories/{id}")
-    public ResponseEntity<Map<String,Object>> updateCategory(@RequestBody Category category, @PathVariable Long id){
+    public ResponseEntity<Map<String, Object>> updateCategory(@RequestBody Category category, @PathVariable Long id) {
         if (category.getType() == null || !VALID_CATEGORY_TYPES.contains(category.getType())) {
-            return ResponseEntity.badRequest().body(Map.of("message", "Category type must be one of: EXPENSE, INCOME, SAVING", "status", "error"));
+            return ResponseEntity.badRequest().body(
+                    Map.of("message", "Category type must be one of: EXPENSE, INCOME, SAVING", "status", "error"));
         }
         category.setId(id);
         Category updated = CSIService.updateCategory(category);
-        return ResponseEntity.ok(Map.of("category", updated, "status","success"));
+        return ResponseEntity.ok(Map.of("category", updated, "status", "success"));
     }
 
     @PutMapping("/subcategories/{id}")
-    public ResponseEntity<Map<String,Object>> updateSubCategory(@RequestBody SubCategory subCategory, @PathVariable Long id){
+    public ResponseEntity<Map<String, Object>> updateSubCategory(@RequestBody SubCategory subCategory,
+            @PathVariable Long id) {
         SubCategory existing = CSIService.getSubCategoryById(id);
         if (existing == null) {
             return ResponseEntity.notFound().build();
@@ -168,11 +185,11 @@ public class CSIController {
         subCategory.setId(id);
         subCategory.setCategory(existing.getCategory());
         SubCategory updated = CSIService.updateSubCategory(subCategory);
-        return ResponseEntity.ok(Map.of("sub_category", updated, "status","success"));
+        return ResponseEntity.ok(Map.of("sub_category", updated, "status", "success"));
     }
 
     @PutMapping("/items/{id}")
-    public ResponseEntity<Map<String,Object>> updateItem(@RequestBody Item item, @PathVariable Long id){
+    public ResponseEntity<Map<String, Object>> updateItem(@RequestBody Item item, @PathVariable Long id) {
         Item existing = CSIService.getItemById(id);
         if (existing == null) {
             return ResponseEntity.notFound().build();
@@ -180,32 +197,32 @@ public class CSIController {
         item.setId(id);
         item.setSubCategory(existing.getSubCategory());
         Item updated = CSIService.updateItem(item);
-        return ResponseEntity.ok(Map.of("item", updated, "status","success"));
+        return ResponseEntity.ok(Map.of("item", updated, "status", "success"));
     }
 
     @DeleteMapping("/categories/{id}")
-    public ResponseEntity<Map<String,Object>> deleteCategory(@PathVariable Long id){
+    public ResponseEntity<Map<String, Object>> deleteCategory(@PathVariable Long id) {
         Map<String, Object> result = CSIService.deleteCategory(id);
         if ("error".equals(result.get("status"))) {
-            return ResponseEntity.status((Integer)result.get("status_code")).body(result);
+            return ResponseEntity.status((Integer) result.get("status_code")).body(result);
         }
         return ResponseEntity.ok(result);
     }
 
     @DeleteMapping("/subcategories/{id}")
-    public ResponseEntity<Map<String,Object>> deleteSubCategory(@PathVariable Long id){
+    public ResponseEntity<Map<String, Object>> deleteSubCategory(@PathVariable Long id) {
         Map<String, Object> result = CSIService.deleteSubCategory(id);
         if ("error".equals(result.get("status"))) {
-            return ResponseEntity.status((Integer)result.get("status_code")).body(result);
+            return ResponseEntity.status((Integer) result.get("status_code")).body(result);
         }
         return ResponseEntity.ok(result);
     }
 
     @DeleteMapping("/items/{id}")
-    public ResponseEntity<Map<String,Object>> deleteItem(@PathVariable Long id){
+    public ResponseEntity<Map<String, Object>> deleteItem(@PathVariable Long id) {
         Map<String, Object> result = CSIService.deleteItem(id);
         if ("error".equals(result.get("status"))) {
-            return ResponseEntity.status((Integer)result.get("status_code")).body(result);
+            return ResponseEntity.status((Integer) result.get("status_code")).body(result);
         }
         return ResponseEntity.ok(result);
     }

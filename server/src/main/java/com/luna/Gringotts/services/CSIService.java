@@ -149,8 +149,16 @@ public class CSIService {
         return subCategoryRepository.findByCategoryUserOrderByNameAsc(iamService.getCurrentUser(), pageable);
     }
 
+    public Page<SubCategory> getSubCategoriesByType(String type, Pageable pageable) {
+        return subCategoryRepository.findByCategoryTypeAndCategoryUserOrderByNameAsc(type, iamService.getCurrentUser(), pageable);
+    }
+
     public Page<Item> getAllUserItems(Pageable pageable) {
         return itemRepository.findBySubCategoryCategoryUserOrderByNameAsc(iamService.getCurrentUser(), pageable);
+    }
+
+    public Page<Item> getItemsByType(String type, Pageable pageable) {
+        return itemRepository.findBySubCategoryCategoryTypeAndSubCategoryCategoryUserOrderByNameAsc(type, iamService.getCurrentUser(), pageable);
     }
 
     @Cacheable(value = "categoryById", key = "#id")
