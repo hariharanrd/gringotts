@@ -12,15 +12,13 @@ import {
   Upload,
   Sun,
   Moon,
-  HandCoins,
   ChevronLeft,
   ChevronRight,
   ReceiptText,
   UserCircle2,
-  CalendarSync,
   CreditCard,
-  Target,
-  Clock
+  Clock,
+  Table2
 } from 'lucide-react';
 
 import { useTheme } from './ThemeContext';
@@ -37,7 +35,7 @@ interface LayoutProps {
 const navItems = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },
   { id: 'transactions', label: 'Transactions', icon: ReceiptText, path: '/transactions' },
-  { id: 'budget', label: 'Budget', icon: HandCoins, path: '/budget' },
+  { id: 'budget', label: 'Budget', icon: Table2, path: '/budget' },
   { id: 'investment-planner', label: 'Goals', icon: Goal, path: '/investment-planner' },
   { id: 'credit-cards', label: 'Cards', icon: CreditCard, path: '/credit-cards' },
   { id: 'schedules', label: 'Schedules', icon: Clock, path: '/schedules' },
@@ -126,7 +124,7 @@ const Layout: React.FC<LayoutProps> = ({ userName, displayName, profilePicture, 
           {/* Nav */}
           <nav className="flex-1 p-4 space-y-1">
             {navItems.map((item) => {
-              const isActive = item.path === '/dashboard' 
+              const isActive = item.path === '/dashboard'
                 ? location.pathname === '/dashboard' || location.pathname === '/'
                 : location.pathname.startsWith(item.path);
               return (

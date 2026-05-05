@@ -5,6 +5,7 @@
 
 /* ── Light (Default) ─────────────────────────────────────────────────────── */
 [data-theme="light"] {
+  --theme-font: 'Inter';
   --theme-bg: #f8fafc;
   --theme-bg-rgb: 248, 250, 252;
   --theme-surface: #ffffff;
@@ -45,6 +46,7 @@
 
 /* ── Dark (Default) ──────────────────────────────────────────────────────── */
 [data-theme="dark"] {
+  --theme-font: 'Inter';
   --theme-bg: #020617;
   --theme-bg-rgb: 2, 6, 23;
   --theme-surface: #0f172a;
@@ -85,6 +87,7 @@
 
 /* ── Programmer ──────────────────────────────────────────────────────────── */
 [data-theme="programmer"] {
+  --theme-font: 'JetBrains Mono';
   --theme-bg: #0d1117;
   --theme-bg-rgb: 13, 17, 23;
   --theme-surface: #161b22;
@@ -125,6 +128,7 @@
 
 /* ── Minimalist ──────────────────────────────────────────────────────────── */
 [data-theme="minimalist"] {
+  --theme-font: 'Outfit';
   --theme-bg: #fafaf9;
   --theme-bg-rgb: 250, 250, 249;
   --theme-surface: #ffffff;
@@ -165,6 +169,7 @@
 
 /* ── Mint & Marble ───────────────────────────────────────────────────────── */
 [data-theme="mint-marble"] {
+  --theme-font: 'Montserrat';
   --theme-bg: #f0fdf4;
   --theme-bg-rgb: 240, 253, 244;
   --theme-surface: #ffffff;
@@ -205,6 +210,7 @@
 
 /* ── Midnight Ledger ─────────────────────────────────────────────────────── */
 [data-theme="midnight"] {
+  --theme-font: 'Space Grotesk';
   --theme-bg: #1a1a2e;
   --theme-bg-rgb: 26, 26, 46;
   --theme-surface: #16213e;
@@ -245,6 +251,7 @@
 
 /* ── Botanical ───────────────────────────────────────────────────────────── */
 [data-theme="botanical"] {
+  --theme-font: 'Quicksand';
   --theme-bg: #faf7f2;
   --theme-bg-rgb: 250, 247, 242;
   --theme-surface: #f5f0e8;
@@ -285,6 +292,7 @@
 
 /* ── Neo-Pop ─────────────────────────────────────────────────────────────── */
 [data-theme="neo-pop"] {
+  --theme-font: 'Lexend';
   --theme-bg: #1a0a2e;
   --theme-bg-rgb: 26, 10, 46;
   --theme-surface: #2d1b4e;
@@ -325,6 +333,7 @@
 
 /* ── Accessible ──────────────────────────────────────────────────────────── */
 [data-theme="accessible"] {
+  --theme-font: 'Atkinson Hyperlegible';
   --theme-bg: #ffffff;
   --theme-bg-rgb: 255, 255, 255;
   --theme-surface: #ffffff;
