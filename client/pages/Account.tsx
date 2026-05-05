@@ -2,20 +2,22 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
 import { useToast } from '../components/ToastContext';
+import { useTheme, THEME_LIBRARY, ThemeId } from '../components/ThemeContext';
 import {
-  User, KeyRound, Trash2, Camera, Save, Eye, EyeOff, AlertTriangle, X, Check
+  User, KeyRound, Trash2, Camera, Save, Eye, EyeOff, AlertTriangle, X, Check, Palette, Sun, Moon
 } from 'lucide-react';
 
 interface AccountProps {
   onProfileUpdate: () => void;
 }
 
-type Section = 'profile' | 'security' | 'danger';
+type Section = 'profile' | 'appearance' | 'security' | 'danger' | 'account';
 
 const SECTION_TABS: { id: Section; label: string; icon: React.ElementType }[] = [
   { id: 'profile', label: 'Profile', icon: User },
+  { id: 'appearance', label: 'Appearance', icon: Palette },
   { id: 'security', label: 'Security', icon: KeyRound },
-  { id: 'account', label: 'Account', icon: User },
+  { id: 'account', label: 'Account', icon: User }
 ];
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
@@ -145,6 +147,7 @@ const DeleteModal: React.FC<{
 
 const Account: React.FC<AccountProps> = ({ onProfileUpdate }) => {
   const { showToast } = useToast();
+  const { theme, setTheme } = useTheme();
   const navigate = useNavigate();
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -362,7 +365,13 @@ const Account: React.FC<AccountProps> = ({ onProfileUpdate }) => {
                 <button
                   onClick={handleProfileSave}
                   disabled={profileSaving}
-                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 disabled:opacity-60 text-white text-sm font-semibold shadow-lg shadow-cyan-500/20 transition-all"
+                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl disabled:opacity-60 text-white text-sm font-semibold shadow-lg transition-all"
+                  style={{
+                    background: `linear-gradient(to right, var(--theme-gradient-from), var(--theme-gradient-to))`,
+                    boxShadow: `0 10px 15px -3px rgba(var(--theme-accent-rgb), 0.2), 0 4px 6px -4px rgba(var(--theme-accent-rgb), 0.2)`
+                  }}
+                  onMouseEnter={(e) => { if (!e.currentTarget.disabled) e.currentTarget.style.filter = 'brightness(1.1)'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.filter = 'none'; }}
                 >
                   {profileSaving
                     ? <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
@@ -371,6 +380,87 @@ const Account: React.FC<AccountProps> = ({ onProfileUpdate }) => {
                   Save Profile
                 </button>
               </div>
+            </div>
+          )}
+
+          {/* ─ Appearance ─ */}
+          {section === 'appearance' && (
+            <div className="bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700/50 rounded-2xl p-6 space-y-6">
+              <div>
+                <h2 className="text-base font-semibold text-slate-900 dark:text-white">Theme Library</h2>
+                <p className="text-xs text-slate-400 mt-0.5">Choose a theme that suits your style. Your selection is saved automatically.</p>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {THEME_LIBRARY.map((t) => {
+                  const isSelected = theme === t.id;
+                  return (
+                    <button
+                      key={t.id}
+                      onClick={() => setTheme(t.id)}
+                      className={`group relative text-left rounded-2xl p-4 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl ${isSelected
+                        ? 'ring-2 shadow-lg scale-[1.02]'
+                        : 'hover:ring-1 border'
+                        }`}
+                      style={{
+                        background: t.colors.bg,
+                        borderColor: isSelected ? t.colors.accent : t.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
+                        ringColor: t.colors.accent,
+                        boxShadow: isSelected ? `0 4px 20px ${t.colors.accent}30` : undefined,
+                        ...(isSelected ? { outline: `2px solid ${t.colors.accent}`, outlineOffset: '1px' } : {}),
+                      }}
+                    >
+                      {/* Selected indicator */}
+                      {isSelected && (
+                        <div
+                          className="absolute top-3 right-3 w-6 h-6 rounded-full flex items-center justify-center shadow-md"
+                          style={{ background: t.colors.accent }}
+                        >
+                          <Check className="w-3.5 h-3.5" style={{ color: t.isDark && t.id !== 'neo-pop' ? '#fff' : t.colors.bg }} />
+                        </div>
+                      )}
+
+                      {/* Mini preview bar */}
+                      <div className="flex gap-1.5 mb-3">
+                        <div className="h-8 flex-1 rounded-lg" style={{ background: t.colors.surface, border: `1px solid ${t.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'}` }} />
+                        <div className="h-8 w-10 rounded-lg" style={{ background: `linear-gradient(135deg, ${t.colors.accent}, ${t.colors.accentSecondary})` }} />
+                      </div>
+
+                      {/* Color swatches */}
+                      <div className="flex gap-1.5 mb-3">
+                        {[t.colors.bg, t.colors.surface, t.colors.accent, t.colors.accentSecondary, t.colors.text].map((c, i) => (
+                          <div
+                            key={i}
+                            className="w-5 h-5 rounded-full shadow-sm"
+                            style={{ background: c, border: `1px solid ${t.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}` }}
+                          />
+                        ))}
+                      </div>
+
+                      {/* Name & description */}
+                      <h3 className="text-sm font-bold" style={{ color: t.colors.text }}>{t.name}</h3>
+                      <p className="text-[11px] mt-0.5 leading-relaxed" style={{ color: t.isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.45)' }}>
+                        {t.description}
+                      </p>
+
+                      {/* Vibe tag */}
+                      <span
+                        className="inline-block mt-2 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider"
+                        style={{
+                          background: `${t.colors.accent}18`,
+                          color: t.colors.accent,
+                        }}
+                      >
+                        {t.vibe}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <p className="text-[11px] text-slate-400 dark:text-slate-500">
+                Tip: Use the <Sun className="w-3 h-3 inline" /> / <Moon className="w-3 h-3 inline" /> toggle in the header for a quick switch between Light and Dark.
+              </p>
             </div>
           )}
 
@@ -467,7 +557,13 @@ const Account: React.FC<AccountProps> = ({ onProfileUpdate }) => {
                 <button
                   onClick={handlePasswordReset}
                   disabled={pwSaving}
-                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 disabled:opacity-60 text-white text-sm font-semibold shadow-lg shadow-cyan-500/20 transition-all"
+                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl disabled:opacity-60 text-white text-sm font-semibold shadow-lg transition-all"
+                  style={{
+                    background: `linear-gradient(to right, var(--theme-gradient-from), var(--theme-gradient-to))`,
+                    boxShadow: `0 10px 15px -3px rgba(var(--theme-accent-rgb), 0.2), 0 4px 6px -4px rgba(var(--theme-accent-rgb), 0.2)`
+                  }}
+                  onMouseEnter={(e) => { if (!e.currentTarget.disabled) e.currentTarget.style.filter = 'brightness(1.1)'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.filter = 'none'; }}
                 >
                   {pwSaving
                     ? <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />

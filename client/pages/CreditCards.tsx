@@ -161,7 +161,13 @@ const CreditCards: React.FC = () => {
         </div>
         <button
           onClick={() => handleOpenModal()}
-          className="flex items-center justify-center gap-2 px-5 py-2.5 bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-semibold rounded-xl shadow-lg shadow-cyan-500/20 hover:shadow-cyan-500/40 transition-all hover:-translate-y-0.5 active:translate-y-0"
+          className="flex items-center justify-center gap-2 px-5 py-2.5 text-white font-semibold rounded-xl shadow-lg transition-all hover:-translate-y-0.5 active:translate-y-0"
+          style={{
+            background: `linear-gradient(to right, var(--theme-gradient-from), var(--theme-gradient-to))`,
+            boxShadow: `0 10px 15px -3px rgba(var(--theme-accent-rgb), 0.2), 0 4px 6px -4px rgba(var(--theme-accent-rgb), 0.2)`
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.filter = 'brightness(1.1)'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.filter = 'none'; }}
         >
           <Plus className="w-5 h-5" />
           Add New Card
@@ -183,7 +189,13 @@ const CreditCards: React.FC = () => {
           <p className="text-slate-500 dark:text-slate-400 mt-1 max-w-xs text-center">Add your first card to start tracking billing cycles and usage.</p>
           <button
             onClick={() => handleOpenModal()}
-            className="mt-6 px-6 py-2 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-xl font-medium transition-transform hover:scale-105 active:scale-95"
+            className="mt-6 px-6 py-2 text-white font-medium transition-transform hover:scale-105 active:scale-95 rounded-xl shadow-lg"
+            style={{
+              background: `linear-gradient(to right, var(--theme-gradient-from), var(--theme-gradient-to))`,
+              boxShadow: `0 10px 15px -3px rgba(var(--theme-accent-rgb), 0.2), 0 4px 6px -4px rgba(var(--theme-accent-rgb), 0.2)`
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.filter = 'brightness(1.1)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.filter = 'none'; }}
           >
             Add Card
           </button>
@@ -493,7 +505,13 @@ const CreditCards: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-3.5 bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-black rounded-2xl transition-all hover:scale-[1.02] active:scale-95 shadow-xl shadow-slate-900/10 dark:shadow-white/5"
+                  className="flex-1 py-3.5 text-white font-black rounded-2xl transition-all hover:scale-[1.02] active:scale-95 shadow-xl"
+                  style={{
+                    background: `linear-gradient(to right, var(--theme-gradient-from), var(--theme-gradient-to))`,
+                    boxShadow: `0 10px 15px -3px rgba(var(--theme-accent-rgb), 0.2), 0 4px 6px -4px rgba(var(--theme-accent-rgb), 0.2)`
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.filter = 'brightness(1.1)'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.filter = 'none'; }}
                 >
                   {editingCard ? 'Update Card' : 'Create Card'}
                 </button>

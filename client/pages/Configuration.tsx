@@ -329,7 +329,13 @@ const Configuration: React.FC = () => {
           )}
           <button 
             onClick={() => openModal('CATEGORY')}
-            className="w-full py-3 text-sm text-slate-500 dark:text-slate-400 hover:text-cyan-500 dark:hover:text-cyan-400 hover:bg-cyan-500/5 rounded-xl border border-dashed border-slate-300 dark:border-slate-700/50 hover:border-cyan-500/30 transition-all flex items-center justify-center gap-2 font-medium"
+            className="w-full py-3 text-white font-bold rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 text-sm"
+            style={{
+              background: `linear-gradient(to right, var(--theme-gradient-from), var(--theme-gradient-to))`,
+              boxShadow: `0 10px 15px -3px rgba(var(--theme-accent-rgb), 0.2), 0 4px 6px -4px rgba(var(--theme-accent-rgb), 0.2)`
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.filter = 'brightness(1.1)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.filter = 'none'; }}
           >
             <Plus className="w-4 h-4" />
             Add Category

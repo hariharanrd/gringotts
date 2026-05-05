@@ -460,7 +460,17 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
 
           <button
             onClick={() => onAdd(currentTab === 'all' ? undefined : (currentTab.toUpperCase() as any))}
-            className="flex items-center justify-center gap-2 bg-gradient-to-r from-cyan-600 to-blue-700 text-white py-3 px-5 rounded-2xl shadow-lg shadow-cyan-600/20 hover:from-cyan-500 hover:to-blue-600 transition-all font-bold text-sm shrink-0"
+            className="flex items-center justify-center gap-2 text-white py-3 px-5 rounded-2xl transition-all font-bold text-sm shrink-0 shadow-lg"
+            style={{
+              background: `linear-gradient(to right, var(--theme-gradient-from), var(--theme-gradient-to))`,
+              boxShadow: `0 10px 15px -3px rgba(var(--theme-accent-rgb), 0.2), 0 4px 6px -4px rgba(var(--theme-accent-rgb), 0.2)`
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.filter = 'brightness(1.1)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.filter = 'none';
+            }}
           >
             <PlusCircle className="w-4 h-4" />
             <span className="hidden sm:inline">Add</span>
