@@ -1,0 +1,437 @@
+/* ============================================================================
+   GRINGOTTS THEME SYSTEM
+   CSS Custom Properties for 9 themes, applied via data-theme on <html>
+   ============================================================================ */
+
+/* ── Light (Default) ─────────────────────────────────────────────────────── */
+[data-theme="light"] {
+  --theme-font: 'Inter';
+  --theme-bg: #f8fafc;
+  --theme-bg-rgb: 248, 250, 252;
+  --theme-surface: #ffffff;
+  --theme-surface-rgb: 255, 255, 255;
+  --theme-surface-hover: #f1f5f9;
+  --theme-sidebar: rgba(255, 255, 255, 0.8);
+  --theme-header: rgba(255, 255, 255, 0.8);
+  --theme-border: #e2e8f0;
+  --theme-border-subtle: rgba(148, 163, 184, 0.2);
+  --theme-text: #0f172a;
+  --theme-text-secondary: #475569;
+  --theme-text-muted: #94a3b8;
+  --theme-accent: #06b6d4;
+  --theme-accent-rgb: 6, 182, 212;
+  --theme-accent-hover: #22d3ee;
+  --theme-accent-secondary: #3b82f6;
+  --theme-accent-text: #ffffff;
+  --theme-gradient-from: #06b6d4;
+  --theme-gradient-to: #3b82f6;
+  --theme-sidebar-active-bg: linear-gradient(to right, rgba(6,182,212,0.1), rgba(59,130,246,0.1));
+  --theme-sidebar-indicator: linear-gradient(to bottom, #22d3ee, #3b82f6);
+  --theme-scrollbar-track: #f1f5f9;
+  --theme-scrollbar-thumb: #cbd5e1;
+  --theme-scrollbar-thumb-hover: #94a3b8;
+  --theme-glass-bg: rgba(255, 255, 255, 0.7);
+  --theme-glass-border: rgba(148, 163, 184, 0.2);
+  --theme-glass-shadow: rgba(0, 0, 0, 0.05);
+  --theme-glass-card-bg: rgba(255, 255, 255, 0.6);
+  --theme-glass-card-border: rgba(148, 163, 184, 0.15);
+  --theme-glass-card-shadow: rgba(0, 0, 0, 0.04);
+  --theme-avatar-from: #8b5cf6;
+  --theme-avatar-to: #d946ef;
+  --theme-avatar-shadow: rgba(139, 92, 246, 0.2);
+  --theme-danger: #ef4444;
+  --theme-success: #22c55e;
+  --theme-warning: #f59e0b;
+}
+
+/* ── Dark (Default) ──────────────────────────────────────────────────────── */
+[data-theme="dark"] {
+  --theme-font: 'Inter';
+  --theme-bg: #020617;
+  --theme-bg-rgb: 2, 6, 23;
+  --theme-surface: #0f172a;
+  --theme-surface-rgb: 15, 23, 42;
+  --theme-surface-hover: #1e293b;
+  --theme-sidebar: rgba(15, 23, 42, 0.8);
+  --theme-header: rgba(2, 6, 23, 0.8);
+  --theme-border: rgba(51, 65, 85, 0.5);
+  --theme-border-subtle: rgba(148, 163, 184, 0.1);
+  --theme-text: #f1f5f9;
+  --theme-text-secondary: #94a3b8;
+  --theme-text-muted: #64748b;
+  --theme-accent: #06b6d4;
+  --theme-accent-rgb: 6, 182, 212;
+  --theme-accent-hover: #22d3ee;
+  --theme-accent-secondary: #3b82f6;
+  --theme-accent-text: #ffffff;
+  --theme-gradient-from: #06b6d4;
+  --theme-gradient-to: #3b82f6;
+  --theme-sidebar-active-bg: linear-gradient(to right, rgba(6,182,212,0.1), rgba(59,130,246,0.1));
+  --theme-sidebar-indicator: linear-gradient(to bottom, #22d3ee, #3b82f6);
+  --theme-scrollbar-track: #1e293b;
+  --theme-scrollbar-thumb: #475569;
+  --theme-scrollbar-thumb-hover: #64748b;
+  --theme-glass-bg: rgba(30, 41, 59, 0.6);
+  --theme-glass-border: rgba(148, 163, 184, 0.1);
+  --theme-glass-shadow: rgba(0, 0, 0, 0.2);
+  --theme-glass-card-bg: rgba(30, 41, 59, 0.5);
+  --theme-glass-card-border: rgba(148, 163, 184, 0.08);
+  --theme-glass-card-shadow: rgba(0, 0, 0, 0.15);
+  --theme-avatar-from: #8b5cf6;
+  --theme-avatar-to: #d946ef;
+  --theme-avatar-shadow: rgba(139, 92, 246, 0.2);
+  --theme-danger: #ef4444;
+  --theme-success: #22c55e;
+  --theme-warning: #f59e0b;
+}
+
+/* ── Programmer ──────────────────────────────────────────────────────────── */
+[data-theme="programmer"] {
+  --theme-font: 'JetBrains Mono';
+  --theme-bg: #0d1117;
+  --theme-bg-rgb: 13, 17, 23;
+  --theme-surface: #161b22;
+  --theme-surface-rgb: 22, 27, 34;
+  --theme-surface-hover: #21262d;
+  --theme-sidebar: rgba(22, 27, 34, 0.9);
+  --theme-header: rgba(13, 17, 23, 0.85);
+  --theme-border: rgba(48, 54, 61, 0.8);
+  --theme-border-subtle: rgba(48, 54, 61, 0.4);
+  --theme-text: #e6edf3;
+  --theme-text-secondary: #8b949e;
+  --theme-text-muted: #6e7681;
+  --theme-accent: #39d353;
+  --theme-accent-rgb: 57, 211, 83;
+  --theme-accent-hover: #56d364;
+  --theme-accent-secondary: #2ea043;
+  --theme-accent-text: #0d1117;
+  --theme-gradient-from: #39d353;
+  --theme-gradient-to: #2ea043;
+  --theme-sidebar-active-bg: linear-gradient(to right, rgba(57,211,83,0.1), rgba(46,160,67,0.08));
+  --theme-sidebar-indicator: linear-gradient(to bottom, #39d353, #2ea043);
+  --theme-scrollbar-track: #161b22;
+  --theme-scrollbar-thumb: #30363d;
+  --theme-scrollbar-thumb-hover: #484f58;
+  --theme-glass-bg: rgba(22, 27, 34, 0.7);
+  --theme-glass-border: rgba(48, 54, 61, 0.6);
+  --theme-glass-shadow: rgba(0, 0, 0, 0.3);
+  --theme-glass-card-bg: rgba(22, 27, 34, 0.6);
+  --theme-glass-card-border: rgba(48, 54, 61, 0.4);
+  --theme-glass-card-shadow: rgba(0, 0, 0, 0.2);
+  --theme-avatar-from: #39d353;
+  --theme-avatar-to: #2ea043;
+  --theme-avatar-shadow: rgba(57, 211, 83, 0.2);
+  --theme-danger: #f85149;
+  --theme-success: #39d353;
+  --theme-warning: #d29922;
+}
+
+/* ── Minimalist ──────────────────────────────────────────────────────────── */
+[data-theme="minimalist"] {
+  --theme-font: 'Outfit';
+  --theme-bg: #fafaf9;
+  --theme-bg-rgb: 250, 250, 249;
+  --theme-surface: #ffffff;
+  --theme-surface-rgb: 255, 255, 255;
+  --theme-surface-hover: #f5f5f4;
+  --theme-sidebar: rgba(255, 255, 255, 0.85);
+  --theme-header: rgba(250, 250, 249, 0.85);
+  --theme-border: #e7e5e4;
+  --theme-border-subtle: rgba(168, 162, 158, 0.2);
+  --theme-text: #1c1917;
+  --theme-text-secondary: #57534e;
+  --theme-text-muted: #a8a29e;
+  --theme-accent: #78716c;
+  --theme-accent-rgb: 120, 113, 108;
+  --theme-accent-hover: #57534e;
+  --theme-accent-secondary: #a8a29e;
+  --theme-accent-text: #ffffff;
+  --theme-gradient-from: #78716c;
+  --theme-gradient-to: #57534e;
+  --theme-sidebar-active-bg: linear-gradient(to right, rgba(120,113,108,0.08), rgba(87,83,78,0.05));
+  --theme-sidebar-indicator: linear-gradient(to bottom, #78716c, #57534e);
+  --theme-scrollbar-track: #f5f5f4;
+  --theme-scrollbar-thumb: #d6d3d1;
+  --theme-scrollbar-thumb-hover: #a8a29e;
+  --theme-glass-bg: rgba(255, 255, 255, 0.75);
+  --theme-glass-border: rgba(168, 162, 158, 0.2);
+  --theme-glass-shadow: rgba(0, 0, 0, 0.03);
+  --theme-glass-card-bg: rgba(255, 255, 255, 0.65);
+  --theme-glass-card-border: rgba(168, 162, 158, 0.15);
+  --theme-glass-card-shadow: rgba(0, 0, 0, 0.02);
+  --theme-avatar-from: #78716c;
+  --theme-avatar-to: #57534e;
+  --theme-avatar-shadow: rgba(120, 113, 108, 0.15);
+  --theme-danger: #dc2626;
+  --theme-success: #16a34a;
+  --theme-warning: #ca8a04;
+}
+
+/* ── Mint & Marble ───────────────────────────────────────────────────────── */
+[data-theme="mint-marble"] {
+  --theme-font: 'Montserrat';
+  --theme-bg: #f0fdf4;
+  --theme-bg-rgb: 240, 253, 244;
+  --theme-surface: #ffffff;
+  --theme-surface-rgb: 255, 255, 255;
+  --theme-surface-hover: #ecfdf5;
+  --theme-sidebar: rgba(255, 255, 255, 0.85);
+  --theme-header: rgba(240, 253, 244, 0.85);
+  --theme-border: #d1e7dd;
+  --theme-border-subtle: rgba(134, 197, 161, 0.2);
+  --theme-text: #1e293b;
+  --theme-text-secondary: #475569;
+  --theme-text-muted: #94a3b8;
+  --theme-accent: #34d399;
+  --theme-accent-rgb: 52, 211, 153;
+  --theme-accent-hover: #6ee7b7;
+  --theme-accent-secondary: #10b981;
+  --theme-accent-text: #064e3b;
+  --theme-gradient-from: #34d399;
+  --theme-gradient-to: #10b981;
+  --theme-sidebar-active-bg: linear-gradient(to right, rgba(52,211,153,0.1), rgba(16,185,129,0.08));
+  --theme-sidebar-indicator: linear-gradient(to bottom, #34d399, #10b981);
+  --theme-scrollbar-track: #ecfdf5;
+  --theme-scrollbar-thumb: #a7f3d0;
+  --theme-scrollbar-thumb-hover: #6ee7b7;
+  --theme-glass-bg: rgba(255, 255, 255, 0.75);
+  --theme-glass-border: rgba(134, 197, 161, 0.25);
+  --theme-glass-shadow: rgba(16, 185, 129, 0.05);
+  --theme-glass-card-bg: rgba(255, 255, 255, 0.65);
+  --theme-glass-card-border: rgba(134, 197, 161, 0.18);
+  --theme-glass-card-shadow: rgba(16, 185, 129, 0.03);
+  --theme-avatar-from: #34d399;
+  --theme-avatar-to: #10b981;
+  --theme-avatar-shadow: rgba(52, 211, 153, 0.2);
+  --theme-danger: #ef4444;
+  --theme-success: #22c55e;
+  --theme-warning: #f59e0b;
+}
+
+/* ── Midnight Ledger ─────────────────────────────────────────────────────── */
+[data-theme="midnight"] {
+  --theme-font: 'Space Grotesk';
+  --theme-bg: #1a1a2e;
+  --theme-bg-rgb: 26, 26, 46;
+  --theme-surface: #16213e;
+  --theme-surface-rgb: 22, 33, 62;
+  --theme-surface-hover: #1f2e50;
+  --theme-sidebar: rgba(22, 33, 62, 0.9);
+  --theme-header: rgba(26, 26, 46, 0.85);
+  --theme-border: rgba(55, 65, 100, 0.6);
+  --theme-border-subtle: rgba(55, 65, 100, 0.3);
+  --theme-text: #e0e7ff;
+  --theme-text-secondary: #93a0c7;
+  --theme-text-muted: #5b6a92;
+  --theme-accent: #2563eb;
+  --theme-accent-rgb: 37, 99, 235;
+  --theme-accent-hover: #3b82f6;
+  --theme-accent-secondary: #1d4ed8;
+  --theme-accent-text: #ffffff;
+  --theme-gradient-from: #2563eb;
+  --theme-gradient-to: #1d4ed8;
+  --theme-sidebar-active-bg: linear-gradient(to right, rgba(37,99,235,0.15), rgba(29,78,216,0.08));
+  --theme-sidebar-indicator: linear-gradient(to bottom, #3b82f6, #1d4ed8);
+  --theme-scrollbar-track: #16213e;
+  --theme-scrollbar-thumb: #374164;
+  --theme-scrollbar-thumb-hover: #4b5c8a;
+  --theme-glass-bg: rgba(22, 33, 62, 0.7);
+  --theme-glass-border: rgba(55, 65, 100, 0.4);
+  --theme-glass-shadow: rgba(0, 0, 0, 0.3);
+  --theme-glass-card-bg: rgba(22, 33, 62, 0.6);
+  --theme-glass-card-border: rgba(55, 65, 100, 0.3);
+  --theme-glass-card-shadow: rgba(0, 0, 0, 0.2);
+  --theme-avatar-from: #3b82f6;
+  --theme-avatar-to: #1d4ed8;
+  --theme-avatar-shadow: rgba(37, 99, 235, 0.25);
+  --theme-danger: #ef4444;
+  --theme-success: #22c55e;
+  --theme-warning: #f59e0b;
+}
+
+/* ── Botanical ───────────────────────────────────────────────────────────── */
+[data-theme="botanical"] {
+  --theme-font: 'Quicksand';
+  --theme-bg: #faf7f2;
+  --theme-bg-rgb: 250, 247, 242;
+  --theme-surface: #f5f0e8;
+  --theme-surface-rgb: 245, 240, 232;
+  --theme-surface-hover: #ede5d8;
+  --theme-sidebar: rgba(245, 240, 232, 0.9);
+  --theme-header: rgba(250, 247, 242, 0.88);
+  --theme-border: #ddd3c2;
+  --theme-border-subtle: rgba(180, 166, 145, 0.25);
+  --theme-text: #3e3328;
+  --theme-text-secondary: #6b5e50;
+  --theme-text-muted: #a09484;
+  --theme-accent: #c2410c;
+  --theme-accent-rgb: 194, 65, 12;
+  --theme-accent-hover: #ea580c;
+  --theme-accent-secondary: #9a3412;
+  --theme-accent-text: #ffffff;
+  --theme-gradient-from: #c2410c;
+  --theme-gradient-to: #9a3412;
+  --theme-sidebar-active-bg: linear-gradient(to right, rgba(194,65,12,0.1), rgba(154,52,18,0.06));
+  --theme-sidebar-indicator: linear-gradient(to bottom, #ea580c, #9a3412);
+  --theme-scrollbar-track: #f0ebe3;
+  --theme-scrollbar-thumb: #c8bca8;
+  --theme-scrollbar-thumb-hover: #a09484;
+  --theme-glass-bg: rgba(245, 240, 232, 0.75);
+  --theme-glass-border: rgba(180, 166, 145, 0.25);
+  --theme-glass-shadow: rgba(62, 51, 40, 0.05);
+  --theme-glass-card-bg: rgba(245, 240, 232, 0.65);
+  --theme-glass-card-border: rgba(180, 166, 145, 0.18);
+  --theme-glass-card-shadow: rgba(62, 51, 40, 0.03);
+  --theme-avatar-from: #c2410c;
+  --theme-avatar-to: #78350f;
+  --theme-avatar-shadow: rgba(194, 65, 12, 0.2);
+  --theme-danger: #dc2626;
+  --theme-success: #16a34a;
+  --theme-warning: #ca8a04;
+}
+
+/* ── Neo-Pop ─────────────────────────────────────────────────────────────── */
+[data-theme="neo-pop"] {
+  --theme-font: 'Lexend';
+  --theme-bg: #1a0a2e;
+  --theme-bg-rgb: 26, 10, 46;
+  --theme-surface: #2d1b4e;
+  --theme-surface-rgb: 45, 27, 78;
+  --theme-surface-hover: #3d2768;
+  --theme-sidebar: rgba(45, 27, 78, 0.9);
+  --theme-header: rgba(26, 10, 46, 0.85);
+  --theme-border: rgba(88, 56, 136, 0.5);
+  --theme-border-subtle: rgba(88, 56, 136, 0.25);
+  --theme-text: #f0e6ff;
+  --theme-text-secondary: #c4a8e0;
+  --theme-text-muted: #8b6bb0;
+  --theme-accent: #f97316;
+  --theme-accent-rgb: 249, 115, 22;
+  --theme-accent-hover: #fb923c;
+  --theme-accent-secondary: #a855f7;
+  --theme-accent-text: #1a0a2e;
+  --theme-gradient-from: #a855f7;
+  --theme-gradient-to: #f97316;
+  --theme-sidebar-active-bg: linear-gradient(to right, rgba(168,85,247,0.15), rgba(249,115,22,0.08));
+  --theme-sidebar-indicator: linear-gradient(to bottom, #a855f7, #f97316);
+  --theme-scrollbar-track: #2d1b4e;
+  --theme-scrollbar-thumb: #583888;
+  --theme-scrollbar-thumb-hover: #7c52b8;
+  --theme-glass-bg: rgba(45, 27, 78, 0.7);
+  --theme-glass-border: rgba(88, 56, 136, 0.4);
+  --theme-glass-shadow: rgba(0, 0, 0, 0.3);
+  --theme-glass-card-bg: rgba(45, 27, 78, 0.6);
+  --theme-glass-card-border: rgba(88, 56, 136, 0.3);
+  --theme-glass-card-shadow: rgba(0, 0, 0, 0.2);
+  --theme-avatar-from: #a855f7;
+  --theme-avatar-to: #f97316;
+  --theme-avatar-shadow: rgba(168, 85, 247, 0.3);
+  --theme-danger: #f43f5e;
+  --theme-success: #4ade80;
+  --theme-warning: #fbbf24;
+}
+
+/* ── Accessible ──────────────────────────────────────────────────────────── */
+[data-theme="accessible"] {
+  --theme-font: 'Atkinson Hyperlegible';
+  --theme-bg: #ffffff;
+  --theme-bg-rgb: 255, 255, 255;
+  --theme-surface: #ffffff;
+  --theme-surface-rgb: 255, 255, 255;
+  --theme-surface-hover: #f5f5f5;
+  --theme-sidebar: #1a1a1a;
+  --theme-header: rgba(255, 255, 255, 0.95);
+  --theme-border: #333333;
+  --theme-border-subtle: #e5e5e5;
+  --theme-text: #000000;
+  --theme-text-secondary: #333333;
+  --theme-text-muted: #666666;
+  --theme-accent: #eab308;
+  --theme-accent-rgb: 234, 179, 8;
+  --theme-accent-hover: #facc15;
+  --theme-accent-secondary: #ca8a04;
+  --theme-accent-text: #000000;
+  --theme-gradient-from: #eab308;
+  --theme-gradient-to: #ca8a04;
+  --theme-sidebar-active-bg: linear-gradient(to right, rgba(234,179,8,0.15), rgba(202,138,4,0.1));
+  --theme-sidebar-indicator: linear-gradient(to bottom, #eab308, #ca8a04);
+  --theme-scrollbar-track: #f5f5f5;
+  --theme-scrollbar-thumb: #999999;
+  --theme-scrollbar-thumb-hover: #666666;
+  --theme-glass-bg: rgba(255, 255, 255, 0.9);
+  --theme-glass-border: #333333;
+  --theme-glass-shadow: rgba(0, 0, 0, 0.1);
+  --theme-glass-card-bg: rgba(255, 255, 255, 0.85);
+  --theme-glass-card-border: #e5e5e5;
+  --theme-glass-card-shadow: rgba(0, 0, 0, 0.06);
+  --theme-avatar-from: #eab308;
+  --theme-avatar-to: #ca8a04;
+  --theme-avatar-shadow: rgba(234, 179, 8, 0.25);
+  --theme-danger: #dc2626;
+  --theme-success: #16a34a;
+  --theme-warning: #d97706;
+}
+
+
+/* ============================================================================
+   THEME-AWARE OVERRIDES
+   These replace the hardcoded dark/light styles from index.html
+   ============================================================================ */
+
+/* ── Scrollbar ─────────────────────────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--theme-scrollbar-track, #f1f5f9);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--theme-scrollbar-thumb, #cbd5e1);
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--theme-scrollbar-thumb-hover, #94a3b8);
+}
+
+/* ── Glass Effects ─────────────────────────────────────────────────────── */
+.glass {
+  background: var(--theme-glass-bg) !important;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--theme-glass-border) !important;
+  box-shadow: 0 1px 3px var(--theme-glass-shadow);
+}
+
+.glass-card {
+  background: var(--theme-glass-card-bg) !important;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--theme-glass-card-border) !important;
+  box-shadow: 0 1px 3px var(--theme-glass-card-shadow);
+}
+
+/* ── Theme transition ──────────────────────────────────────────────────── */
+html {
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+html body {
+  background-color: var(--theme-bg);
+  color: var(--theme-text);
+}
+
+/* ── Accessible theme: special sidebar text treatment ─────────────────── */
+[data-theme="accessible"] .sidebar-brand-text,
+[data-theme="accessible"] .sidebar-nav-text,
+[data-theme="accessible"] .sidebar-user-text {
+  color: #ffffff;
+}
+[data-theme="accessible"] .sidebar-nav-text-muted {
+  color: #999999;
+}
+[data-theme="accessible"] .sidebar-brand-sub {
+  color: #999999;
+}
+[data-theme="accessible"] .sidebar-border {
+  border-color: #333333;
+}

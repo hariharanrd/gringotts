@@ -85,7 +85,13 @@ const EmptyGoals: React.FC<{ onAdd: () => void }> = ({ onAdd }) => (
     </div>
     <button
       onClick={onAdd}
-      className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-gradient-to-r from-violet-500 to-cyan-500 text-white font-semibold text-sm shadow-lg shadow-violet-500/30 hover:shadow-violet-500/50 hover:scale-105 transition-all"
+      className="flex items-center gap-2 px-6 py-3 rounded-2xl text-white font-semibold text-sm shadow-lg transition-all"
+      style={{
+        background: `linear-gradient(to right, var(--theme-gradient-from), var(--theme-gradient-to))`,
+        boxShadow: `0 10px 15px -3px rgba(var(--theme-accent-rgb), 0.2), 0 4px 6px -4px rgba(var(--theme-accent-rgb), 0.2)`
+      }}
+      onMouseEnter={(e) => { e.currentTarget.style.filter = 'brightness(1.1)'; }}
+      onMouseLeave={(e) => { e.currentTarget.style.filter = 'none'; }}
     >
       <Plus className="w-4 h-4" /> Add Your First Goal
     </button>
@@ -573,7 +579,14 @@ const GoalModal: React.FC<GoalModalProps> = ({ isOpen, onClose, onSaved, editGoa
             Cancel
           </button>
           <button onClick={handleSubmit} disabled={saving}
-            className="flex-1 py-3 rounded-2xl bg-gradient-to-r from-violet-500 to-cyan-500 text-white text-sm font-semibold shadow-lg shadow-violet-500/30 hover:shadow-violet-500/50 hover:scale-[1.02] transition-all disabled:opacity-60 disabled:scale-100">
+            className="flex-1 py-3 rounded-2xl text-white text-sm font-semibold shadow-lg transition-all disabled:opacity-60 disabled:scale-100"
+            style={{
+              background: `linear-gradient(to right, var(--theme-gradient-from), var(--theme-gradient-to))`,
+              boxShadow: `0 10px 15px -3px rgba(var(--theme-accent-rgb), 0.2), 0 4px 6px -4px rgba(var(--theme-accent-rgb), 0.2)`
+            }}
+            onMouseEnter={(e) => { if (!e.currentTarget.disabled) e.currentTarget.style.filter = 'brightness(1.1)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.filter = 'none'; }}
+          >
             {saving ? 'Saving...' : editGoal ? 'Update Goal' : 'Create Goal'}
           </button>
         </div>
@@ -651,7 +664,13 @@ const InvestmentPlanner: React.FC = () => {
           </div>
           <button
             onClick={() => { setEditGoal(null); setModalOpen(true); }}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-gradient-to-r from-violet-500 to-cyan-500 text-white font-semibold text-sm shadow-lg shadow-violet-500/30 hover:shadow-violet-500/50 hover:scale-105 transition-all"
+            className="flex items-center gap-2 px-5 py-2.5 rounded-2xl text-white font-semibold text-sm shadow-lg transition-all"
+            style={{
+              background: `linear-gradient(to right, var(--theme-gradient-from), var(--theme-gradient-to))`,
+              boxShadow: `0 10px 15px -3px rgba(var(--theme-accent-rgb), 0.2), 0 4px 6px -4px rgba(var(--theme-accent-rgb), 0.2)`
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.filter = 'brightness(1.1)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.filter = 'none'; }}
           >
             <Plus className="w-4 h-4" /> New Goal
           </button>

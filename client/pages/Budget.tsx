@@ -336,7 +336,13 @@ const BudgetPage: React.FC = () => {
             )}
             <button
               onClick={() => handleAddNew(false)}
-              className="flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 text-white rounded-xl shadow-lg shadow-cyan-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all"
+              className="flex items-center justify-center gap-2 px-4 py-2 text-white rounded-xl shadow-lg transition-all font-bold text-sm"
+              style={{
+                background: `linear-gradient(to right, var(--theme-gradient-from), var(--theme-gradient-to))`,
+                boxShadow: `0 10px 15px -3px rgba(var(--theme-accent-rgb), 0.2), 0 4px 6px -4px rgba(var(--theme-accent-rgb), 0.2)`
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.filter = 'brightness(1.1)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.filter = 'none'; }}
             >
               <Plus className="w-4 h-4" />
               New Monthly Budget
@@ -598,7 +604,13 @@ const BudgetPage: React.FC = () => {
                   <button
                     onClick={handleSave}
                     disabled={!formData.name || (formData.total_amount || 0) <= 0 || isOverAllocated}
-                    className="flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-cyan-500 to-blue-600 text-white text-sm font-bold rounded-2xl shadow-xl shadow-cyan-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:grayscale disabled:scale-100"
+                    className="flex items-center gap-2 px-8 py-3 text-white text-sm font-bold rounded-2xl shadow-xl transition-all disabled:opacity-50 disabled:grayscale disabled:scale-100"
+                    style={{
+                      background: `linear-gradient(to right, var(--theme-gradient-from), var(--theme-gradient-to))`,
+                      boxShadow: `0 10px 15px -3px rgba(var(--theme-accent-rgb), 0.2), 0 4px 6px -4px rgba(var(--theme-accent-rgb), 0.2)`
+                    }}
+                    onMouseEnter={(e) => { if (!e.currentTarget.disabled) e.currentTarget.style.filter = 'brightness(1.1)'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.filter = 'none'; }}
                   >
                     <Save className="w-4 h-4" />
                     {formData.id ? 'Save Updates' : 'Create Budget'}

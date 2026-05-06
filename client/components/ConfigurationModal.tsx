@@ -232,7 +232,13 @@ const ConfigurationModal: React.FC<ConfigurationModalProps> = ({
             <button
               type="submit"
               disabled={loading}
-              className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-semibold rounded-xl shadow-lg shadow-cyan-500/20 transition-all disabled:opacity-50"
+              className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-white font-semibold rounded-xl shadow-lg transition-all disabled:opacity-50"
+              style={{
+                background: `linear-gradient(to right, var(--theme-gradient-from), var(--theme-gradient-to))`,
+                boxShadow: `0 10px 15px -3px rgba(var(--theme-accent-rgb), 0.2), 0 4px 6px -4px rgba(var(--theme-accent-rgb), 0.2)`
+              }}
+              onMouseEnter={(e) => { if (!e.currentTarget.disabled) e.currentTarget.style.filter = 'brightness(1.1)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.filter = 'none'; }}
             >
               {loading ? (
                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
