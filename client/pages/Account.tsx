@@ -4,7 +4,7 @@ import { api } from '../services/api';
 import { useToast } from '../components/ToastContext';
 import { useTheme, THEME_LIBRARY, ThemeId } from '../components/ThemeContext';
 import {
-  User, KeyRound, Trash2, Camera, Save, Eye, EyeOff, AlertTriangle, X, Check, Palette, Sun, Moon
+  User, KeyRound, Trash2, Camera, Save, Eye, EyeOff, AlertTriangle, X, Check, Palette, Sun, Moon, ChevronDown
 } from 'lucide-react';
 
 interface AccountProps {
@@ -171,6 +171,7 @@ const Account: React.FC<AccountProps> = ({ onProfileUpdate }) => {
 
   // Danger section
   const [showDeleteModal, setDeleteModal] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
     api.getProfile()
@@ -262,9 +263,47 @@ const Account: React.FC<AccountProps> = ({ onProfileUpdate }) => {
 
       <div className="flex flex-col md:flex-row gap-6">
 
-        {/* ── Sidebar tabs ── */}
+        {/* ── Sidebar tabs (Desktop) / Submenu (Mobile) ── */}
         <aside className="md:w-52 shrink-0">
-          <nav className="flex md:flex-col gap-2">
+          {/* Mobile Submenu Dropdown */}
+          <div className="md:hidden relative mb-6">
+            <button
+              onClick={() => setMenuOpen(!menuOpen)}
+              className="w-full flex items-center justify-between px-4 py-3.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/50 rounded-2xl text-sm font-semibold shadow-sm transition-all active:scale-[0.98]"
+            >
+              <div className="flex items-center gap-3">
+                {(() => {
+                  const Icon = SECTION_TABS.find(t => t.id === section)?.icon || User;
+                  return <Icon className="w-4 h-4 text-cyan-500" />;
+                })()}
+                <span className="text-slate-900 dark:text-white">
+                  {SECTION_TABS.find(t => t.id === section)?.label}
+                </span>
+              </div>
+              <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-300 ${menuOpen ? 'rotate-180' : ''}`} />
+            </button>
+
+            {menuOpen && (
+              <div className="absolute top-full left-0 right-0 mt-2 z-[30] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/50 rounded-2xl shadow-xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                {SECTION_TABS.map(({ id, label, icon: Icon }) => (
+                  <button
+                    key={id}
+                    onClick={() => { setSection(id); setMenuOpen(false); }}
+                    className={`w-full flex items-center gap-3 px-4 py-3.5 text-sm font-medium transition-all
+                      ${section === id
+                        ? 'bg-cyan-500/10 text-cyan-600 dark:text-cyan-400'
+                        : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/40'}`}
+                  >
+                    <Icon className="w-4 h-4" />
+                    {label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Desktop Sidebar Sidebar */}
+          <nav className="hidden md:flex md:flex-col gap-2">
             {SECTION_TABS.map(({ id, label, icon: Icon }) => (
               <button
                 key={id}
@@ -405,7 +444,7 @@ const Account: React.FC<AccountProps> = ({ onProfileUpdate }) => {
                       style={{
                         background: t.colors.bg,
                         borderColor: isSelected ? t.colors.accent : t.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
-                        ringColor: t.colors.accent,
+                        ['--tw-ring-color' as any]: t.colors.accent,
                         boxShadow: isSelected ? `0 4px 20px ${t.colors.accent}30` : undefined,
                         ...(isSelected ? { outline: `2px solid ${t.colors.accent}`, outlineOffset: '1px' } : {}),
                       }}
