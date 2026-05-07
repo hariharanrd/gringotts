@@ -64,6 +64,11 @@ export const api = {
     }
     return true;
   },
+  
+  checkUsernameAvailabilityPublic: async (username: string): Promise<{ available: boolean }> => {
+    const response = await fetch(`${BASE_URL}/auth/check-username?username=${encodeURIComponent(username)}`);
+    return handleResponse(response);
+  },
 
   // Transaction API Start
 

@@ -2,6 +2,7 @@ package com.luna.Gringotts.controller;
 
 import com.luna.Gringotts.records.User;
 import com.luna.Gringotts.repository.UserRepository;
+import com.luna.Gringotts.services.AccountService;
 import com.luna.Gringotts.services.AppConfigurationService;
 import com.luna.Gringotts.services.AuthenticationService;
 import jakarta.servlet.http.HttpServletResponse;
@@ -22,6 +23,7 @@ public class AuthenticationController {
 
     private final AuthenticationService service;
     private final UserRepository userRepository;
+    private final AccountService accountService;
 
     @Value("${production:false}")
     private String production;
@@ -32,9 +34,15 @@ public class AuthenticationController {
     @Value("${jwt.expiration:86400000}")
     private long jwtExpiration;
 
-    public AuthenticationController(AuthenticationService service, UserRepository userRepository) {
+    public AuthenticationController(AuthenticationService service, UserRepository userRepository, AccountService accountService) {
         this.service = service;
         this.userRepository = userRepository;
+        this.accountService = accountService;
+    }
+
+    @GetMapping("/check-username")
+    public ResponseEntity<Map<String, Boolean>> checkUsername(@RequestParam String username) {
+        return ResponseEntity.ok(Map.of("available", accountService.isUsernameAvailable(username)));
     }
 
     @PostMapping("/register")
