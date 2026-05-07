@@ -1,5 +1,5 @@
 
-import { Transaction, Expense, Income, Saving, Revolving, Category, SubCategory, Item, TransactionType, Budget, BudgetUtilization, InvestmentGoal, CreditCard, CreditCardBill, TimeRange, Profile } from '../types';
+import { Transaction, Expense, Income, Saving, Revolving, Category, SubCategory, Item, TransactionType, Budget, BudgetUtilization, InvestmentGoal, CreditCard, CreditCardBill, TimeRange, Profile, Personalization } from '../types';
 
 const BASE_URL = "/api/v1";
 
@@ -590,5 +590,32 @@ export const api = {
     await handleResponse(response);
   },
   // Credit Card API End
+
+  // Personalization API Start
+  getPersonalizations: async (): Promise<Personalization[]> => {
+    const response = await fetchWithCredentials(`${BASE_URL}/personalizations`);
+    return handleResponseAndGetData(response);
+  },
+
+  getPersonalizationsByCategory: async (category: string): Promise<Personalization[]> => {
+    const response = await fetchWithCredentials(`${BASE_URL}/personalizations/${category}`);
+    return handleResponseAndGetData(response);
+  },
+
+  savePersonalization: async (data: Partial<Personalization>): Promise<Personalization> => {
+    const response = await fetchWithCredentials(`${BASE_URL}/personalizations`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    return handleResponseAndGetData(response);
+  },
+
+  deletePersonalization: async (category: string, key: string): Promise<void> => {
+    const response = await fetchWithCredentials(`${BASE_URL}/personalizations/${category}/${key}`, {
+      method: 'DELETE',
+    });
+    await handleResponse(response);
+  },
+  // Personalization API End
 };
 

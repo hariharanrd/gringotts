@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { personalizationSync } from '../services/personalizationSync';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
 import { Transaction, TransactionType, Category, SubCategory, Item, CreditCard, Saving, Revolving } from '../types';
@@ -189,13 +190,17 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
 
   // Persist filters to localStorage
   useEffect(() => {
-    localStorage.setItem('gringotts_transaction_filters', JSON.stringify(filters));
+    const value = JSON.stringify(filters);
+    localStorage.setItem('gringotts_transaction_filters', value);
+    personalizationSync.save('FILTERS', 'TRANSACTION', value);
   }, [filters]);
 
   // Persist columns to localStorage
   useEffect(() => {
     if (visibleColumns.size > 0) {
-      localStorage.setItem(`gringotts_columns_${currentTab}`, JSON.stringify(Array.from(visibleColumns)));
+      const value = JSON.stringify(Array.from(visibleColumns));
+      localStorage.setItem(`gringotts_columns_${currentTab}`, value);
+      personalizationSync.save('COLUMNS', currentTab.toUpperCase(), value);
     }
   }, [visibleColumns, currentTab]);
 

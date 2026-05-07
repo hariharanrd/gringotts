@@ -21,6 +21,7 @@ import { api } from './services/api';
 import { Transaction, TransactionType } from './types';
 import { ToastProvider, useToast } from './components/ToastContext';
 import { ThemeProvider } from './components/ThemeContext';
+import { personalizationSync } from './services/personalizationSync';
 import { DashboardSkeleton, FormSkeleton } from './components/Skeleton';
 
 const PrivateRoute: React.FC<{ children: React.ReactNode; isAuthenticated: boolean | null }> = ({ children, isAuthenticated }) => {
@@ -108,6 +109,7 @@ const GringottsApp: React.FC = () => {
         setUsername(data.username);
         setDisplayName(data.displayName || '');
         setProfilePicture(data.profilePicture || '');
+        await personalizationSync.syncFromBackend();
         setIsAuthenticated(true);
         fetchAllTransactions();
       } else {

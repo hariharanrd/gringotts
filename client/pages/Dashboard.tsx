@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { personalizationSync } from '../services/personalizationSync';
 import {
   ArrowUpRight,
   ArrowDownRight,
@@ -118,6 +119,7 @@ const Dashboard: React.FC = () => {
   const handleRangeChange = async (newRange: TimeRange) => {
     setRange(newRange);
     localStorage.setItem('dashboard_range', newRange);
+    personalizationSync.save('FILTERS', 'DASHBOARD_RANGE', newRange);
     setSummaryLoading(true);
     await fetchSummary(newRange);
     setSummaryLoading(false);

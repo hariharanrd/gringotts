@@ -1,5 +1,6 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { personalizationSync } from '../services/personalizationSync';
 
 // ── Theme Definitions ───────────────────────────────────────────────────────
 
@@ -156,21 +157,29 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     localStorage.setItem('gringotts-theme', theme);
   }, [theme, isDark]);
 
+  useEffect(() => {
+    const handleSync = () => {
+      const stored = localStorage.getItem('gringotts-theme');
+      if (stored && VALID_THEME_IDS.has(stored as ThemeId)) {
+        setThemeState(stored as ThemeId);
+      }
+    };
+    window.addEventListener('personalization-sync-done', handleSync);
+    return () => window.removeEventListener('personalization-sync-done', handleSync);
+  }, []);
+
   const setTheme = (themeId: ThemeId) => {
     if (VALID_THEME_IDS.has(themeId)) {
       setThemeState(themeId);
+      personalizationSync.save('UI', 'THEME', themeId);
     }
   };
 
   // Quick toggle: switches between the user's last-used light/dark default pair
   const toggleTheme = () => {
-    if (isDark) {
-      // Switch to the default light theme
-      setThemeState(DEFAULT_LIGHT);
-    } else {
-      // Switch to the default dark theme
-      setThemeState(DEFAULT_DARK);
-    }
+    const newTheme = isDark ? DEFAULT_LIGHT : DEFAULT_DARK;
+    setThemeState(newTheme);
+    personalizationSync.save('UI', 'THEME', newTheme);
   };
 
   return (
