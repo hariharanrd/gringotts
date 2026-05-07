@@ -4,9 +4,12 @@ import com.luna.Gringotts.records.User;
 import com.luna.Gringotts.repository.*;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashMap;
 import java.util.Map;
 
 @Service
@@ -58,9 +61,35 @@ public class AccountService {
         );
     }
 
+    public boolean isUsernameAvailable(String username) {
+        if (!isValidUsername(username)) return false;
+        return !userRepository.existsByUsername(username.toLowerCase().trim());
+    }
+
+    private boolean isValidUsername(String username) {
+        if (username == null || username.isBlank() || username.length() < 3) return false;
+        return username.toLowerCase().trim().matches("^[a-z0-9._]+$");
+    }
+
+    @Transactional
     @CacheEvict(value = "users", allEntries = true)
-    public Map<String, String> updateProfile(String username, String displayName, String profilePicture) {
-        User user = userRepository.findByUsername(username).orElseThrow();
+    public Map<String, Object> updateProfile(String currentUsername, String newUsername, String displayName, String profilePicture) {
+        User user = userRepository.findByUsername(currentUsername).orElseThrow();
+        boolean usernameChanged = false;
+
+        if (newUsername != null && !newUsername.isBlank()) {
+            newUsername = newUsername.toLowerCase().trim();
+            if (!newUsername.equals(currentUsername)) {
+                if (!isValidUsername(newUsername)) {
+                    throw new RuntimeException("Invalid username format");
+                }
+                if (userRepository.existsByUsername(newUsername)) {
+                    throw new RuntimeException("Username already taken");
+                }
+                user.setUsername(newUsername);
+                usernameChanged = true;
+            }
+        }
 
         if (displayName != null) {
             user.setDisplayName(displayName.isBlank() ? null : displayName.trim());
@@ -70,7 +99,20 @@ public class AccountService {
         }
 
         userRepository.save(user);
-        return getProfile(username);
+
+        // Update SecurityContext if username changed to keep the current request valid
+        if (usernameChanged) {
+            UsernamePasswordAuthenticationToken newAuth = new UsernamePasswordAuthenticationToken(
+                    user,
+                    null,
+                    user.getAuthorities()
+            );
+            SecurityContextHolder.getContext().setAuthentication(newAuth);
+        }
+
+        Map<String, Object> profileMap = new HashMap<>(getProfile(user.getUsername()));
+        profileMap.put("usernameChanged", usernameChanged);
+        return profileMap;
     }
 
     // ── Security ──────────────────────────────────────────────────────────────
