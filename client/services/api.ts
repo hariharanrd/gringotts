@@ -1,5 +1,5 @@
 
-import { Transaction, Expense, Income, Saving, Revolving, Category, SubCategory, Item, TransactionType, Budget, BudgetUtilization, InvestmentGoal, CreditCard, CreditCardBill, TimeRange } from '../types';
+import { Transaction, Expense, Income, Saving, Revolving, Category, SubCategory, Item, TransactionType, Budget, BudgetUtilization, InvestmentGoal, CreditCard, CreditCardBill, TimeRange, Profile } from '../types';
 
 const BASE_URL = "/api/v1";
 
@@ -502,15 +502,20 @@ export const api = {
   // Investment Goals API End
 
   // Account API Start
-  getProfile: async (): Promise<{ username: string; displayName: string; profilePicture: string }> => {
+  getProfile: async (): Promise<Profile> => {
     const response = await fetchWithCredentials(`${BASE_URL}/account/profile`);
     return handleResponse(response);
   },
 
-  updateProfile: async (displayName: string, profilePicture: string): Promise<{ username: string; displayName: string; profilePicture: string }> => {
+  checkUsernameAvailability: async (username: string): Promise<{ available: boolean }> => {
+    const response = await fetchWithCredentials(`${BASE_URL}/account/check-username?username=${encodeURIComponent(username)}`);
+    return handleResponse(response);
+  },
+
+  updateProfile: async (displayName: string, profilePicture: string, username?: string): Promise<Profile> => {
     const response = await fetchWithCredentials(`${BASE_URL}/account/profile`, {
       method: 'PUT',
-      body: JSON.stringify({ displayName, profilePicture }),
+      body: JSON.stringify({ displayName, profilePicture, username }),
     });
     return handleResponse(response);
   },

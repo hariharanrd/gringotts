@@ -1,5 +1,14 @@
 # 🚀 Release Notes
 
+## [May 07, 2026] Identity Management & Security Hardening
+
+### 👤 Username Customization
+
+- **Atomic Username Updates**: Users can now update their unique username directly from the Account Settings page. The process is atomic and handles session re-issuance automatically to prevent immediate logouts.
+- **Real-time Availability Check**: Implemented a debounced availability tracker that provides instant visual feedback (Available/Taken) as you type, along with character validation.
+- **Strict Character Policy**: To ensure system consistency, usernames are now restricted to **lowercase alphanumeric characters, dots (`.`), and underscores (`_`)**.
+- **Case Normalization**: All existing usernames have been migrated to lowercase. The login and registration flows now automatically normalize inputs to ensure a seamless experience regardless of typed casing.
+
 ## [May 03, 2026] Advanced Schedule Management & Financial Visibility
 
 ### 🔄 Schedule Workflows

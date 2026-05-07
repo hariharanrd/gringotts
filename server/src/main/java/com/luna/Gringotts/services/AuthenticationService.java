@@ -50,6 +50,13 @@ public class AuthenticationService {
 
     @CacheEvict(value = "users", allEntries = true)
     public Map<String, Object> register(String username, String password) {
+        if (username == null) return Map.of("status", "error", "message", "Username is required", "status_code", 400);
+        
+        username = username.toLowerCase().trim();
+        if (!username.matches("^[a-z0-9._]+$") || username.length() < 3) {
+            return Map.of("status", "error", "message", "Username must be at least 3 characters and contain only lowercase letters, numbers, dots, or underscores", "status_code", 400);
+        }
+
         if (userRepository.findByUsername(username).isPresent()) {
             return Map.of("status", "error", "message", "User already exists", "status_code", 409);
         }
@@ -75,6 +82,7 @@ public class AuthenticationService {
     }
 
     public String authenticate(String username, String password, int code) {
+        if (username != null) username = username.toLowerCase().trim();
         authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(username, password)
         );
@@ -90,6 +98,7 @@ public class AuthenticationService {
     }
 
     public Map<String, Object> preAuthenticate(String username, String password, String trustToken) {
+        if (username != null) username = username.toLowerCase().trim();
         try {
             authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(username, password)

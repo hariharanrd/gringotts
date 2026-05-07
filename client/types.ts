@@ -205,3 +205,9 @@ export interface CreditCardBill {
 export interface Expense extends Transaction {
   type: TransactionType.EXPENSE;
 }
+
+export interface Profile {
+  username: string;
+  displayName: string;
+  profilePicture: string;
+}

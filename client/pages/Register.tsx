@@ -126,9 +126,12 @@ export const Register: React.FC = () => {
                   className="w-full px-4 py-3 bg-slate-100 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 rounded-xl focus:ring-2 focus:ring-violet-500/40 focus:border-violet-500/50 outline-none transition-all text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500"
                   placeholder="Choose a username"
                   value={username}
-                  onChange={(e) => setUsername(e.target.value)}
+                  onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9._]/g, ''))}
                   required
                 />
+                <p className="text-[10px] text-slate-500 mt-1 px-1">
+                  Use lowercase letters, numbers, dots (.), or underscores (_) only.
+                </p>
               </div>
               <div className="space-y-1.5">
                 <label className="text-sm font-medium text-slate-600 dark:text-slate-300">Password</label>
