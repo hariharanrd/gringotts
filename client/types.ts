@@ -211,3 +211,10 @@ export interface Profile {
   displayName: string;
   profilePicture: string;
 }
+
+export interface Personalization {
+  id?: number;
+  category: string;
+  configKey: string;
+  configValue: string;
+}
