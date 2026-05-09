@@ -331,7 +331,7 @@ const Dashboard: React.FC = () => {
             {summary.credit_card_bills && (summary.credit_card_bills.overdue_count > 0 || summary.credit_card_bills.pending_count > 0) && (
               <div className="space-y-4 animate-in fade-in slide-in-from-top-4 duration-500">
                 {summary.credit_card_bills.overdue_count > 0 && (
-                  <div 
+                  <div
                     onClick={() => navigate('/credit-cards')}
                     className="bg-gradient-to-br from-rose-50 to-white dark:from-rose-500/10 dark:to-slate-800/50 border border-rose-200 dark:border-rose-500/20 rounded-2xl p-5 flex items-center justify-between group cursor-pointer hover:shadow-xl hover:shadow-rose-500/5 transition-all active:scale-[0.98]"
                   >
@@ -347,7 +347,7 @@ const Dashboard: React.FC = () => {
                   </div>
                 )}
                 {summary.credit_card_bills.pending_count > 0 && (
-                  <div 
+                  <div
                     onClick={() => navigate('/credit-cards')}
                     className="bg-gradient-to-br from-amber-50 to-white dark:from-amber-500/10 dark:to-slate-800/50 border border-amber-200 dark:border-amber-500/20 rounded-2xl p-5 flex items-center justify-between group cursor-pointer hover:shadow-xl hover:shadow-amber-500/5 transition-all active:scale-[0.98]"
                   >
@@ -444,7 +444,7 @@ const Dashboard: React.FC = () => {
             accentTo="to-blue-600"
             glow="shadow-cyan-500/15"
             highlight={summary.net_balance >= 0 ? 'text-emerald-500 dark:text-emerald-400' : 'text-rose-500 dark:text-rose-400'}
-            info="Net balance = Total Incomes - Total Expenses - Total Savings - Total Others Owe Me + Total I Owe (Range-adjusted)"
+            info="Net balance = Total Incomes - Total Expenses - Total Savings"
           />
         </div>
 
