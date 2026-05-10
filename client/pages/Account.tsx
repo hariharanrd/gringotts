@@ -4,18 +4,21 @@ import { api } from '../services/api';
 import { useToast } from '../components/ToastContext';
 import { useTheme, THEME_LIBRARY, ThemeId } from '../components/ThemeContext';
 import {
-  User, KeyRound, Trash2, Camera, Save, Eye, EyeOff, AlertTriangle, X, Check, Palette, Sun, Moon, ChevronDown, Loader2, Info, RefreshCcw
+  User, KeyRound, Trash2, Camera, Save, Eye, EyeOff, AlertTriangle, X, Check, Palette, Sun, Moon, ChevronDown, Loader2, Info, RefreshCcw, Globe
 } from 'lucide-react';
+import { personalizationSync } from '../services/personalizationSync';
+import { getUserTimeZone, getTimezoneOffset } from '../services/dateUtils';
 
 interface AccountProps {
   onProfileUpdate: () => void;
 }
 
-type Section = 'profile' | 'appearance' | 'security' | 'danger' | 'account';
+type Section = 'profile' | 'appearance' | 'security' | 'danger' | 'account' | 'preferences';
 
 const SECTION_TABS: { id: Section; label: string; icon: React.ElementType }[] = [
   { id: 'profile', label: 'Profile', icon: User },
   { id: 'appearance', label: 'Appearance', icon: Palette },
+  { id: 'preferences', label: 'Regional', icon: Globe },
   { id: 'security', label: 'Security', icon: KeyRound },
   { id: 'account', label: 'Account', icon: User }
 ];
@@ -178,6 +181,10 @@ const Account: React.FC<AccountProps> = ({ onProfileUpdate }) => {
   const [showDeleteModal, setDeleteModal] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
 
+  // Preferences section
+  const [timezone, setTimezone] = useState(localStorage.getItem('gringotts-timezone') || 'UTC');
+  const [availableTimezones, setAvailableTimezones] = useState<string[]>([]);
+
   useEffect(() => {
     api.getProfile()
       .then(p => {
@@ -187,6 +194,13 @@ const Account: React.FC<AccountProps> = ({ onProfileUpdate }) => {
         setPicture(p.profilePicture);
       })
       .finally(() => setLoading(false));
+
+    // Get all supported timezones
+    try {
+      setAvailableTimezones((Intl as any).supportedValuesOf('timeZone'));
+    } catch (e) {
+      setAvailableTimezones(['UTC', 'Asia/Kolkata', 'America/New_York', 'Europe/London', 'Asia/Tokyo']);
+    }
   }, []);
 
   useEffect(() => {
@@ -690,6 +704,65 @@ const Account: React.FC<AccountProps> = ({ onProfileUpdate }) => {
                   }
                   Change Password
                 </button>
+              </div>
+            </div>
+          )}
+          
+          {/* ─ Preferences ─ */}
+          {section === 'preferences' && (
+            <div className="bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700/50 rounded-2xl p-6 space-y-6">
+              <div className="flex items-start gap-4">
+                <div className="w-11 h-11 rounded-xl bg-cyan-500/10 flex items-center justify-center shrink-0 mt-0.5">
+                  <Globe className="w-5 h-5 text-cyan-500" />
+                </div>
+                <div className="flex-1">
+                  <h2 className="text-base font-semibold text-slate-900 dark:text-white">Regional Settings</h2>
+                  <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Configure your preferred timezone for transaction recording and dashboard summaries.</p>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">
+                    Timezone
+                  </label>
+                  <div className="relative">
+                    <select
+                      value={timezone}
+                      onChange={(e) => {
+                        const newTz = e.target.value;
+                        setTimezone(newTz);
+                        personalizationSync.save('UI', 'TIMEZONE', newTz);
+                        showToast(`Timezone updated to ${newTz}`, 'success');
+                      }}
+                      className="w-full px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500/50 transition-all appearance-none"
+                    >
+                      {availableTimezones.map(tz => (
+                        <option key={tz} value={tz}>
+                          {tz} ({getTimezoneOffset(tz)})
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                  </div>
+                  <p className="mt-1.5 text-[11px] text-slate-400">
+                    Your detected browser timezone is <span className="font-medium text-cyan-500">{getUserTimeZone()}</span>.
+                  </p>
+                </div>
+
+                <div className="p-4 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/50 rounded-xl">
+                  <div className="flex gap-3">
+                    <Info className="w-5 h-5 text-amber-500 shrink-0" />
+                    <div className="text-xs text-amber-800 dark:text-amber-400 leading-relaxed">
+                      <p className="font-bold mb-1">How this affects your data:</p>
+                      <ul className="list-disc pl-4 space-y-1">
+                        <li>New transactions will default to the current time in this zone.</li>
+                        <li>Dashboard summaries (Daily/Monthly) will align with this zone's boundaries.</li>
+                        <li>Existing transactions will be displayed based on their original local time.</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           )}

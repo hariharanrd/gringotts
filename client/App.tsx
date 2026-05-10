@@ -23,6 +23,7 @@ import { ToastProvider, useToast } from './components/ToastContext';
 import { ThemeProvider } from './components/ThemeContext';
 import { personalizationSync } from './services/personalizationSync';
 import { DashboardSkeleton, FormSkeleton } from './components/Skeleton';
+import { getUserTimeZone } from './services/dateUtils';
 
 const PrivateRoute: React.FC<{ children: React.ReactNode; isAuthenticated: boolean | null }> = ({ children, isAuthenticated }) => {
   if (isAuthenticated === null) {
@@ -110,6 +111,13 @@ const GringottsApp: React.FC = () => {
         setDisplayName(data.displayName || '');
         setProfilePicture(data.profilePicture || '');
         await personalizationSync.syncFromBackend();
+        
+        // Detect and save timezone if not already set
+        if (!localStorage.getItem('gringotts-timezone')) {
+          const currentTz = getUserTimeZone();
+          personalizationSync.save('UI', 'TIMEZONE', currentTz);
+        }
+
         setIsAuthenticated(true);
         fetchAllTransactions();
       } else {

@@ -24,6 +24,7 @@ import com.luna.Gringotts.repository.TransactionSpecification;
 
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.ZoneId;
 import java.time.temporal.TemporalAdjusters;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -72,6 +73,9 @@ public class TransactionService {
 
     @Autowired
     CreditCardService creditCardService;
+
+    @Autowired
+    PersonalizationService personalizationService;
 
     public Transaction getTransactionById(Long id) {
         return transactionRepository.findById(id).orElse(null);
@@ -421,9 +425,20 @@ public class TransactionService {
         return revolvingRepository.findAll(example);
     }
 
+    private ZoneId getUserZoneId() {
+        try {
+            return personalizationService.getPersonalization("UI", "TIMEZONE")
+                    .map(p -> ZoneId.of(p.getConfigValue()))
+                    .orElse(ZoneId.of("UTC"));
+        } catch (Exception e) {
+            return ZoneId.of("UTC");
+        }
+    }
+
     public Map<String, Object> getSummary(TimeRange range) {
-        LocalDateTime start = range.getFrom();
-        LocalDateTime end = range.getTo();
+        ZoneId zoneId = getUserZoneId();
+        LocalDateTime start = range.getFrom(zoneId);
+        LocalDateTime end = range.getTo(zoneId);
         User user = iamService.getCurrentUser();
 
         List<Expense> expenses = expenseRepository.findByUserAndTransactionTimeBetween(user, start, end);
