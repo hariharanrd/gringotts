@@ -1,5 +1,20 @@
 # 🚀 Release Notes
 
+## [May 10, 2026] Timezone Localization & Regional Preferences
+
+### 🌍 Timezone Support
+
+- **User-Centric Localization**: Moved away from a fixed time model. The application now detects your browser's timezone on load and stores it as a persistent preference.
+- **Regional Settings**: A new "Regional" section in Account Settings allows users to manually select their timezone from a comprehensive IANA list including visible UTC offsets (e.g., `Asia/Kolkata (+5:30)`).
+- **Timezone-Aware Summaries**: The Dashboard and Transaction summaries now align with the user's local day/month boundaries, ensuring financial data is accurate to the user's local context.
+- **Wall-Clock Time Capture**: Transaction and Schedule modals have been updated to use local "wall-clock" time for entry and editing, preventing "shifting" of dates due to UTC conversions.
+
+### 🐞 Bugfixes & UX Polishing
+
+- **Skeletal Loading Consistency**: Refined the Dashboard and Transaction list loading states to prevent layout shifts during data hydration.
+- **Mobile Navigation Layout**: Resolved a horizontal overflow issue in the Account Settings sidebar, ensuring a seamless experience on mobile devices.
+- **Form Persistence**: Fixed a bug where partial relational data (Categories/Items) would occasionally fail to hydrate in the Schedule Edit modal.
+
 ## [May 07, 2026] Identity Management & Security Hardening
 
 ### 👤 Username Customization
