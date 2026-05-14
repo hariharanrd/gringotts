@@ -3,7 +3,10 @@ package com.luna.Gringotts.services;
 import com.luna.Gringotts.records.TrustedBrowser;
 import com.luna.Gringotts.repository.TrustedBrowserRepository;
 import com.luna.Gringotts.records.User;
+import com.luna.Gringotts.records.UserSession;
 import com.luna.Gringotts.repository.UserRepository;
+import com.luna.Gringotts.repository.UserSessionRepository;
+import jakarta.servlet.http.HttpServletRequest;
 import com.warrenstrange.googleauth.GoogleAuthenticator;
 import com.warrenstrange.googleauth.GoogleAuthenticatorKey;
 import org.springframework.cache.annotation.CacheEvict;
@@ -30,6 +33,7 @@ public class AuthenticationService {
     private final GoogleAuthenticator gAuth;
     private final TrustedBrowserRepository trustedBrowserRepository;
     private final DefaultDataInitializer defaultDataInitializer;
+    private final UserSessionRepository userSessionRepository;
 
     public AuthenticationService(
             UserRepository userRepository,
@@ -37,7 +41,8 @@ public class AuthenticationService {
             JwtService jwtService,
             AuthenticationManager authenticationManager,
             TrustedBrowserRepository trustedBrowserRepository,
-            DefaultDataInitializer defaultDataInitializer
+            DefaultDataInitializer defaultDataInitializer,
+            UserSessionRepository userSessionRepository
     ) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
@@ -45,6 +50,7 @@ public class AuthenticationService {
         this.authenticationManager = authenticationManager;
         this.trustedBrowserRepository = trustedBrowserRepository;
         this.defaultDataInitializer = defaultDataInitializer;
+        this.userSessionRepository = userSessionRepository;
         this.gAuth = new GoogleAuthenticator();
     }
 
@@ -97,7 +103,7 @@ public class AuthenticationService {
         return jwtService.generateToken(user);
     }
 
-    public Map<String, Object> preAuthenticate(String username, String password, String trustToken) {
+    public Map<String, Object> preAuthenticate(String username, String password, String trustToken, HttpServletRequest request) {
         if (username != null) username = username.toLowerCase().trim();
         try {
             authenticationManager.authenticate(
@@ -113,10 +119,19 @@ public class AuthenticationService {
                 trusted.get().getExpiresAt().isAfter(LocalDateTime.now())) {
                 
                 User user = userRepository.findByUsername(username).orElseThrow();
+                
+                String tokenId = UUID.randomUUID().toString();
+                UserSession session = new UserSession();
+                session.setUser(user);
+                session.setTokenId(tokenId);
+                session.setIpAddress(request.getRemoteAddr());
+                session.setUserAgent(request.getHeader("User-Agent"));
+                userSessionRepository.save(session);
+                
                 return Map.of(
                     "status", "success",
                     "requiresMfa", false,
-                    "jwt", jwtService.generateToken(user)
+                    "jwt", jwtService.generateToken(user, tokenId)
                 );
             }
         }
@@ -128,7 +143,7 @@ public class AuthenticationService {
         );
     }
 
-    public Map<String, Object> completeMfa(String preAuthToken, int code, boolean trustBrowser) {
+    public Map<String, Object> completeMfa(String preAuthToken, int code, boolean trustBrowser, HttpServletRequest request) {
         if (!jwtService.isPreAuthTokenValid(preAuthToken)) {
             return Map.of("status", "error", "message", "Invalid or expired session. Please login again.", "status_code", 401);
         }
@@ -147,7 +162,15 @@ public class AuthenticationService {
             defaultDataInitializer.initializeCategories(user);
         }
 
-        String jwt = jwtService.generateToken(user);
+        String tokenId = UUID.randomUUID().toString();
+        UserSession session = new UserSession();
+        session.setUser(user);
+        session.setTokenId(tokenId);
+        session.setIpAddress(request.getRemoteAddr());
+        session.setUserAgent(request.getHeader("User-Agent"));
+        userSessionRepository.save(session);
+
+        String jwt = jwtService.generateToken(user, tokenId);
         String trustToken = null;
 
         if (trustBrowser) {
@@ -164,6 +187,21 @@ public class AuthenticationService {
         response.put("jwt", jwt);
         if (trustToken != null) response.put("trustToken", trustToken);
         return response;
+    }
+
+    public void logout(String token) {
+        if (token == null || token.isEmpty()) return;
+        try {
+            String jti = jwtService.extractClaim(token, claims -> claims.get("jti", String.class));
+            if (jti != null) {
+                userSessionRepository.findByTokenId(jti).ifPresent(session -> {
+                    session.setRevoked(true);
+                    userSessionRepository.save(session);
+                });
+            }
+        } catch (Exception e) {
+            // Ignore token parsing errors during logout
+        }
     }
 
     public static record PreAuthResult(boolean requiresMfa, String preAuthToken, String jwt, String trustToken) {}

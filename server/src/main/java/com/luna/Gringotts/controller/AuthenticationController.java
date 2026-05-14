@@ -5,6 +5,7 @@ import com.luna.Gringotts.repository.UserRepository;
 import com.luna.Gringotts.services.AccountService;
 import com.luna.Gringotts.services.AppConfigurationService;
 import com.luna.Gringotts.services.AuthenticationService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -63,9 +64,10 @@ public class AuthenticationController {
     public ResponseEntity<?> preAuthenticate(
             @RequestBody PreAuthenticateRequest request,
             @RequestHeader(value = "X-Trust-Token", required = false) String trustToken,
+            HttpServletRequest httpServletRequest,
             HttpServletResponse response) {
         Map<String, Object> result = service.preAuthenticate(
-                request.getUsername(), request.getPassword(), trustToken);
+                request.getUsername(), request.getPassword(), trustToken, httpServletRequest);
 
         if ("error".equals(result.get("status"))) {
             return ResponseEntity.status((Integer)result.get("status_code")).body(result);
@@ -82,9 +84,10 @@ public class AuthenticationController {
     @PostMapping("/authenticate")
     public ResponseEntity<?> authenticate(
             @RequestBody AuthenticateRequest request,
+            HttpServletRequest httpServletRequest,
             HttpServletResponse response) {
         Map<String, Object> result = service.completeMfa(
-                request.getPreAuthToken(), request.getCode(), request.isTrustBrowser());
+                request.getPreAuthToken(), request.getCode(), request.isTrustBrowser(), httpServletRequest);
 
         if ("error".equals(result.get("status"))) {
             return ResponseEntity.status((Integer)result.get("status_code")).body(result);
@@ -107,7 +110,12 @@ public class AuthenticationController {
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<Void> logout(HttpServletResponse response) {
+    public ResponseEntity<Void> logout(
+            @CookieValue(name = "__session", required = false) String token,
+            HttpServletResponse response) {
+        if (token != null) {
+            service.logout(token);
+        }
         ResponseCookie cookie = ResponseCookie.from("__session", "")
                 .httpOnly(true)
                 .secure(false)

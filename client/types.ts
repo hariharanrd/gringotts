@@ -220,3 +220,11 @@ export interface Personalization {
   configKey: string;
   configValue: string;
 }
+
+export interface UserSession {
+  id: string;
+  ip_address: string;
+  user_agent: string;
+  created_at: string;
+  last_active_at: string;
+}

@@ -1,5 +1,5 @@
 
-import { Transaction, Expense, Income, Saving, Revolving, Category, SubCategory, Item, TransactionType, Budget, BudgetUtilization, InvestmentGoal, CreditCard, CreditCardBill, TimeRange, Profile, Personalization } from '../types';
+import { Transaction, Expense, Income, Saving, Revolving, Category, SubCategory, Item, TransactionType, Budget, BudgetUtilization, InvestmentGoal, CreditCard, CreditCardBill, TimeRange, Profile, Personalization, UserSession } from '../types';
 
 const BASE_URL = "/api/v1";
 
@@ -617,5 +617,19 @@ export const api = {
     await handleResponse(response);
   },
   // Personalization API End
+
+  // Sessions API Start
+  getSessions: async (): Promise<{ data: UserSession[], total_count: number }> => {
+    const response = await fetchWithCredentials(`${BASE_URL}/sessions`);
+    return handleResponse(response);
+  },
+  
+  revokeSession: async (id: string): Promise<void> => {
+    const response = await fetchWithCredentials(`${BASE_URL}/sessions/${id}`, {
+      method: 'DELETE',
+    });
+    await handleResponse(response);
+  }
+  // Sessions API End
 };
 

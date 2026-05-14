@@ -1,5 +1,8 @@
 package com.luna.Gringotts.services;
 
+import com.luna.Gringotts.records.UserSession;
+import com.luna.Gringotts.repository.UserSessionRepository;
+
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
@@ -20,6 +23,12 @@ public class JwtService {
 
     @Value("${jwt.secret}")
     private String secretKey;
+
+    private final UserSessionRepository userSessionRepository;
+
+    public JwtService(UserSessionRepository userSessionRepository) {
+        this.userSessionRepository = userSessionRepository;
+    }
 
     @Value("${jwt.expiration:86400000}")
     private long jwtExpiration;
@@ -63,10 +72,17 @@ public class JwtService {
     }
 
     public String generateToken(UserDetails userDetails) {
-        return generateToken(new HashMap<>(), userDetails);
+        return generateToken(new HashMap<>(), userDetails, null);
     }
 
-    public String generateToken(Map<String, Object> extraClaims, UserDetails userDetails) {
+    public String generateToken(UserDetails userDetails, String tokenId) {
+        return generateToken(new HashMap<>(), userDetails, tokenId);
+    }
+
+    public String generateToken(Map<String, Object> extraClaims, UserDetails userDetails, String tokenId) {
+        if (tokenId != null) {
+            extraClaims.put("jti", tokenId);
+        }
         return Jwts.builder()
                 .setClaims(extraClaims)
                 .setSubject(userDetails.getUsername())
@@ -78,7 +94,20 @@ public class JwtService {
 
     public boolean isTokenValid(String token, UserDetails userDetails) {
         final String username = extractUsername(token);
-        return (username.equals(userDetails.getUsername())) && !isTokenExpired(token);
+        if (!username.equals(userDetails.getUsername()) || isTokenExpired(token)) {
+            return false;
+        }
+        
+        String jti = extractClaim(token, claims -> claims.get("jti", String.class));
+        if (jti != null) {
+            UserSession session = userSessionRepository.findByTokenId(jti).orElse(null);
+            if (session == null || session.isRevoked()) {
+                return false;
+            }
+            // Optional: update last_active_at could happen here, but it would require saving.
+            // Skipping update on every request for performance.
+        }
+        return true;
     }
 
     private boolean isTokenExpired(String token) {
