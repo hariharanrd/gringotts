@@ -138,6 +138,8 @@ export interface InvestmentGoal {
   tags?: InvestmentGoalTag[];
   years_to_goal?: number | null;
   percent_achieved?: number;
+  is_closed?: boolean;
+  closed_at?: string;
 }
 
 export enum ScheduleFrequency {

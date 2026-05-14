@@ -57,11 +57,13 @@ public class InvestmentGoalService {
         User user = iamService.getCurrentUser();
         incoming.setUser(user);
         incoming.setTags(new ArrayList<>());
+        incoming.setIsClosed(false);
         if (incoming.getCurrentAmount() == null) incoming.setCurrentAmount(0.0);
         if (incoming.getMonthlyContribution() == null) incoming.setMonthlyContribution(0.0);
         if (incoming.getAnnualRate() == null) incoming.setAnnualRate(8.0);
         if (incoming.getIcon() == null || incoming.getIcon().isBlank()) incoming.setIcon("🎯");
         if (incoming.getColor() == null || incoming.getColor().isBlank()) incoming.setColor("#6366f1");
+        incoming.setIsClosed(false);
         InvestmentGoal saved = goalRepository.save(incoming);
         if (incoming.getTagsPayload() != null) {
             syncTags(saved, incoming.getTagsPayload());
@@ -75,19 +77,28 @@ public class InvestmentGoalService {
     @Transactional
     public Map<String, Object> updateGoal(Long id, InvestmentGoal incoming) {
         InvestmentGoal existing = requireGoal(id);
+        if (existing.getIsClosed()) {
+            throw new IllegalArgumentException("Cannot update a closed goal");
+        }
         existing.setName(incoming.getName());
         existing.setIcon(incoming.getIcon() != null ? incoming.getIcon() : existing.getIcon());
         existing.setColor(incoming.getColor() != null ? incoming.getColor() : existing.getColor());
         existing.setTargetAmount(incoming.getTargetAmount());
-        existing.setCurrentAmount(incoming.getCurrentAmount() != null ? incoming.getCurrentAmount() : existing.getCurrentAmount());
-        existing.setMonthlyContribution(incoming.getMonthlyContribution() != null ? incoming.getMonthlyContribution() : existing.getMonthlyContribution());
+        existing.setCurrentAmount(
+                incoming.getCurrentAmount() != null ? incoming.getCurrentAmount() : existing.getCurrentAmount());
+        existing.setMonthlyContribution(incoming.getMonthlyContribution() != null ? incoming.getMonthlyContribution()
+                : existing.getMonthlyContribution());
         existing.setAnnualRate(incoming.getAnnualRate() != null ? incoming.getAnnualRate() : existing.getAnnualRate());
         existing.setNotes(incoming.getNotes());
-        
+        if (incoming.getIsClosed() != null) {
+            existing.setIsClosed(incoming.getIsClosed());
+            existing.setClosedAt(incoming.getClosedAt());
+        }
+
         if (incoming.getTagsPayload() != null) {
             syncTags(existing, incoming.getTagsPayload());
         }
-        
+
         return toDto(goalRepository.save(existing));
     }
 
@@ -131,14 +142,16 @@ public class InvestmentGoalService {
     /**
      * Called by TransactionService when a SAVING transaction is created or updated.
      * Finds all goals tagged with the item and adjusts current_amount by delta.
-     * delta > 0 = money flowing in (is_in=true); delta < 0 = withdrawal (is_in=false).
+     * delta > 0 = money flowing in (is_in=true); delta < 0 = withdrawal
+     * (is_in=false).
      */
     @Transactional
     public void adjustGoalsForSaving(Saving saving, double delta) {
-        if (saving == null || delta == 0.0) return;
-        
+        if (saving == null || delta == 0.0)
+            return;
+
         Set<Long> updatedGoalIds = new HashSet<>();
-        
+
         // 1. Check Item matches
         if (saving.getItem() != null) {
             List<InvestmentGoalTag> tags = tagRepository.findAllByItem(saving.getItem());
@@ -146,7 +159,7 @@ public class InvestmentGoalService {
                 applyDelta(tag.getGoal(), delta, updatedGoalIds);
             }
         }
-        
+
         // 2. Check SubCategory matches
         if (saving.getSubCategory() != null) {
             List<InvestmentGoalTag> tags = tagRepository.findAllBySubCategory(saving.getSubCategory());
@@ -154,7 +167,7 @@ public class InvestmentGoalService {
                 applyDelta(tag.getGoal(), delta, updatedGoalIds);
             }
         }
-        
+
         // 3. Check Category matches
         if (saving.getCategory() != null) {
             List<InvestmentGoalTag> tags = tagRepository.findAllByCategory(saving.getCategory());
@@ -165,7 +178,8 @@ public class InvestmentGoalService {
     }
 
     private void applyDelta(InvestmentGoal goal, double delta, Set<Long> alreadyUpdated) {
-        if (alreadyUpdated.contains(goal.getId())) return;
+        if (alreadyUpdated.contains(goal.getId()))
+            return;
         double updated = goal.getCurrentAmount() + delta;
         goal.setCurrentAmount(Math.max(0.0, updated));
         goalRepository.save(goal);
@@ -176,37 +190,42 @@ public class InvestmentGoalService {
 
     /**
      * How many years until goal is reached given:
-     *   - current (PV) already saved
-     *   - monthlyContribution (PMT) added each month
-     *   - annualRate (%) compound growth
+     * - current (PV) already saved
+     * - monthlyContribution (PMT) added each month
+     * - annualRate (%) compound growth
      *
      * Uses Future Value of annuity formula:
-     *   FV = PV*(1+r_m)^n + PMT*((1+r_m)^n - 1)/r_m
+     * FV = PV*(1+r_m)^n + PMT*((1+r_m)^n - 1)/r_m
      * Solving for n:
-     *   let A = FV + PMT/r_m,  B = PV + PMT/r_m
-     *   (1+r_m)^n = A/B
-     *   n = log(A/B) / log(1+r_m)    (n in months)
+     * let A = FV + PMT/r_m, B = PV + PMT/r_m
+     * (1+r_m)^n = A/B
+     * n = log(A/B) / log(1+r_m) (n in months)
      *
      * Falls back to simple compound-only if PMT=0.
-     * Returns null when projection is impossible (no contribution, no current amount).
+     * Returns null when projection is impossible (no contribution, no current
+     * amount).
      */
     private Double yearsToGoal(double current, double target, double annualRate, double monthlyContribution) {
-        if (target <= 0) return null;
-        if (current >= target) return 0.0;
+        if (target <= 0)
+            return null;
+        if (current >= target)
+            return 0.0;
 
         double r_m = annualRate / 12.0 / 100.0;
         double pmt = monthlyContribution;
 
         if (r_m <= 0) {
             // No growth — purely PMT-based
-            if (pmt <= 0) return null;
+            if (pmt <= 0)
+                return null;
             double months = (target - current) / pmt;
             return Math.round(months / 12.0 * 10.0) / 10.0;
         }
 
         if (pmt <= 0) {
             // No contributions — pure compound growth on current
-            if (current <= 0) return null;
+            if (current <= 0)
+                return null;
             double months = Math.log(target / current) / Math.log(1 + r_m);
             return Math.round(months / 12.0 * 10.0) / 10.0;
         }
@@ -214,7 +233,8 @@ public class InvestmentGoalService {
         // General case: FV of annuity
         double A = target + pmt / r_m;
         double B = current + pmt / r_m;
-        if (A <= 0 || B <= 0 || A <= B) return null; // edge cases
+        if (A <= 0 || B <= 0 || A <= B)
+            return null; // edge cases
         double months = Math.log(A / B) / Math.log(1 + r_m);
         return Math.round(months / 12.0 * 10.0) / 10.0;
     }
@@ -232,6 +252,8 @@ public class InvestmentGoalService {
         dto.put("monthly_contribution", goal.getMonthlyContribution());
         dto.put("annual_rate", goal.getAnnualRate());
         dto.put("notes", goal.getNotes());
+        dto.put("is_closed", goal.getIsClosed());
+        dto.put("closed_at", goal.getClosedAt());
         dto.put("created_at", goal.getCreatedAt());
 
         // Tags: strip back-reference to goal to avoid cycles
