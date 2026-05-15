@@ -18,12 +18,16 @@
 - **Visual Intensity**: Overdue cards now feature a red pulsing ring and a glow effect. Pending bills use a vibrant amber-to-orange gradient to stand out from standard accounts.
 - **UX Refinement**: Reserved pulsing animations for overdue items only, reducing visual noise for bills that are simply upcoming but not yet late.
 
+### 🎯 Goal Archiving & Maintenance
+- **Manual Archiving**: Once a goal is achieved, users can now mark it as "Closed" to move it into an archive, keeping the main planner focused on active targets.
+- **Archived View**: Introduced a new "Archived" tab in the Investment Planner to house completed goals, allowing for a clean separation between current and past achievements.
+- **Historical Context**: Archived goals retain their final progress state and metadata, serving as a record of your financial milestones.
+- **Immutable State**: Closed goals are protected from further edits or accidental balance updates once archived.
+
 ### 🛠️ Backend Infrastructure
 
 - **Session Persistence**: Introduced a dedicated `user_sessions` tracking table with automatic activity timestamping.
-- **Schema Optimization**: Applied migrations to support session tracking and enhanced billing metadata.
 - **Error Handling**: Resolved Hibernate entity conflicts and null-constraint issues in the session tracking logic.
-
 
 
 ## [May 10, 2026] Timezone Localization & Regional Preferences
