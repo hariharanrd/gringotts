@@ -1,5 +1,31 @@
 # 🚀 Release Notes
 
+## [May 15, 2026] Session Management & Credit Card Clarity
+
+### 🔐 Active Session Management
+
+- **Security Audit**: Users can now see a comprehensive list of all devices and locations (IP addresses) where they are currently logged in.
+- **Remote Revocation**: Added the ability to "kill" any active session remotely from the Account page. This is critical for security if a device is lost or a login is suspicious.
+- **Real-time Invalidation**: Implemented a hybrid JWT strategy where tokens are checked against a "revocation list" in the database for every request, allowing for immediate session termination.
+- **Enhanced Logout**: The sign-out process now explicitly invalidates the session in the backend, ensuring the token is truly dead after logout.
+- **Current Device Tagging**: A "This Device" badge helps users identify their current active session in the list.
+
+### 💳 Credit Card Visibility & Deadlines
+
+- **Deadline Transparency**: No more guessing when a bill is due. The UI now explicitly displays the **Exact Due Date** (e.g., "Pay by: 15 Jun") across the Dashboard, Card Grid, and Detail pages.
+- **Urgent Dashboard Alerts**: Overdue and pending bills now appear as high-contrast alerts on the dashboard. Overdue bills feature a persistent pulse to ensure they are never missed.
+- **Smart Status Tracking**: The dashboard now intelligently shows the *oldest* overdue date and the *nearest* pending date independently, ensuring accurate information when managing multiple cards.
+- **Visual Intensity**: Overdue cards now feature a red pulsing ring and a glow effect. Pending bills use a vibrant amber-to-orange gradient to stand out from standard accounts.
+- **UX Refinement**: Reserved pulsing animations for overdue items only, reducing visual noise for bills that are simply upcoming but not yet late.
+
+### 🛠️ Backend Infrastructure
+
+- **Session Persistence**: Introduced a dedicated `user_sessions` tracking table with automatic activity timestamping.
+- **Schema Optimization**: Applied migrations to support session tracking and enhanced billing metadata.
+- **Error Handling**: Resolved Hibernate entity conflicts and null-constraint issues in the session tracking logic.
+
+
+
 ## [May 10, 2026] Timezone Localization & Regional Preferences
 
 ### 🌍 Timezone Support
