@@ -11,7 +11,8 @@ import {
   HeartHandshake,
   CircleDollarSign,
   ChevronDown,
-  Info
+  Info,
+  AlertTriangle
 } from 'lucide-react';
 
 import {
@@ -66,6 +67,8 @@ interface SummaryData {
     pending_amount: number;
     overdue_count: number;
     pending_count: number;
+    oldest_overdue_due_date?: string;
+    nearest_pending_due_date?: string;
   };
 }
 
@@ -331,35 +334,51 @@ const Dashboard: React.FC = () => {
             {summary.credit_card_bills && (summary.credit_card_bills.overdue_count > 0 || summary.credit_card_bills.pending_count > 0) && (
               <div className="space-y-4 animate-in fade-in slide-in-from-top-4 duration-500">
                 {summary.credit_card_bills.overdue_count > 0 && (
-                  <div 
+                  <div
                     onClick={() => navigate('/credit-cards')}
-                    className="bg-gradient-to-br from-rose-50 to-white dark:from-rose-500/10 dark:to-slate-800/50 border border-rose-200 dark:border-rose-500/20 rounded-2xl p-5 flex items-center justify-between group cursor-pointer hover:shadow-xl hover:shadow-rose-500/5 transition-all active:scale-[0.98]"
+                    className="bg-rose-500 border border-rose-400 rounded-2xl p-5 flex items-center justify-between group cursor-pointer hover:shadow-xl hover:shadow-rose-500/40 transition-all active:scale-[0.98] animate-pulse shadow-lg shadow-rose-500/20"
                   >
-                    <div className="flex items-center gap-4">
-                      <div className="bg-rose-500 p-2 rounded-xl shadow-lg shadow-rose-500/30 group-hover:scale-110 transition-transform">
-                        <Info className="w-4 h-4 text-white" />
+                    <div className="flex items-center gap-4 text-white">
+                      <div className="bg-white/20 p-2.5 rounded-xl backdrop-blur-sm group-hover:scale-110 transition-transform">
+                        <AlertTriangle className="w-5 h-5" />
                       </div>
                       <div>
-                        <h4 className="text-[9px] font-black text-rose-500 uppercase tracking-widest mb-0.5">Overdue Bills</h4>
-                        <p className="text-lg font-black text-slate-900 dark:text-white">₹{summary.credit_card_bills.overdue_amount.toLocaleString('en-IN')}</p>
+                        <h4 className="text-[10px] font-black text-rose-100 uppercase tracking-widest mb-0.5">Critical: Overdue Bill</h4>
+                        <div className="flex items-baseline gap-2">
+                          <p className="text-xl font-black">₹{summary.credit_card_bills.overdue_amount.toLocaleString('en-IN')}</p>
+                          {summary.credit_card_bills.oldest_overdue_due_date && (
+                            <span className="text-[10px] font-bold bg-white/20 px-2 py-0.5 rounded-lg">
+                              Due: {new Date(summary.credit_card_bills.oldest_overdue_due_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
+                    <ArrowUpRight className="w-5 h-5 text-white/50 group-hover:text-white transition-colors" />
                   </div>
                 )}
                 {summary.credit_card_bills.pending_count > 0 && (
-                  <div 
+                  <div
                     onClick={() => navigate('/credit-cards')}
-                    className="bg-gradient-to-br from-amber-50 to-white dark:from-amber-500/10 dark:to-slate-800/50 border border-amber-200 dark:border-amber-500/20 rounded-2xl p-5 flex items-center justify-between group cursor-pointer hover:shadow-xl hover:shadow-amber-500/5 transition-all active:scale-[0.98]"
+                    className="bg-gradient-to-br from-amber-500 to-orange-500 border border-amber-400 rounded-2xl p-5 flex items-center justify-between group cursor-pointer hover:shadow-xl hover:shadow-amber-500/30 transition-all active:scale-[0.98] shadow-lg shadow-amber-500/20"
                   >
-                    <div className="flex items-center gap-4">
-                      <div className="bg-amber-500 p-2 rounded-xl shadow-lg shadow-amber-500/30 group-hover:scale-110 transition-transform">
-                        <Calendar className="w-4 h-4 text-white" />
+                    <div className="flex items-center gap-4 text-white">
+                      <div className="bg-white/20 p-2.5 rounded-xl backdrop-blur-sm group-hover:scale-110 transition-transform">
+                        <Calendar className="w-5 h-5" />
                       </div>
                       <div>
-                        <h4 className="text-[9px] font-black text-amber-600 dark:text-amber-400 uppercase tracking-widest mb-0.5">Pending Bills</h4>
-                        <p className="text-lg font-black text-slate-900 dark:text-white">₹{summary.credit_card_bills.pending_amount.toLocaleString('en-IN')}</p>
+                        <h4 className="text-[10px] font-black text-amber-100 uppercase tracking-widest mb-0.5">Attention: Bill Due</h4>
+                        <div className="flex items-baseline gap-2">
+                          <p className="text-xl font-black">₹{summary.credit_card_bills.pending_amount.toLocaleString('en-IN')}</p>
+                          {summary.credit_card_bills.nearest_pending_due_date && (
+                            <span className="text-[10px] font-bold bg-black/10 px-2 py-0.5 rounded-lg">
+                              Due: {new Date(summary.credit_card_bills.nearest_pending_due_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
+                    <ArrowUpRight className="w-5 h-5 text-white/50 group-hover:text-white transition-colors" />
                   </div>
                 )}
               </div>
@@ -444,7 +463,7 @@ const Dashboard: React.FC = () => {
             accentTo="to-blue-600"
             glow="shadow-cyan-500/15"
             highlight={summary.net_balance >= 0 ? 'text-emerald-500 dark:text-emerald-400' : 'text-rose-500 dark:text-rose-400'}
-            info="Net balance = Total Incomes - Total Expenses - Total Savings - Total Others Owe Me + Total I Owe (Range-adjusted)"
+            info="Net balance = Total Incomes - Total Expenses - Total Savings"
           />
         </div>
 

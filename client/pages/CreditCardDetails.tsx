@@ -200,8 +200,8 @@ const CreditCardDetails: React.FC = () => {
 
   const getStatusConfig = (type: string) => {
     switch (type) {
-      case 'overdue': return { color: 'text-rose-400', icon: AlertTriangle };
-      case 'pending': return { color: 'text-amber-400', icon: History };
+      case 'overdue': return { color: 'text-rose-500', icon: AlertTriangle };
+      case 'pending': return { color: 'text-amber-500', icon: History };
       case 'paid': return { color: 'text-emerald-400', icon: ShieldCheck };
       case 'next': return { color: 'text-white/40', icon: Calendar };
       default: return { color: 'text-white/40', icon: Calendar };
@@ -324,10 +324,17 @@ const CreditCardDetails: React.FC = () => {
                     const config = getStatusConfig(status.type);
                     const StatusIcon = config.icon;
                     return (
-                      <div className={`flex items-center gap-1.5 ${config.color} text-sm font-black`}>
-                        <StatusIcon className="w-3.5 h-3.5" />
-                        {status.label}
-                        {status.amount ? `: ₹${status.amount.toLocaleString()}` : status.date ? `: ${status.date}${getOrdinalSuffix(status.date)}` : ''}
+                      <div className="flex flex-col items-start gap-1.5">
+                        <div className={`flex items-center gap-2 px-3 py-1.5 rounded-xl ${status.type === 'overdue' ? 'bg-rose-500 text-white animate-pulse shadow-lg shadow-rose-500/30' : status.type === 'pending' ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/20' : config.color} text-sm font-black transition-all`}>
+                          <StatusIcon className={`w-3.5 h-3.5 ${status.type === 'overdue' || status.type === 'pending' ? 'text-white' : ''}`} />
+                          {status.label}
+                          {status.amount ? `: ₹${status.amount.toLocaleString()}` : status.date ? `: ${status.date}${getOrdinalSuffix(status.date)}` : ''}
+                        </div>
+                        {status.due_date && (
+                          <span className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em] ml-1">
+                            Due: {new Date(status.due_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                          </span>
+                        )}
                       </div>
                     );
                   })()}

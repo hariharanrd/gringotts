@@ -42,6 +42,7 @@ export const personalizationSync = {
     if (category === 'UI' && key === 'THEME') return 'gringotts-theme';
     if (category === 'FILTERS' && key === 'TRANSACTION') return 'gringotts_transaction_filters';
     if (category === 'FILTERS' && key === 'DASHBOARD_RANGE') return 'dashboard_range';
+    if (category === 'UI' && key === 'TIMEZONE') return 'gringotts-timezone';
     if (category === 'COLUMNS') return `gringotts_columns_${key.toLowerCase()}`;
     return null;
   },
@@ -53,6 +54,7 @@ export const personalizationSync = {
     if (storageKey === 'gringotts-theme') return { category: 'UI', key: 'THEME' };
     if (storageKey === 'gringotts_transaction_filters') return { category: 'FILTERS', key: 'TRANSACTION' };
     if (storageKey === 'dashboard_range') return { category: 'FILTERS', key: 'DASHBOARD_RANGE' };
+    if (storageKey === 'gringotts-timezone') return { category: 'UI', key: 'TIMEZONE' };
     if (storageKey.startsWith('gringotts_columns_')) {
       return { category: 'COLUMNS', key: storageKey.replace('gringotts_columns_', '').toUpperCase() };
     }

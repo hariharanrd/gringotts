@@ -138,6 +138,8 @@ export interface InvestmentGoal {
   tags?: InvestmentGoalTag[];
   years_to_goal?: number | null;
   percent_achieved?: number;
+  is_closed?: boolean;
+  closed_at?: string;
 }
 
 export enum ScheduleFrequency {
@@ -187,6 +189,7 @@ export interface CreditCard {
     label: string;
     amount?: number;
     date?: number;
+    due_date?: string;
   };
 }
 
@@ -217,4 +220,12 @@ export interface Personalization {
   category: string;
   configKey: string;
   configValue: string;
+}
+
+export interface UserSession {
+  id: string;
+  ip_address: string;
+  user_agent: string;
+  created_at: string;
+  last_active_at: string;
 }

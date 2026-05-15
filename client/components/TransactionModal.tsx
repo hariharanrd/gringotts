@@ -5,6 +5,7 @@ import { api } from '../services/api';
 import { Category, SubCategory, Item, TransactionType, Expense, Income, Saving, Revolving, Transaction, CreditCard } from '../types';
 import { useToast } from '../components/ToastContext';
 import { PAYMENT_MODES } from '../constants';
+import { toLocalISOString } from '../services/dateUtils';
 
 interface TransactionModalProps {
   isOpen: boolean;
@@ -43,7 +44,7 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, on
     category: undefined,
     subcategory: undefined,
     item: undefined,
-    transaction_time: new Date().toISOString().slice(0, 16),
+    transaction_time: toLocalISOString(new Date()),
     payment_mode: 'UPI',
     is_in: true,
     is_give: true,
@@ -63,7 +64,7 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, on
       category: undefined,
       subcategory: undefined,
       item: undefined,
-      transaction_time: new Date().toISOString().slice(0, 16),
+      transaction_time: toLocalISOString(new Date()),
       payment_mode: 'UPI',
       is_in: true,
       is_give: true,
@@ -120,7 +121,7 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, on
           setFormData({
             ...transaction,
             value: transaction.value.toString(),
-            transaction_time: new Date(transaction.transaction_time).toISOString().slice(0, 16),
+            transaction_time: transaction.transaction_time.slice(0, 16),
             category: transaction.category,
             subcategory: transaction.subcategory,
             item: transaction.item,
@@ -306,7 +307,7 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, on
                   required
                   className="w-full px-4 py-2.5 bg-slate-100 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 rounded-xl focus:ring-2 focus:ring-cyan-500/40 focus:border-cyan-500/50 outline-none transition-all text-slate-900 dark:text-white [color-scheme:light] dark:[color-scheme:dark]"
                   value={formData.transaction_time?.slice(0, 16)}
-                  max={new Date().toISOString().slice(0, 16)}
+                  max={toLocalISOString(new Date())}
                   onChange={(e) => setFormData(prev => ({ ...prev, transaction_time: e.target.value }))}
                 />
               </div>

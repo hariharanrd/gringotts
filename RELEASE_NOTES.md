@@ -1,5 +1,50 @@
 # 🚀 Release Notes
 
+## [May 15, 2026] Session Management & Credit Card Clarity
+
+### 🔐 Active Session Management
+
+- **Security Audit**: Users can now see a comprehensive list of all devices and locations (IP addresses) where they are currently logged in.
+- **Remote Revocation**: Added the ability to "kill" any active session remotely from the Account page. This is critical for security if a device is lost or a login is suspicious.
+- **Real-time Invalidation**: Implemented a hybrid JWT strategy where tokens are checked against a "revocation list" in the database for every request, allowing for immediate session termination.
+- **Enhanced Logout**: The sign-out process now explicitly invalidates the session in the backend, ensuring the token is truly dead after logout.
+- **Current Device Tagging**: A "This Device" badge helps users identify their current active session in the list.
+
+### 💳 Credit Card Visibility & Deadlines
+
+- **Deadline Transparency**: No more guessing when a bill is due. The UI now explicitly displays the **Exact Due Date** (e.g., "Pay by: 15 Jun") across the Dashboard, Card Grid, and Detail pages.
+- **Urgent Dashboard Alerts**: Overdue and pending bills now appear as high-contrast alerts on the dashboard. Overdue bills feature a persistent pulse to ensure they are never missed.
+- **Smart Status Tracking**: The dashboard now intelligently shows the *oldest* overdue date and the *nearest* pending date independently, ensuring accurate information when managing multiple cards.
+- **Visual Intensity**: Overdue cards now feature a red pulsing ring and a glow effect. Pending bills use a vibrant amber-to-orange gradient to stand out from standard accounts.
+- **UX Refinement**: Reserved pulsing animations for overdue items only, reducing visual noise for bills that are simply upcoming but not yet late.
+
+### 🎯 Goal Archiving & Maintenance
+- **Manual Archiving**: Once a goal is achieved, users can now mark it as "Closed" to move it into an archive, keeping the main planner focused on active targets.
+- **Archived View**: Introduced a new "Archived" tab in the Investment Planner to house completed goals, allowing for a clean separation between current and past achievements.
+- **Historical Context**: Archived goals retain their final progress state and metadata, serving as a record of your financial milestones.
+- **Immutable State**: Closed goals are protected from further edits or accidental balance updates once archived.
+
+### 🛠️ Backend Infrastructure
+
+- **Session Persistence**: Introduced a dedicated `user_sessions` tracking table with automatic activity timestamping.
+- **Error Handling**: Resolved Hibernate entity conflicts and null-constraint issues in the session tracking logic.
+
+
+## [May 10, 2026] Timezone Localization & Regional Preferences
+
+### 🌍 Timezone Support
+
+- **User-Centric Localization**: Moved away from a fixed time model. The application now detects your browser's timezone on load and stores it as a persistent preference.
+- **Regional Settings**: A new "Regional" section in Account Settings allows users to manually select their timezone from a comprehensive IANA list including visible UTC offsets (e.g., `Asia/Kolkata (+5:30)`).
+- **Timezone-Aware Summaries**: The Dashboard and Transaction summaries now align with the user's local day/month boundaries, ensuring financial data is accurate to the user's local context.
+- **Wall-Clock Time Capture**: Transaction and Schedule modals have been updated to use local "wall-clock" time for entry and editing, preventing "shifting" of dates due to UTC conversions.
+
+### 🐞 Bugfixes & UX Polishing
+
+- **Skeletal Loading Consistency**: Refined the Dashboard and Transaction list loading states to prevent layout shifts during data hydration.
+- **Mobile Navigation Layout**: Resolved a horizontal overflow issue in the Account Settings sidebar, ensuring a seamless experience on mobile devices.
+- **Form Persistence**: Fixed a bug where partial relational data (Categories/Items) would occasionally fail to hydrate in the Schedule Edit modal.
+
 ## [May 07, 2026] Identity Management & Security Hardening
 
 ### 👤 Username Customization

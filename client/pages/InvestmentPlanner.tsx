@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Plus, Target, TrendingUp, Edit2, Trash2, Tag, X, Check, Goal,
-  Search, Sparkles, Folder, Layers
+  Search, Sparkles, Folder, Layers, Archive, CheckCircle2
 } from 'lucide-react';
 import { api } from '../services/api';
 import { InvestmentGoal, Item, Category } from '../types';
@@ -103,15 +103,16 @@ interface GoalCardProps {
   goal: InvestmentGoal;
   onEdit: (g: InvestmentGoal) => void;
   onDelete: (g: InvestmentGoal) => void;
+  onArchive?: (g: InvestmentGoal) => void;
 }
 
-const GoalCard: React.FC<GoalCardProps> = ({ goal, onEdit, onDelete }) => {
+const GoalCard: React.FC<GoalCardProps> = ({ goal, onEdit, onDelete, onArchive }) => {
   const pct = goal.percent_achieved ?? 0;
-  const color = goal.color ?? '#6366f1';
+  const color = goal.is_closed ? '#94a3b8' : (goal.color ?? '#6366f1');
   const remaining = Math.max(goal.target_amount - goal.current_amount, 0);
 
   return (
-    <div className="group relative bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl rounded-2xl border border-slate-200 dark:border-slate-700/50 overflow-hidden hover:shadow-xl hover:shadow-black/10 dark:hover:shadow-black/30 transition-all duration-300 hover:-translate-y-1">
+    <div className={`group relative bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl rounded-2xl border ${goal.is_closed ? 'border-slate-300 dark:border-slate-700 opacity-80' : 'border-slate-200 dark:border-slate-700/50'} overflow-hidden hover:shadow-xl hover:shadow-black/10 dark:hover:shadow-black/30 transition-all duration-300 hover:-translate-y-1`}>
       {/* Color accent bar */}
       <div className="h-1 w-full" style={{ background: `linear-gradient(90deg, ${color}, ${color}88)` }} />
 
@@ -124,15 +125,27 @@ const GoalCard: React.FC<GoalCardProps> = ({ goal, onEdit, onDelete }) => {
               {goal.icon ?? '🎯'}
             </div>
             <div>
-              <h3 className="font-bold text-slate-800 dark:text-slate-100 text-base leading-tight">{goal.name}</h3>
+              <div className="flex items-center gap-2">
+                <h3 className="font-bold text-slate-800 dark:text-slate-100 text-base leading-tight">{goal.name}</h3>
+                {goal.is_closed && <span className="px-1.5 py-0.5 rounded text-[10px] uppercase font-bold bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400">Closed</span>}
+              </div>
               <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">{goal.annual_rate}% p.a.</p>
             </div>
           </div>
           <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-            <button onClick={() => onEdit(goal)}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-cyan-500 hover:bg-cyan-500/10 transition-all">
-              <Edit2 className="w-4 h-4" />
-            </button>
+            {!goal.is_closed && pct >= 100 && onArchive && (
+              <button onClick={() => onArchive(goal)}
+                title="Mark as Closed"
+                className="p-1.5 rounded-lg text-slate-400 hover:text-emerald-500 hover:bg-emerald-500/10 transition-all">
+                <Archive className="w-4 h-4" />
+              </button>
+            )}
+            {!goal.is_closed && (
+              <button onClick={() => onEdit(goal)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-cyan-500 hover:bg-cyan-500/10 transition-all">
+                <Edit2 className="w-4 h-4" />
+              </button>
+            )}
             <button onClick={() => onDelete(goal)}
               className="p-1.5 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 transition-all">
               <Trash2 className="w-4 h-4" />
@@ -603,6 +616,7 @@ const InvestmentPlanner: React.FC = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [editGoal, setEditGoal] = useState<InvestmentGoal | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<InvestmentGoal | null>(null);
+  const [activeTab, setActiveTab] = useState<'active' | 'archived'>('active');
 
   const fetchGoals = async () => {
     setLoading(true);
@@ -642,12 +656,30 @@ const InvestmentPlanner: React.FC = () => {
     } finally { setDeleteTarget(null); }
   };
 
-  // Summary stats
-  const totalTarget = goals.reduce((s, g) => s + g.target_amount, 0);
-  const totalSaved = goals.reduce((s, g) => s + g.current_amount, 0);
-  const totalMonthly = goals.reduce((s, g) => s + g.monthly_contribution, 0);
+  const handleArchive = async (g: InvestmentGoal) => {
+    try {
+      const updated = await api.updateGoal(g.id!, {
+        ...g,
+        is_closed: true,
+        closed_at: new Date().toISOString()
+      });
+      handleSaved(updated);
+      showToast('Goal marked as closed', 'success');
+    } catch (e: any) {
+      showToast(e.message ?? 'Failed to close goal', 'error');
+    }
+  };
+
+  const activeGoals = goals.filter(g => !g.is_closed);
+  const archivedGoals = goals.filter(g => g.is_closed);
+  const displayedGoals = activeTab === 'active' ? activeGoals : archivedGoals;
+
+  // Summary stats (based on active goals)
+  const totalTarget = activeGoals.reduce((s, g) => s + g.target_amount, 0);
+  const totalSaved = activeGoals.reduce((s, g) => s + g.current_amount, 0);
+  const totalMonthly = activeGoals.reduce((s, g) => s + g.monthly_contribution, 0);
   const overallPct = totalTarget > 0 ? Math.min(Math.round(totalSaved / totalTarget * 100), 100) : 0;
-  const achievedCount = goals.filter(g => g.current_amount >= g.target_amount).length;
+  const achievedCount = activeGoals.filter(g => g.current_amount >= g.target_amount).length;
 
   return (
     <div className="min-h-screen">
@@ -677,14 +709,14 @@ const InvestmentPlanner: React.FC = () => {
         </div>
 
         {/* Stats bar */}
-        {goals.length > 0 && (
+        {(activeGoals.length > 0 || activeTab === 'active') && (
           <div className="mt-6 grid grid-cols-2 sm:grid-cols-5 gap-4">
             {[
               { label: 'Total Target', value: fmt(totalTarget), icon: '🎯', color: 'violet' },
               { label: 'Total Achieved', value: fmt(totalSaved), icon: '💰', color: 'cyan' },
               { label: 'Monthly Contribution', value: fmt(totalMonthly), icon: '📆', color: 'emerald' },
               { label: 'Overall Progress', value: `${overallPct}%`, icon: '📈', color: 'emerald' },
-              { label: 'Goals Achieved', value: `${achievedCount} / ${goals.length}`, icon: '🏆', color: 'amber' },
+              { label: 'Goals Achieved', value: `${achievedCount} / ${activeGoals.length}`, icon: '🏆', color: 'amber' },
             ].map(stat => (
               <div key={stat.label}
                 className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl rounded-2xl border border-slate-200 dark:border-slate-700/50 p-4">
@@ -699,6 +731,24 @@ const InvestmentPlanner: React.FC = () => {
         )}
       </div>
 
+      {/* Tabs */}
+      {goals.length > 0 && (
+        <div className="flex gap-2 mb-6 p-1 bg-slate-100 dark:bg-slate-800/50 rounded-xl w-max">
+          <button
+            onClick={() => setActiveTab('active')}
+            className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'active' ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}
+          >
+            Active Goals ({activeGoals.length})
+          </button>
+          <button
+            onClick={() => setActiveTab('archived')}
+            className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'archived' ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}
+          >
+            Archived ({archivedGoals.length})
+          </button>
+        </div>
+      )}
+
       {/* Goals grid */}
       {loading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -708,14 +758,20 @@ const InvestmentPlanner: React.FC = () => {
         </div>
       ) : goals.length === 0 ? (
         <EmptyGoals onAdd={() => { setEditGoal(null); setModalOpen(true); }} />
+      ) : displayedGoals.length === 0 ? (
+        <div className="py-20 text-center text-slate-500 dark:text-slate-400">
+          <Archive className="w-12 h-12 mx-auto mb-4 opacity-20" />
+          <p>No {activeTab} goals found.</p>
+        </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {goals.map(g => (
+          {displayedGoals.map(g => (
             <GoalCard
               key={g.id}
               goal={g}
               onEdit={(goal) => { setEditGoal(goal); setModalOpen(true); }}
               onDelete={setDeleteTarget}
+              onArchive={handleArchive}
             />
           ))}
         </div>

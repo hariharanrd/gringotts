@@ -4,6 +4,7 @@ import { api } from '../services/api';
 import { ScheduledTransaction, ScheduleFrequency, TransactionType, Category, SubCategory, Item, CreditCard } from '../types';
 import { useToast } from './ToastContext';
 import { PAYMENT_MODES } from '../constants';
+import { toLocalDateString } from '../services/dateUtils';
 
 interface Props {
   isOpen: boolean;
@@ -34,7 +35,7 @@ const ScheduleModal: React.FC<Props> = ({ isOpen, onClose, schedule }) => {
     transaction_type: TransactionType.EXPENSE,
     amount: 0,
     frequency: ScheduleFrequency.MONTHLY,
-    start_date: new Date().toISOString().slice(0, 10),
+    start_date: toLocalDateString(new Date()),
     is_active: true,
     description: '',
     payment_mode: 'UPI',
@@ -82,7 +83,7 @@ const ScheduleModal: React.FC<Props> = ({ isOpen, onClose, schedule }) => {
             transaction_type: TransactionType.EXPENSE,
             amount: 0,
             frequency: ScheduleFrequency.MONTHLY,
-            start_date: new Date().toISOString().slice(0, 10),
+            start_date: toLocalDateString(new Date()),
             is_active: true,
             description: '',
             payment_mode: 'UPI',
@@ -297,7 +298,7 @@ const ScheduleModal: React.FC<Props> = ({ isOpen, onClose, schedule }) => {
                   <input
                     required={!schedule}
                     type="date"
-                    min={schedule ? undefined : new Date().toISOString().split('T')[0]}
+                    min={schedule ? undefined : toLocalDateString(new Date())}
                     value={form.start_date || ''}
                     onChange={(e) => setForm(f => ({ ...f, start_date: e.target.value }))}
                     className={`${inputClass} text-sm [color-scheme:light] dark:[color-scheme:dark]`}

@@ -47,6 +47,14 @@ public class InvestmentGoal {
     @Column(columnDefinition = "text")
     String notes;
 
+    @Column(name = "is_closed", nullable = false)
+    @JsonProperty("is_closed")
+    Boolean isClosed = false;
+
+    @Column(name = "closed_at")
+    @JsonProperty("closed_at")
+    LocalDateTime closedAt;
+
     @Transient
     @JsonProperty(value = "tags", access = JsonProperty.Access.WRITE_ONLY)
     List<TagRequest> tagsPayload;
@@ -83,6 +91,8 @@ public class InvestmentGoal {
     public Double getMonthlyContribution() { return monthlyContribution; }
     public Double getAnnualRate() { return annualRate; }
     public String getNotes() { return notes; }
+    public Boolean getIsClosed() { return isClosed; }
+    public LocalDateTime getClosedAt() { return closedAt; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public List<InvestmentGoalTag> getTags() { return tags; }
     public List<TagRequest> getTagsPayload() { return tagsPayload; }
@@ -99,6 +109,8 @@ public class InvestmentGoal {
     public void setMonthlyContribution(Double monthlyContribution) { this.monthlyContribution = monthlyContribution; }
     public void setAnnualRate(Double annualRate) { this.annualRate = annualRate; }
     public void setNotes(String notes) { this.notes = notes; }
+    public void setIsClosed(Boolean isClosed) { this.isClosed = isClosed; }
+    public void setClosedAt(LocalDateTime closedAt) { this.closedAt = closedAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
     public void setTags(List<InvestmentGoalTag> tags) { this.tags = tags; }
     public void setTagsPayload(List<TagRequest> tagsPayload) { this.tagsPayload = tagsPayload; }

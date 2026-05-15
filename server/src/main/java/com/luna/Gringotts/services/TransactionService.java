@@ -24,6 +24,7 @@ import com.luna.Gringotts.repository.TransactionSpecification;
 
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.ZoneId;
 import java.time.temporal.TemporalAdjusters;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -72,6 +73,9 @@ public class TransactionService {
 
     @Autowired
     CreditCardService creditCardService;
+
+    @Autowired
+    PersonalizationService personalizationService;
 
     public Transaction getTransactionById(Long id) {
         return transactionRepository.findById(id).orElse(null);
@@ -272,10 +276,14 @@ public class TransactionService {
     }
 
     private void deleteFromOldTable(Long id, Transaction t) {
-        if (t instanceof Expense) expenseRepository.deleteExpenseRecord(id);
-        else if (t instanceof Income) incomeRepository.deleteIncomeRecord(id);
-        else if (t instanceof Saving) savingRepository.deleteSavingRecord(id);
-        else if (t instanceof Revolving) revolvingRepository.deleteRevolvingRecord(id);
+        if (t instanceof Expense)
+            expenseRepository.deleteExpenseRecord(id);
+        else if (t instanceof Income)
+            incomeRepository.deleteIncomeRecord(id);
+        else if (t instanceof Saving)
+            savingRepository.deleteSavingRecord(id);
+        else if (t instanceof Revolving)
+            revolvingRepository.deleteRevolvingRecord(id);
     }
 
     // ── Cross-type-safe update methods ───────────────────────────────────────
@@ -389,7 +397,8 @@ public class TransactionService {
         }
 
         deleteFromOldTable(id, existing);
-        revolvingRepository.insertRevolving(id, Boolean.TRUE.equals(incoming.getIsGive()), Boolean.TRUE.equals(incoming.getClosed()));
+        revolvingRepository.insertRevolving(id, Boolean.TRUE.equals(incoming.getIsGive()),
+                Boolean.TRUE.equals(incoming.getClosed()));
         entityManager.flush();
         entityManager.clear();
 
@@ -416,9 +425,20 @@ public class TransactionService {
         return revolvingRepository.findAll(example);
     }
 
+    private ZoneId getUserZoneId() {
+        try {
+            return personalizationService.getPersonalization("UI", "TIMEZONE")
+                    .map(p -> ZoneId.of(p.getConfigValue()))
+                    .orElse(ZoneId.of("UTC"));
+        } catch (Exception e) {
+            return ZoneId.of("UTC");
+        }
+    }
+
     public Map<String, Object> getSummary(TimeRange range) {
-        LocalDateTime start = range.getFrom();
-        LocalDateTime end = range.getTo();
+        ZoneId zoneId = getUserZoneId();
+        LocalDateTime start = range.getFrom(zoneId);
+        LocalDateTime end = range.getTo(zoneId);
         User user = iamService.getCurrentUser();
 
         List<Expense> expenses = expenseRepository.findByUserAndTransactionTimeBetween(user, start, end);
@@ -476,7 +496,7 @@ public class TransactionService {
         summary.put("total_savings", totalSavings);
         summary.put("total_i_owe", totalIOwe);
         summary.put("total_others_owe_me", totalOthersOweMe);
-        summary.put("net_balance", totalIncomes - totalExpenses - totalSavings - totalOthersOweMe + totalIOwe);
+        summary.put("net_balance", totalIncomes - totalExpenses - totalSavings);
         summary.put("expense_count", expenses.size());
         summary.put("income_count", incomes.size());
         summary.put("saving_count", savings.size());
@@ -523,7 +543,8 @@ public class TransactionService {
         }
         if (fields.containsKey("credit_card_id") || fields.containsKey("credit_card")) {
             Object ccVal = fields.get("credit_card");
-            if (ccVal == null) ccVal = fields.get("credit_card_id");
+            if (ccVal == null)
+                ccVal = fields.get("credit_card_id");
 
             Long id;
             if (ccVal instanceof Map<?, ?> ccMap) {
@@ -556,7 +577,7 @@ public class TransactionService {
             if (fields.containsKey("payment_mode")) {
                 t.setPaymentMode((String) fields.get("payment_mode"));
             }
-            
+
             if (fields.containsKey("include_in_budget")) {
                 boolean val = toBoolean(fields.get("include_in_budget"));
                 if (!val) {
