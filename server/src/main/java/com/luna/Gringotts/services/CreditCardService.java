@@ -287,10 +287,12 @@ public class CreditCardService {
                 status.put("type", "overdue");
                 status.put("label", "Overdue");
                 status.put("amount", unpaidAmount);
+                status.put("due_date", dueDate.toString());
             } else {
                 status.put("type", "pending");
                 status.put("label", "Bill Pending");
                 status.put("amount", unpaidAmount);
+                status.put("due_date", dueDate.toString());
             }
             return status;
         }
@@ -380,16 +382,26 @@ public class CreditCardService {
         int overdueCount = 0;
         int pendingCount = 0;
 
+        String oldestOverdueDueDate = null;
+        String nearestPendingDueDate = null;
+
         for (CreditCard card : cards) {
             List<CreditCardBill> allBills = creditCardBillRepository.findAllByCreditCardOrderByBillingYearDescBillingMonthDesc(card);
             Map<String, Object> smartStatus = getSmartStatus(card, allBills);
+            String dueDate = (String) smartStatus.get("due_date");
             
             if ("overdue".equals(smartStatus.get("type"))) {
                 totalOverdue += (Double) smartStatus.get("amount");
                 overdueCount++;
+                if (dueDate != null && (oldestOverdueDueDate == null || dueDate.compareTo(oldestOverdueDueDate) < 0)) {
+                    oldestOverdueDueDate = dueDate;
+                }
             } else if ("pending".equals(smartStatus.get("type"))) {
                 totalPending += (Double) smartStatus.get("amount");
                 pendingCount++;
+                if (dueDate != null && (nearestPendingDueDate == null || dueDate.compareTo(nearestPendingDueDate) < 0)) {
+                    nearestPendingDueDate = dueDate;
+                }
             }
         }
 
@@ -398,6 +410,8 @@ public class CreditCardService {
         summary.put("pending_amount", totalPending);
         summary.put("overdue_count", overdueCount);
         summary.put("pending_count", pendingCount);
+        summary.put("oldest_overdue_due_date", oldestOverdueDueDate);
+        summary.put("nearest_pending_due_date", nearestPendingDueDate);
         return summary;
     }
 }

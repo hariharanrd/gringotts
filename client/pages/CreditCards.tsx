@@ -207,11 +207,16 @@ const CreditCards: React.FC = () => {
             return (
               <div
                 key={card.id}
-                className={`group relative flex flex-col ${theme.bg} rounded-[2.5rem] border transition-all duration-500 overflow-hidden shadow-sm hover:shadow-2xl hover:-translate-y-1 hover:scale-[1.01] ${card.threshold_exceeded || card.smart_status?.type === 'overdue'
-                  ? 'border-rose-500 shadow-rose-500/20'
-                  : `${theme.border} hover:border-white/20`
+                className={`group relative flex flex-col ${theme.bg} rounded-[2.5rem] border transition-all duration-500 overflow-hidden shadow-sm hover:shadow-2xl hover:-translate-y-1 hover:scale-[1.01] ${card.smart_status?.type === 'overdue'
+                  ? 'border-rose-500 shadow-[0_0_30px_rgba(244,63,94,0.3)] ring-2 ring-rose-500/50'
+                  : card.threshold_exceeded
+                    ? 'border-rose-500/50 shadow-rose-500/10'
+                    : `${theme.border} hover:border-white/20`
                   }`}
               >
+                {card.smart_status?.type === 'overdue' && (
+                  <div className="absolute inset-0 bg-rose-500/5 animate-pulse pointer-events-none z-0" />
+                )}
                 {/* Background Textures */}
                 <div className={`absolute inset-0 ${theme.pattern} opacity-100`} />
                 <div className={`absolute inset-0 ${theme.overlay} opacity-100`} />
@@ -265,10 +270,10 @@ const CreditCards: React.FC = () => {
                       pulse: true,
                     },
                     pending: {
-                      bg: 'bg-amber-500/20 border border-amber-500/40',
-                      ring: '',
-                      textColor: 'text-amber-300',
-                      subColor: 'text-amber-300/70',
+                      bg: 'bg-gradient-to-r from-amber-500 to-orange-500',
+                      ring: 'ring-2 ring-amber-400/40 shadow-lg shadow-amber-500/20',
+                      textColor: 'text-white',
+                      subColor: 'text-amber-100',
                       icon: History,
                       pulse: false,
                     },
@@ -312,6 +317,11 @@ const CreditCards: React.FC = () => {
                             </p>
                             <p className={`text-sm font-black ${cfg.textColor} leading-tight`}>
                               {status.label}
+                              {status.due_date && (
+                                <span className="block text-[10px] opacity-80 mt-0.5">
+                                  Due by: {new Date(status.due_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                                </span>
+                              )}
                             </p>
                           </div>
                         </div>

@@ -189,6 +189,7 @@ export interface CreditCard {
     label: string;
     amount?: number;
     date?: number;
+    due_date?: string;
   };
 }
 
