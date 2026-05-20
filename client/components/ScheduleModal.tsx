@@ -277,7 +277,14 @@ const ScheduleModal: React.FC<Props> = ({ isOpen, onClose, schedule }) => {
                   <label className="text-sm font-semibold text-slate-600 dark:text-slate-400 ml-1">Frequency</label>
                   <select
                     value={form.frequency}
-                    onChange={(e) => setForm(f => ({ ...f, frequency: e.target.value as ScheduleFrequency }))}
+                    onChange={(e) => {
+                      const newFreq = e.target.value as ScheduleFrequency;
+                      setForm(f => ({
+                        ...f,
+                        frequency: newFreq,
+                        end_date: newFreq === ScheduleFrequency.ONE_TIME ? '' : f.end_date
+                      }));
+                    }}
                     className={inputClass}
                   >
                     {Object.values(ScheduleFrequency).map(f => {
@@ -308,9 +315,10 @@ const ScheduleModal: React.FC<Props> = ({ isOpen, onClose, schedule }) => {
                   <label className="text-sm font-semibold text-slate-600 dark:text-slate-400 ml-1">End Date</label>
                   <input
                     type="date"
+                    disabled={form.frequency === ScheduleFrequency.ONE_TIME}
                     value={form.end_date || ''}
                     onChange={(e) => setForm(f => ({ ...f, end_date: e.target.value }))}
-                    className={`${inputClass} text-sm [color-scheme:light] dark:[color-scheme:dark]`}
+                    className={`${inputClass} text-sm [color-scheme:light] dark:[color-scheme:dark] disabled:opacity-40 disabled:cursor-not-allowed`}
                   />
                 </div>
               </div>

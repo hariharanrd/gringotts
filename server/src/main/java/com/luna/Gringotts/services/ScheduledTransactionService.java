@@ -49,6 +49,9 @@ public class ScheduledTransactionService {
         if (s.getStartDate() != null && s.getStartDate().isBefore(LocalDate.now())) {
             throw new IllegalArgumentException("Schedule Start Date cannot be in the past");
         }
+        if ("ONE_TIME".equals(s.getFrequency())) {
+            s.setEndDate(null);
+        }
         s.setUser(iamService.getCurrentUser());
         if (s.getNextRunDate() == null) {
             s.setNextRunDate(s.getStartDate());
@@ -58,6 +61,8 @@ public class ScheduledTransactionService {
 
     public ScheduledTransaction update(Long id, ScheduledTransaction incoming) {
         ScheduledTransaction existing = scheduledTransactionRepository.findById(id).orElseThrow();
+
+        boolean transitioningToActive = Boolean.TRUE.equals(incoming.getIsActive()) && !Boolean.TRUE.equals(existing.getIsActive());
 
         if (incoming.getName() != null)
             existing.setName(incoming.getName());
@@ -95,6 +100,17 @@ public class ScheduledTransactionService {
             existing.setNextRunDate(incoming.getStartDate());
         }
 
+        if ("ONE_TIME".equals(existing.getFrequency())) {
+            existing.setEndDate(null);
+        }
+
+        if (transitioningToActive) {
+            alignNextRunDateToFuture(existing);
+            if (existing.getEndDate() != null && existing.getNextRunDate() != null && existing.getNextRunDate().isAfter(existing.getEndDate())) {
+                existing.setIsActive(false);
+            }
+        }
+
         return scheduledTransactionRepository.save(existing);
     }
 
@@ -109,8 +125,56 @@ public class ScheduledTransactionService {
 
     public ScheduledTransaction toggleActive(Long id) {
         ScheduledTransaction s = scheduledTransactionRepository.findById(id).orElseThrow();
-        s.setIsActive(!s.getIsActive());
+        boolean newStatus = !Boolean.TRUE.equals(s.getIsActive());
+        s.setIsActive(newStatus);
+        if (newStatus) {
+            alignNextRunDateToFuture(s);
+            if (s.getEndDate() != null && s.getNextRunDate() != null && s.getNextRunDate().isAfter(s.getEndDate())) {
+                s.setIsActive(false);
+            }
+        }
         return scheduledTransactionRepository.save(s);
+    }
+
+    private void alignNextRunDateToFuture(ScheduledTransaction s) {
+        LocalDate today = LocalDate.now();
+        LocalDate runDate = s.getNextRunDate() != null ? s.getNextRunDate() : s.getStartDate();
+        if (runDate == null) {
+            return;
+        }
+
+        if (runDate.isBefore(today)) {
+            if ("ONE_TIME".equals(s.getFrequency())) {
+                s.setNextRunDate(today);
+            } else {
+                LocalDate tempDate = runDate;
+                while (tempDate != null && tempDate.isBefore(today)) {
+                    tempDate = advanceDate(tempDate, s.getFrequency());
+                }
+                s.setNextRunDate(tempDate);
+            }
+        }
+    }
+
+    private LocalDate advanceDate(LocalDate date, String frequency) {
+        if (date == null)
+            return null;
+        switch (frequency) {
+            case "ONE_TIME":
+                return null;
+            case "DAILY":
+                return date.plusDays(1);
+            case "MONTHLY":
+                int day = date.getDayOfMonth();
+                LocalDate nextMonth = date.plusMonths(1);
+                int lastDay = nextMonth.with(TemporalAdjusters.lastDayOfMonth()).getDayOfMonth();
+                int useDay = Math.min(day, lastDay);
+                return LocalDate.of(nextMonth.getYear(), nextMonth.getMonth(), useDay);
+            case "YEARLY":
+                return date.plusYears(1);
+            default:
+                return null;
+        }
     }
 
     public ScheduledTransaction getById(Long id) {

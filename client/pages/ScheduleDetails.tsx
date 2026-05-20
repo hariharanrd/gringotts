@@ -214,7 +214,7 @@ const ScheduleDetails: React.FC = () => {
             <div className="grid grid-cols-1 gap-6">
               <DetailItem icon={Hash} label="ID" value={schedule.id} />
               <DetailItem icon={Calendar} label="Frequency" value={<span className="capitalize">{schedule.frequency.toLowerCase().replace('_', ' ')}</span>} />
-              <DetailItem icon={Clock} label="Next Run" value={formatDate(schedule.next_run_date)} />
+              <DetailItem icon={Clock} label="Next Run" value={schedule.is_active ? formatDate(schedule.next_run_date) : '-'} />
               <DetailItem icon={Tag} label="Category" value={schedule.category?.name || '—'} />
               {schedule.payment_mode && <DetailItem icon={CreditCard} label="Payment Mode" value={schedule.payment_mode} />}
               {schedule.credit_card && <DetailItem icon={CreditCard} label="Credit Card" value={schedule.credit_card.nickname} />}
