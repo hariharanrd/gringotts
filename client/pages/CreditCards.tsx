@@ -361,7 +361,7 @@ const CreditCards: React.FC = () => {
                 {/* Utilization Bar */}
                 <div className="px-8 pb-6 space-y-2 relative z-10">
                   <div className="flex justify-between text-[10px] font-bold uppercase tracking-wider">
-                    <span className="text-white/30">Cycle Usage</span>
+                    <span className="text-white/30">Card Utilization</span>
                     <span className={card.threshold_exceeded ? 'text-rose-400' : 'text-white/40'}>
                       {card.utilization_percent}%
                       {card.threshold_exceeded && ' · ⚠ Limit Breached'}
@@ -502,7 +502,7 @@ const CreditCards: React.FC = () => {
                   value={formData.threshold_percentage}
                   onChange={e => setFormData(p => ({ ...p, threshold_percentage: Number(e.target.value) }))}
                 />
-                <p className="text-[10px] text-slate-400 italic text-center">We'll warn you once cycle usage crosses this percentage of your limit.</p>
+                <p className="text-[10px] text-slate-400 italic text-center">We'll warn you once total card utilization crosses this percentage of your limit.</p>
               </div>
 
               <div className="pt-6 flex gap-3">

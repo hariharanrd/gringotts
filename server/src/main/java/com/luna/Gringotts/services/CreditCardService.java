@@ -204,8 +204,6 @@ public class CreditCardService {
         return new Cycle(month, year);
     }
 
-    // ── DTO Helper ────────────────────────────────────────────────────────────
-
     private Map<String, Object> toDto(CreditCard card) {
         Map<String, Object> dto = new LinkedHashMap<>();
         dto.put("id", card.getId());
@@ -217,21 +215,6 @@ public class CreditCardService {
         dto.put("threshold_percentage", card.getThresholdPercentage());
         dto.put("created_at", card.getCreatedAt());
 
-        Cycle currentCycle = getBillingCycle(card, LocalDateTime.now());
-        Optional<CreditCardBill> currentBillOpt = creditCardBillRepository.findByCreditCardAndBillingMonthAndBillingYear(card, currentCycle.month, currentCycle.year);
-        
-        if (currentBillOpt.isPresent()) {
-            CreditCardBill currentBill = currentBillOpt.get();
-            dto.put("current_bill", currentBill);
-            double utilization = (currentBill.getAmountDue() / card.getCreditLimit()) * 100.0;
-            dto.put("utilization_percent", Math.round(utilization * 10.0) / 10.0);
-            dto.put("threshold_exceeded", utilization >= card.getThresholdPercentage());
-        } else {
-            dto.put("current_bill", null);
-            dto.put("utilization_percent", 0.0);
-            dto.put("threshold_exceeded", false);
-        }
-
         // Total outstanding across all unpaid/partially paid bills
         List<CreditCardBill> allBills = creditCardBillRepository.findAllByCreditCardOrderByBillingYearDescBillingMonthDesc(card);
         double totalOutstanding = allBills.stream()
@@ -239,6 +222,19 @@ public class CreditCardService {
                 .mapToDouble(b -> b.getAmountDue() - b.getAmountPaid())
                 .sum();
         dto.put("total_outstanding", totalOutstanding);
+
+        double utilization = (Math.max(0.0, totalOutstanding) / card.getCreditLimit()) * 100.0;
+        dto.put("utilization_percent", Math.round(utilization * 10.0) / 10.0);
+        dto.put("threshold_exceeded", utilization >= card.getThresholdPercentage());
+
+        Cycle currentCycle = getBillingCycle(card, LocalDateTime.now());
+        Optional<CreditCardBill> currentBillOpt = creditCardBillRepository.findByCreditCardAndBillingMonthAndBillingYear(card, currentCycle.month, currentCycle.year);
+        
+        if (currentBillOpt.isPresent()) {
+            dto.put("current_bill", currentBillOpt.get());
+        } else {
+            dto.put("current_bill", null);
+        }
 
         // Smart Status Logic
         dto.put("smart_status", getSmartStatus(card, allBills));
