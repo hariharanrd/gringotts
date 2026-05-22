@@ -9,3 +9,4 @@ client/.vite/*
 client/dist/assets/index-BDAbBSKe.js
 /Gringotts Design/
 /package-lock.json
+/supabase/backups/*
