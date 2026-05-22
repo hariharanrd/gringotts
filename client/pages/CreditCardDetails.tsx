@@ -344,7 +344,7 @@ const CreditCardDetails: React.FC = () => {
 
             <div className="w-full md:w-72 p-6 rounded-[2rem] bg-black/20 backdrop-blur-3xl border border-white/5 shadow-inner">
               <div className="flex justify-between items-center mb-4">
-                <span className="text-[9px] font-black text-white/40 uppercase tracking-widest">Usage</span>
+                <span className="text-[9px] font-black text-white/40 uppercase tracking-widest">Card Utilization</span>
                 <span className={`text-base font-black ${card.threshold_exceeded ? 'text-rose-400' : 'text-cyan-400'}`}>{card.utilization_percent}%</span>
               </div>
               <div className="h-2.5 bg-black/20 rounded-full overflow-hidden p-0.5 border border-white/5 mb-3">
