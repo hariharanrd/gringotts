@@ -171,7 +171,7 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
     setIsLoading(true);
     // Strip label field as it's only for client-side display
     const cleanedFilters = currentFilters.map(({ field, condition, value }) => ({ field, condition, value }));
-    
+
     try {
       let response;
       switch (currentTab) {
@@ -243,7 +243,7 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
 
   useEffect(() => {
     if (isBulkEditDialogOpen && bulkField === 'funding_goal' && goals.length === 0) {
-      api.getGoals().then(res => setGoals(res.data)).catch(() => {});
+      api.getGoals().then(res => setGoals(res.data)).catch(() => { });
     }
   }, [isBulkEditDialogOpen, bulkField, goals.length]);
 
@@ -345,7 +345,7 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
   };
 
   const activeTabInfo = TABS.find(t => t.id === currentTab) || TABS[0];
-  
+
   const pageTotal = transactions.reduce((acc, t) => {
     const val = t.value;
     if (t.type === TransactionType.INCOME) return acc + val;
@@ -497,27 +497,27 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
             <PlusCircle className="w-4 h-4" />
             <span className="hidden sm:inline">Add</span>
           </button>
-        </div>
 
-        {/* Bulk Actions */}
-        {selectedIds.size > 0 && (
-          <div className="flex items-center gap-2 p-2 bg-cyan-500/5 dark:bg-cyan-500/10 border border-cyan-500/20 rounded-2xl animate-in fade-in slide-in-from-left-4">
-            <span className="text-xs font-bold text-cyan-600 dark:text-cyan-400 px-3 uppercase tracking-tight">{selectedIds.size} Selected</span>
-            <button
-              onClick={() => setIsBulkEditDialogOpen(true)}
-              className="px-4 py-2 bg-cyan-600 text-white text-xs font-bold rounded-xl shadow-lg shadow-cyan-600/20 hover:bg-cyan-500 transition-all uppercase tracking-widest"
-            >
-              Bulk Edit
-            </button>
-            <button
-              onClick={() => setIsBulkDeleteDialogOpen(true)}
-              className="px-4 py-2 bg-rose-500 text-white text-xs font-bold rounded-xl shadow-lg shadow-rose-500/20 hover:bg-rose-400 transition-all uppercase tracking-widest"
-            >
-              Bulk Delete
-            </button>
-            <button onClick={() => setSelectedIds(new Set())} className="text-[10px] text-slate-400 hover:text-slate-600 px-2 uppercase font-bold tracking-tighter">Cancel</button>
-          </div>
-        )}
+          {/* Bulk Actions */}
+          {selectedIds.size > 0 && (
+            <div className="flex items-center gap-2 p-2 bg-cyan-500/5 dark:bg-cyan-500/10 border border-cyan-500/20 rounded-2xl animate-in fade-in slide-in-from-left-4">
+              <span className="text-xs font-bold text-cyan-600 dark:text-cyan-400 px-3 uppercase tracking-tight">{selectedIds.size} Selected</span>
+              <button
+                onClick={() => setIsBulkEditDialogOpen(true)}
+                className="px-4 py-2 bg-cyan-600 text-white text-xs font-bold rounded-xl shadow-lg shadow-cyan-600/20 hover:bg-cyan-500 transition-all uppercase tracking-widest"
+              >
+                Edit
+              </button>
+              <button
+                onClick={() => setIsBulkDeleteDialogOpen(true)}
+                className="px-4 py-2 bg-rose-500 text-white text-xs font-bold rounded-xl shadow-lg shadow-rose-500/20 hover:bg-rose-400 transition-all uppercase tracking-widest"
+              >
+                Delete
+              </button>
+              <button onClick={() => setSelectedIds(new Set())} className="text-[10px] text-slate-400 hover:text-slate-600 px-2 uppercase font-bold tracking-tighter">Cancel</button>
+            </div>
+          )}
+        </div>
         {/* Right Section Tools */}
         <div className="flex items-center gap-2 sm:gap-3">
           <div className="relative hidden lg:block" ref={columnDropdownRef}>
