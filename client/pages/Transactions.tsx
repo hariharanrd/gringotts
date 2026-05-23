@@ -130,6 +130,13 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
   const [bulkFundingGoalId, setBulkFundingGoalId] = useState<number | ''>('');
   const [goals, setGoals] = useState<InvestmentGoal[]>([]);
 
+  const getAvailableBalance = (g: InvestmentGoal) => {
+    if (g.goal_type === 'ONE_TIME') {
+      return g.current_amount - (g.total_funded ?? 0);
+    }
+    return g.current_amount;
+  };
+
 
 
   // Set default columns based on tab or load from memory
@@ -980,11 +987,16 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
                   className={`${selectClass} w-full`}
                 >
                   <option value="">Do not fund from a Goal (Clear funding)</option>
-                  {goals.map(g => (
-                    <option key={g.id} value={g.id}>
-                      {g.icon || '🎯'} {g.name} (₹{g.current_amount.toLocaleString('en-IN')})
-                    </option>
-                  ))}
+                  {goals
+                    .filter(g => !g.is_closed && getAvailableBalance(g) > 0)
+                    .map(g => {
+                      const available = getAvailableBalance(g);
+                      return (
+                        <option key={g.id} value={g.id}>
+                          {g.icon || '🎯'} {g.name} — Available: ₹{available.toLocaleString('en-IN')} ({g.goal_type === 'ONE_TIME' ? 'One-Time' : 'Persistent'})
+                        </option>
+                      );
+                    })}
                 </select>
               )}
 
