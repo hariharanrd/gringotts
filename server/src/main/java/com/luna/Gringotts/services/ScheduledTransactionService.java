@@ -45,6 +45,9 @@ public class ScheduledTransactionService {
     @Autowired
     CreditCardService creditCardService;
 
+    @Autowired
+    com.luna.Gringotts.repository.InvestmentGoalRepository goalRepository;
+
     public ScheduledTransaction create(ScheduledTransaction s) {
         if (s.getStartDate() != null && s.getStartDate().isBefore(LocalDate.now())) {
             throw new IllegalArgumentException("Schedule Start Date cannot be in the past");
@@ -53,6 +56,27 @@ public class ScheduledTransactionService {
             s.setEndDate(null);
         }
         s.setUser(iamService.getCurrentUser());
+
+        if (s.getFundingGoal() != null && s.getFundingGoal().getId() != null) {
+            if ("INCOME".equals(s.getTransactionType())) {
+                throw new IllegalArgumentException("Income scheduled transactions cannot be funded from a goal");
+            }
+            InvestmentGoal fullGoal = investmentGoalService.requireGoal(s.getFundingGoal().getId());
+            s.setFundingGoal(fullGoal);
+
+            // Cyclic tag dependency check
+            Transaction temp = new Transaction();
+            temp.setCategory(s.getCategory());
+            temp.setSubCategory(s.getSubCategory());
+            temp.setItem(s.getItem());
+            temp.setUser(s.getUser());
+            if (investmentGoalService.isTransactionTaggedToGoal(temp, fullGoal.getId())) {
+                throw new IllegalArgumentException("Cannot fund from a goal that this scheduled transaction contributes to via tags");
+            }
+        } else {
+            s.setFundingGoal(null);
+        }
+
         if (s.getNextRunDate() == null) {
             s.setNextRunDate(s.getStartDate());
         }
@@ -90,6 +114,28 @@ public class ScheduledTransactionService {
             existing.setEndDate(incoming.getEndDate());
         if (incoming.getIsActive() != null)
             existing.setIsActive(incoming.getIsActive());
+
+        if (incoming.getFundingGoal() != null) {
+            if (incoming.getFundingGoal().getId() != null) {
+                if ("INCOME".equals(incoming.getTransactionType() != null ? incoming.getTransactionType() : existing.getTransactionType())) {
+                    throw new IllegalArgumentException("Income scheduled transactions cannot be funded from a goal");
+                }
+                InvestmentGoal fullGoal = investmentGoalService.requireGoal(incoming.getFundingGoal().getId());
+                existing.setFundingGoal(fullGoal);
+
+                // Cyclic tag dependency check
+                Transaction temp = new Transaction();
+                temp.setCategory(incoming.getCategory() != null ? incoming.getCategory() : existing.getCategory());
+                temp.setSubCategory(incoming.getSubCategory() != null ? incoming.getSubCategory() : existing.getSubCategory());
+                temp.setItem(incoming.getItem() != null ? incoming.getItem() : existing.getItem());
+                temp.setUser(existing.getUser());
+                if (investmentGoalService.isTransactionTaggedToGoal(temp, fullGoal.getId())) {
+                    throw new IllegalArgumentException("Cannot fund from a goal that this scheduled transaction contributes to via tags");
+                }
+            } else {
+                existing.setFundingGoal(null);
+            }
+        }
 
         // Only validate/reset if start date is actually changing and provided
         if (incoming.getStartDate() != null && !incoming.getStartDate().equals(existing.getStartDate())) {
@@ -193,6 +239,34 @@ public class ScheduledTransactionService {
         return transactionRepository.findAll(spec, pageable);
     }
 
+    private void handleScheduledGoalFunding(Transaction t, InvestmentGoal goal) {
+        if (goal == null) return;
+        if (t instanceof Income) {
+            throw new IllegalArgumentException("Income transactions cannot be funded from a goal");
+        }
+
+        Long goalId = goal.getId();
+        InvestmentGoal fullGoal = goalRepository.findById(goalId)
+                .orElseThrow(() -> new java.util.NoSuchElementException("Goal not found: " + goalId));
+
+        // Multi-user ownership isolation check (background run safe)
+        if (!fullGoal.getUser().getId().equals(t.getUser().getId())) {
+            throw new SecurityException("Goal ownership mismatch for scheduled transaction");
+        }
+
+        // Cyclic dependency check
+        if (investmentGoalService.isTransactionTaggedToGoal(t, goalId)) {
+            throw new IllegalArgumentException(
+                "Cannot fund from a goal that this transaction contributes to via tags");
+        }
+
+        t.setFundingGoal(fullGoal);
+        t.setIncludeInBudget(false);
+
+        // Deduct from the goal atomically
+        investmentGoalService.deductFromGoal(goalId, t.getValue(), null);
+    }
+
     @Transactional
     public Transaction executeSchedule(Long scheduleId, boolean isManual) {
         ScheduledTransaction s = scheduledTransactionRepository.findById(scheduleId).orElseThrow();
@@ -221,6 +295,7 @@ public class ScheduledTransactionService {
                 e.setUser(owner);
                 e.setCreatedBy("SCHEDULE");
                 e.setScheduleId(s.getId());
+                handleScheduledGoalFunding(e, s.getFundingGoal());
                 created = expenseRepository.save(e);
                 if ("CREDIT_CARD".equals(e.getPaymentMode()) && e.getCreditCard() != null) {
                     creditCardService.addTransactionToBill(e);
@@ -260,6 +335,7 @@ public class ScheduledTransactionService {
                 sv.setUser(owner);
                 sv.setCreatedBy("SCHEDULE");
                 sv.setScheduleId(s.getId());
+                handleScheduledGoalFunding(sv, s.getFundingGoal());
                 created = savingRepository.save(sv);
                 // adjust goals similar to TransactionService.saveSaving
                 double delta = Boolean.TRUE.equals(sv.getIsIn()) ? sv.getValue() : -sv.getValue();

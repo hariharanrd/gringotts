@@ -171,6 +171,7 @@ export interface ScheduledTransaction {
   is_active: boolean;
   created_at?: string;
   credit_card?: CreditCard;
+  funding_goal?: InvestmentGoal;
 }
 
 export interface CreditCard {

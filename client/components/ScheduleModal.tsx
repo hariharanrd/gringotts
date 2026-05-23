@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { X, Save, Clock, TrendingDown, TrendingUp, PiggyBank, RefreshCw } from 'lucide-react';
+import { X, Save, Clock, TrendingDown, TrendingUp, PiggyBank, RefreshCw, AlertTriangle } from 'lucide-react';
 import { api } from '../services/api';
-import { ScheduledTransaction, ScheduleFrequency, TransactionType, Category, SubCategory, Item, CreditCard } from '../types';
+import { ScheduledTransaction, ScheduleFrequency, TransactionType, Category, SubCategory, Item, CreditCard, InvestmentGoal } from '../types';
 import { useToast } from './ToastContext';
 import { PAYMENT_MODES } from '../constants';
 import { toLocalDateString } from '../services/dateUtils';
@@ -27,6 +27,7 @@ const ScheduleModal: React.FC<Props> = ({ isOpen, onClose, schedule }) => {
   const [subCategories, setSubCategories] = useState<SubCategory[]>([]);
   const [items, setItems] = useState<Item[]>([]);
   const [creditCards, setCreditCards] = useState<CreditCard[]>([]);
+  const [goals, setGoals] = useState<InvestmentGoal[]>([]);
   const subCategoryCache = useRef<Record<number, SubCategory[]>>({});
   const itemCache = useRef<Record<number, Item[]>>({});
 
@@ -40,6 +41,7 @@ const ScheduleModal: React.FC<Props> = ({ isOpen, onClose, schedule }) => {
     description: '',
     payment_mode: 'UPI',
     credit_card: undefined,
+    funding_goal: undefined,
   });
 
   const getSubCategories = async (categoryId: number) => {
@@ -56,6 +58,21 @@ const ScheduleModal: React.FC<Props> = ({ isOpen, onClose, schedule }) => {
     return its;
   };
 
+  const getAvailableBalance = (g: InvestmentGoal) => {
+    let baseAvailable = g.current_amount;
+    if (g.goal_type === 'ONE_TIME') {
+      baseAvailable = g.current_amount - (g.total_funded ?? 0);
+    }
+    return Math.max(baseAvailable, 0);
+  };
+
+  const selectedGoalForValidation = form.funding_goal?.id ? goals.find(g => g.id === form.funding_goal?.id) : undefined;
+  const isGoalFundingInvalid = selectedGoalForValidation ? (() => {
+    const available = getAvailableBalance(selectedGoalForValidation);
+    const txVal = Number(form.amount) || 0;
+    return available === 0 || txVal > available;
+  })() : false;
+
   useEffect(() => {
     const fetchData = async () => {
       if (isOpen) {
@@ -65,9 +82,15 @@ const ScheduleModal: React.FC<Props> = ({ isOpen, onClose, schedule }) => {
 
         api.getCreditCards().then(res => setCreditCards(res.data));
 
+        api.getGoals().then(res => {
+          const activeGoals = res.data.filter(g => !g.is_closed);
+          setGoals(activeGoals);
+        });
+
         if (schedule) {
           setForm({
-            ...schedule
+            ...schedule,
+            funding_goal: schedule.funding_goal
           });
           if (schedule.category) {
             const subs = await getSubCategories(schedule.category.id);
@@ -88,6 +111,7 @@ const ScheduleModal: React.FC<Props> = ({ isOpen, onClose, schedule }) => {
             description: '',
             payment_mode: 'UPI',
             is_in: true,
+            funding_goal: undefined,
           });
           setSubCategories([]);
           setItems([]);
@@ -170,6 +194,11 @@ const ScheduleModal: React.FC<Props> = ({ isOpen, onClose, schedule }) => {
           changes.credit_card = (form.payment_mode === 'CREDIT_CARD' && id) ? { id } : null;
         }
 
+        if (getRelId(form.funding_goal) !== schedule.funding_goal?.id) {
+          const id = getRelId(form.funding_goal);
+          changes.funding_goal = id ? { id } : null;
+        }
+
         // If nothing changed, just close
         if (Object.keys(changes).length === 0) {
           onClose();
@@ -187,6 +216,7 @@ const ScheduleModal: React.FC<Props> = ({ isOpen, onClose, schedule }) => {
           subcategory: form.subcategory ? { id: getRelId(form.subcategory) } : undefined,
           item: form.item ? { id: getRelId(form.item) } : undefined,
           credit_card: (form.payment_mode === 'CREDIT_CARD' && form.credit_card) ? { id: getRelId(form.credit_card) } : undefined,
+          funding_goal: form.funding_goal ? { id: getRelId(form.funding_goal) } : undefined,
         };
         await api.createScheduledTransaction(payload as any);
         showToast('Schedule created successfully', 'success');
@@ -398,6 +428,69 @@ const ScheduleModal: React.FC<Props> = ({ isOpen, onClose, schedule }) => {
                 </select>
               </div>
 
+              {form.transaction_type !== TransactionType.INCOME && (
+                <div className="space-y-1.5 animate-in slide-in-from-top-2 duration-300">
+                  <label className="text-sm font-semibold text-slate-600 dark:text-slate-400 ml-1">Fund from Goal (Optional)</label>
+                  <select
+                    value={form.funding_goal?.id || ''}
+                    onChange={(e) => {
+                      const goalId = e.target.value ? Number(e.target.value) : undefined;
+                      const selectedGoal = goals.find(g => g.id === goalId);
+                      setForm(f => ({
+                        ...f,
+                        funding_goal: selectedGoal
+                      }));
+                    }}
+                    className={inputClass}
+                  >
+                    <option value="" className="dark:bg-slate-900">Do not fund from a Goal</option>
+                    {goals.map(g => {
+                      const available = getAvailableBalance(g);
+                      return (
+                        <option key={g.id} value={g.id} className="dark:bg-slate-900">
+                          {g.icon || '🎯'} {g.name} — Available: ₹{available.toLocaleString('en-IN')} ({g.goal_type === 'ONE_TIME' ? 'One-Time' : 'Persistent'})
+                        </option>
+                      );
+                    })}
+                  </select>
+                  {form.funding_goal?.id && (() => {
+                    const selectedGoal = goals.find(g => g.id === form.funding_goal?.id);
+                    if (!selectedGoal) return null;
+                    const available = getAvailableBalance(selectedGoal);
+                    const txVal = Number(form.amount) || 0;
+
+                    return (
+                      <div className="space-y-1.5 mt-2">
+                        <p className="text-[10px] text-indigo-600 dark:text-indigo-400 font-medium ml-1">
+                          Note: Funding from a goal automatically excludes created transactions from the budget.
+                        </p>
+                        {available === 0 ? (
+                          <div className="flex gap-2.5 p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl">
+                            <AlertTriangle className="w-4.5 h-4.5 text-amber-500 shrink-0 mt-0.5" />
+                            <div className="text-xs">
+                              <p className="font-bold text-amber-600 dark:text-amber-400">Zero Balance Warning</p>
+                              <p className="text-slate-500 dark:text-slate-400 leading-tight mt-0.5">
+                                This goal has an available balance of ₹0. Please contribute savings first.
+                              </p>
+                            </div>
+                          </div>
+                        ) : txVal > available ? (
+                          <div className="flex gap-2.5 p-3 bg-rose-500/10 border border-rose-500/20 rounded-xl">
+                            <AlertTriangle className="w-4.5 h-4.5 text-rose-500 shrink-0 mt-0.5" />
+                            <div className="text-xs">
+                              <p className="font-bold text-rose-600 dark:text-rose-400">Overdraft Warning</p>
+                              <p className="text-slate-500 dark:text-slate-400 leading-tight mt-0.5">
+                                Schedule amount (₹{txVal.toLocaleString('en-IN')}) exceeds available balance (₹{available.toLocaleString('en-IN')}). Creating transactions from this schedule will fail.
+                              </p>
+                            </div>
+                          </div>
+                        ) : null}
+                      </div>
+                    );
+                  })()}
+                </div>
+              )}
+
               {form.payment_mode === 'CREDIT_CARD' && (
                 <div className="space-y-1.5 animate-in slide-in-from-top-2 duration-300">
                   <label className="text-sm font-semibold text-slate-600 dark:text-slate-400 ml-1">Select Credit Card</label>
@@ -463,7 +556,7 @@ const ScheduleModal: React.FC<Props> = ({ isOpen, onClose, schedule }) => {
             </button>
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || isGoalFundingInvalid}
               className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r ${typeColors[currentType as keyof typeof typeColors]} text-white font-black rounded-xl shadow-lg transition-all disabled:opacity-50 active:scale-[0.98]`}
             >
               {loading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : (

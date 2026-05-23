@@ -1,8 +1,8 @@
 # 🚀 Release Notes
 
-## [May 23, 2026] Goal Types & Direct Funding
+## [May 23, 2026] Goal Types, Direct Funding & Scheduled Transaction Funding
 
-This release introduces **Goal Types** (`PERSISTENT` vs `ONE_TIME`) and **Goal-Funded Transactions**, allowing users to fund expenses directly from investment goals, automatically manage budget exclusions, track refills for persistent goals, and prevent overdrafts with interactive UI indicators.
+This release introduces **Goal Types** (`PERSISTENT` vs `ONE_TIME`), **Goal-Funded Transactions**, and **Scheduled Transaction Goal Funding**. Users can now fund manual or recurring expenses directly from investment goals, automatically manage budget exclusions, track refills for persistent goals, and prevent overdrafts with interactive UI indicators and housekeeper-safe validations.
 
 ### 🔄 Dynamic Goal Types & Refill Tracker
 - **Persistent vs One-Time Goals**: Goals can now be configured as either `PERSISTENT` (e.g., Emergency Fund) or `ONE_TIME` (e.g., Buying a Car/Home).
@@ -10,15 +10,19 @@ This release introduces **Goal Types** (`PERSISTENT` vs `ONE_TIME`) and **Goal-F
 - **One-Time Achievements**: Spending funded by a `ONE_TIME` goal acts as a direct allocation toward the purchase. The spent amount counts as dynamic progress but leaves the achieved balance intact.
 - **Auto-Credit Isolation**: Added tag-based cyclic dependency detection that prevents a transaction from being funded by a goal it already contributes to via Category/Subcategory/Item auto-credit tags.
 
-### 💰 Direct Transaction Funding
-- **Fund from Goal**: Non-income transactions can now be directly linked to any active investment goal from the expense creation and edit forms.
+### 💰 Direct Transaction Funding & Schedule Support
+- **Fund from Goal**: Non-income transactions (both manual and scheduled) can now be directly linked to any active investment goal from their respective creation and edit forms.
 - **Auto Budget Exclusion**: Funding a transaction from a goal automatically marks it as `include_in_budget = false`, locking it out of budget utilization calculations to prevent double-counting.
 - **Automatic Balance Rollbacks**: Modifying, deleting, or unlinking goal-funded transactions automatically rolls back and recalculates the balance on persistent goals.
-- **Proactive Overdraft Prevention**: The backend rigorously blocks overdrafts and throws a structured error if a transaction value exceeds the goal's remaining balance.
+- **Proactive Overdraft Prevention**: The backend and scheduler rigorously block overdrafts and throw structured errors if a transaction or schedule execution value exceeds the goal's remaining balance.
+
+### ⏰ Scheduled Transaction Goal Funding
+- **Recurring Goal Deductions**: Scheduled transaction executions automatically validate goal available balances and perform atomic pessimistic write-locked deductions (`deductFromGoal`) upon automated runs.
+- **Graceful Housekeeper Failures**: If an automated run has insufficient funds or tag cyclic dependencies, it logs a housekeeper warning and fails gracefully without interrupting other schedules.
 
 ### 🎨 Sleek UI Indicators & Warnings
-- **Available Balance Dropdown**: The transaction form dropdown now displays each goal's actual **Available Balance** dynamically (subtracting spent allocations for one-time goals and adjusting for active edits) rather than simple achieved totals.
-- **Zero Balance & Overdraft Alerts**: Added real-time visual warning cards in the transaction modal that appear immediately when a user selects a goal with a ₹0 balance or types an amount that exceeds the goal's available limit.
+- **Available Balance Dropdowns**: The transaction and schedule modal dropdowns now display each goal's actual **Available Balance** dynamically (factoring in spent allocations for one-time goals) rather than simple achieved totals.
+- **Zero Balance & Overdraft Alerts**: Added real-time visual warning cards in both modals that appear immediately when a user selects a goal with a ₹0 balance or types an amount that exceeds the goal's available limit, and automatically disable the Save button.
 - **Stunning Detail Planner**: Expanded the goal details view with persistent refill notices, spending metrics cards, and a paginated list of all transactions funded from that goal.
 - **Responsive Bulk Edit**: Integrates goal funding in bulk edit actions, strictly filtering the selection to open goals with a positive spendable balance ($> ₹0$).
 

@@ -26,7 +26,10 @@ To save users from typing in every single coffee purchase, the app includes:
 ### 🎯 Planning for the Future
 
 * **Smart Budgeting**: The app uses "Master Templates" to define an ideal month. It tracks real-time performance and shows exactly how much is being overspent in specific categories.
-* **Goal Tracking**: Whether it’s an emergency fund or a major purchase, users can set specific goals. The system uses hierarchical auto-crediting, so any relevant saving is automatically added to the progress bar. It even does the advanced math to calculate exactly when a goal will be reached based on growth projections.
+* **Goal Tracking & Funding**: Whether it’s a refillable emergency fund (`PERSISTENT`) or a one-time purchase like a car (`ONE_TIME`), users can define and manage high-fidelity investment goals.
+  * **Auto-Crediting & Projections**: Linked saving transactions automatically credit active goals via tag matching, utilizing compound growth math to calculate precise target dates.
+  * **Direct Goal Funding**: Users can fund manual or scheduled transactions (expenses and savings) directly from an active goal. Funded transactions are automatically marked `include_in_budget = false` to prevent budget double-counting, and persistent goals automatically track refill balances.
+  * **Strict Overdraft & Cyclic Safeguards**: Backed by DB-level pessimistic write locking, the application prevents concurrent balance deductions, blocks tag cyclic dependencies, and strictly restricts overdraft saves across both manual and automated scheduler runs.
 
 ### 🏷️ Ultimate Organization
 
