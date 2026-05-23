@@ -711,6 +711,10 @@ const GoalDetailModal: React.FC<GoalDetailModalProps> = ({ goal, onClose }) => {
   const remaining = Math.max(goal.target_amount - goal.current_amount, 0);
   const totalFunded = goal.total_funded ?? 0;
 
+  const achievedAmount = goal.current_amount + totalFunded;
+  const refillTarget = Math.min(goal.target_amount, achievedAmount);
+  const refillNeeded = Math.max(0, refillTarget - goal.current_amount);
+
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center animate-in fade-in duration-200">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
@@ -719,7 +723,7 @@ const GoalDetailModal: React.FC<GoalDetailModalProps> = ({ goal, onClose }) => {
         <div className="sticky top-0 z-10 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl px-6 py-4 flex items-center justify-between border-b border-slate-200 dark:border-slate-800/50">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl shrink-0 shadow-sm"
-              style={{ background: `${color}22` }}>
+               style={{ background: `${color}22` }}>
               {goal.icon ?? '🎯'}
             </div>
             <div>
@@ -761,15 +765,17 @@ const GoalDetailModal: React.FC<GoalDetailModalProps> = ({ goal, onClose }) => {
                 </div>
               </div>
             ) : (
-              <div className="p-4 rounded-2xl bg-violet-500/10 border border-violet-500/20 text-slate-700 dark:text-violet-300 space-y-2">
-                <p className="text-sm font-bold flex items-center gap-1.5 text-violet-600 dark:text-violet-400">
-                  <RefreshCw className="w-4 h-4 text-violet-500 animate-spin-slow" />
-                  Refill needed: {fmt(totalFunded)}
-                </p>
-                <p className="text-xs leading-relaxed text-slate-500 dark:text-slate-300">
-                  This is a persistent goal (e.g. Emergency Fund). Spending has reduced the available amount. You must contribute an additional <span className="font-bold text-violet-600 dark:text-violet-400">{fmt(totalFunded)}</span> to restore it to the original target.
-                </p>
-              </div>
+              refillNeeded > 0 && (
+                <div className="p-4 rounded-2xl bg-violet-500/10 border border-violet-500/20 text-slate-700 dark:text-violet-300 space-y-2">
+                  <p className="text-sm font-bold flex items-center gap-1.5 text-violet-600 dark:text-violet-400">
+                    <RefreshCw className="w-4 h-4 text-violet-500 animate-spin-slow" />
+                    Refill needed: {fmt(refillNeeded)}
+                  </p>
+                  <p className="text-xs leading-relaxed text-slate-500 dark:text-slate-300">
+                    This is a persistent goal (e.g. Emergency Fund). Spending has reduced the available amount. You must contribute an additional <span className="font-bold text-violet-600 dark:text-violet-400">{fmt(refillNeeded)}</span> to restore it to the original target.
+                  </p>
+                </div>
+              )
             )
           )}
 
@@ -780,7 +786,9 @@ const GoalDetailModal: React.FC<GoalDetailModalProps> = ({ goal, onClose }) => {
               <p className="text-base font-black text-slate-800 dark:text-white tabular-nums mt-1">{fmt(goal.target_amount)}</p>
             </div>
             <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-2xl border border-slate-100 dark:border-slate-800/60">
-              <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Available Balance</p>
+              <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+                {goal.goal_type === 'ONE_TIME' ? 'Achieved Amount' : 'Available Balance'}
+              </p>
               <p className="text-base font-black text-slate-800 dark:text-white tabular-nums mt-1" style={{ color }}>{fmt(goal.current_amount)}</p>
             </div>
             <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-2xl border border-slate-100 dark:border-slate-800/60">
