@@ -353,7 +353,7 @@ const BudgetPage: React.FC = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Sidebar: Budget List */}
-        <div className="lg:col-span-1 space-y-6">
+        <div className={`lg:col-span-1 space-y-6 ${isEditing ? 'hidden lg:block' : ''}`}>
           {/* Active Budget Section */}
           {groupedBudgets.active.length > 0 && (
             <div className="space-y-3">
@@ -441,18 +441,18 @@ const BudgetPage: React.FC = () => {
         {/* Main Content Area */}
         <div className="lg:col-span-2">
           {isEditing ? (
-            <div className="glass-card rounded-3xl p-8 border-cyan-500/20 shadow-2xl shadow-cyan-500/5 mt-9">
-              <div className="flex items-center justify-between mb-8">
+            <div className="glass-card rounded-3xl p-4 sm:p-8 border-cyan-500/20 shadow-2xl shadow-cyan-500/5 mt-0 lg:mt-9 animate-in fade-in slide-in-from-bottom-4 duration-300">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
                 <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-3">
                   <Edit2 className="w-5 h-5 text-cyan-500" />
                   {formData.id ? 'Edit Budget' : 'Configure New Budget'}
                 </h2>
-                <div className="flex gap-2 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl">
+                <div className="flex gap-2 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl self-end sm:self-auto">
                   <button
                     onClick={() => setActiveTab('details')}
                     className={`px-4 py-1.5 text-xs font-semibold rounded-lg transition-all ${activeTab === 'details' ? 'bg-white dark:bg-slate-700 shadow-md text-cyan-600 dark:text-cyan-400' : 'text-slate-500'}`}
                   >
-                    Header
+                    Details
                   </button>
                   <button
                     onClick={() => setActiveTab('allocations')}
@@ -533,12 +533,12 @@ const BudgetPage: React.FC = () => {
                   </div>
                 ) : (
                   <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 dark:border-slate-800/60 pb-5">
                       <div className="space-y-1">
                         <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Category Allocations</p>
                         <p className="text-xs text-slate-500">Distribute your cap among categories</p>
                       </div>
-                      <div className={`px-4 py-2 rounded-2xl text-sm font-bold flex items-center gap-2 ${isOverAllocated ? 'bg-rose-500/10 text-rose-500' : 'bg-emerald-500/10 text-emerald-500'}`}>
+                      <div className={`px-4 py-2 rounded-2xl text-sm font-bold flex items-center gap-2 self-start sm:self-auto ${isOverAllocated ? 'bg-rose-500/10 text-rose-500' : 'bg-emerald-500/10 text-emerald-500'}`}>
                         {isOverAllocated ? <AlertCircle className="w-4 h-4" /> : <CheckCircle2 className="w-4 h-4" />}
                         ₹{totalAllocated.toLocaleString()} / ₹{(formData.total_amount || 0).toLocaleString()}
                       </div>
@@ -546,24 +546,31 @@ const BudgetPage: React.FC = () => {
 
                     <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
                       {formData.allocations?.map((alloc, idx) => (
-                        <div key={alloc.category.id} className="flex items-center gap-4 bg-slate-100/30 dark:bg-slate-800/30 p-4 rounded-2xl border border-slate-200 dark:border-slate-700/50 group">
-                          <CategoryIcon category={alloc.category} />
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-bold text-slate-800 dark:text-slate-200 truncate">{alloc.category.name}</p>
-                            <p className="text-[10px] text-slate-500 uppercase tracking-wider">{alloc.category.type}</p>
+                        <div key={alloc.category.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 bg-slate-100/30 dark:bg-slate-800/30 p-4 rounded-2xl border border-slate-200 dark:border-slate-700/50 group">
+                          <div className="flex items-center gap-3 flex-1 min-w-0 w-full">
+                            <CategoryIcon category={alloc.category} />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-bold text-slate-800 dark:text-slate-200 truncate">{alloc.category.name}</p>
+                              <p className="text-[10px] text-slate-500 uppercase tracking-wider">{alloc.category.type}</p>
+                            </div>
+                            <button onClick={() => removeAllocation(idx)} className="sm:hidden p-2 text-slate-400 hover:text-rose-500 transition-colors">
+                              <Trash2 className="w-4 h-4" />
+                            </button>
                           </div>
-                          <div className="w-40 relative">
-                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-sm">₹</span>
-                            <input
-                              type="number"
-                              value={alloc.allocated_amount}
-                              onChange={e => updateAllocation(idx, parseFloat(e.target.value) || 0)}
-                              className="w-full bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 rounded-xl pl-9 pr-4 py-2 text-sm font-bold text-slate-900 dark:text-white"
-                            />
+                          <div className="w-full sm:w-40 flex items-center gap-2">
+                            <div className="relative flex-1">
+                              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-sm">₹</span>
+                              <input
+                                type="number"
+                                value={alloc.allocated_amount}
+                                onChange={e => updateAllocation(idx, parseFloat(e.target.value) || 0)}
+                                className="w-full bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 rounded-xl pl-9 pr-4 py-2 text-sm font-bold text-slate-900 dark:text-white"
+                              />
+                            </div>
+                            <button onClick={() => removeAllocation(idx)} className="hidden sm:block p-2 text-slate-400 hover:text-rose-500 transition-colors">
+                              <Trash2 className="w-4 h-4" />
+                            </button>
                           </div>
-                          <button onClick={() => removeAllocation(idx)} className="p-2 text-slate-400 hover:text-rose-500 transition-colors">
-                            <Trash2 className="w-4 h-4" />
-                          </button>
                         </div>
                       ))}
 
@@ -594,17 +601,17 @@ const BudgetPage: React.FC = () => {
                   </div>
                 )}
 
-                <div className="flex items-center justify-end gap-3 pt-6 mt-6 border-t border-slate-200 dark:border-slate-800">
+                <div className="flex flex-col-reverse sm:flex-row items-center justify-end gap-3 pt-6 mt-6 border-t border-slate-200 dark:border-slate-800 animate-in fade-in slide-in-from-bottom-2">
                   <button
                     onClick={() => setIsEditing(false)}
-                    className="px-6 py-3 text-sm font-bold text-slate-500 hover:text-slate-800 dark:hover:text-slate-300 transition-colors"
+                    className="w-full sm:w-auto px-6 py-3 text-sm font-bold text-slate-500 hover:text-slate-800 dark:hover:text-slate-300 transition-colors text-center"
                   >
                     Discard Changes
                   </button>
                   <button
                     onClick={handleSave}
                     disabled={!formData.name || (formData.total_amount || 0) <= 0 || isOverAllocated}
-                    className="flex items-center gap-2 px-8 py-3 text-white text-sm font-bold rounded-2xl shadow-xl transition-all disabled:opacity-50 disabled:grayscale disabled:scale-100"
+                    className="w-full sm:w-auto flex items-center justify-center gap-2 px-8 py-3 text-white text-sm font-bold rounded-2xl shadow-xl transition-all disabled:opacity-50 disabled:grayscale disabled:scale-100"
                     style={{
                       background: `linear-gradient(to right, var(--theme-gradient-from), var(--theme-gradient-to))`,
                       boxShadow: `0 10px 15px -3px rgba(var(--theme-accent-rgb), 0.2), 0 4px 6px -4px rgba(var(--theme-accent-rgb), 0.2)`
@@ -619,8 +626,8 @@ const BudgetPage: React.FC = () => {
               </div>
             </div>
           ) : selectedBudget ? (
-            <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500 mt-9">
-              <div className="glass-card rounded-3xl p-8 overflow-hidden relative border-cyan-500/5 shadow-2xl shadow-black/5">
+            <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500 mt-0 lg:mt-9">
+              <div className="glass-card rounded-3xl p-4 sm:p-8 overflow-hidden relative border-cyan-500/5 shadow-2xl shadow-black/5">
                 <div className="absolute top-0 right-0 w-64 h-64 bg-cyan-500/5 rounded-full blur-3xl -mr-32 -mt-32" />
 
                 <div className="relative flex flex-col md:flex-row md:items-start md:justify-between mb-8">

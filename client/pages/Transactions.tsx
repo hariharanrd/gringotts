@@ -449,7 +449,7 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
       <div className="flex flex-wrap items-center gap-3 sm:gap-4 w-full justify-between">
         <div className="flex items-center gap-3 w-full sm:w-auto">
           {/* Dropdown Tab Selector */}
-          <div className="relative grow sm:grow-0 sm:min-w-[240px]" ref={tabMenuRef}>
+          <div className={`relative grow sm:grow-0 sm:min-w-[240px] ${selectedIds.size > 0 ? 'hidden sm:block' : ''}`} ref={tabMenuRef}>
             <button
               onClick={() => setIsTabMenuOpen(!isTabMenuOpen)}
               className={`w-full flex items-center gap-3 px-5 py-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/60 shadow-sm hover:shadow-md transition-all ${isTabMenuOpen ? 'ring-2 ring-cyan-500/20 border-cyan-500/50' : ''}`}
@@ -482,7 +482,7 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
 
           <button
             onClick={() => onAdd(currentTab === 'all' ? undefined : (currentTab.toUpperCase() as any))}
-            className="flex items-center justify-center gap-2 text-white py-3 px-5 rounded-2xl transition-all font-bold text-sm shrink-0 shadow-lg"
+            className={`flex items-center justify-center gap-2 text-white py-3 px-5 rounded-2xl transition-all font-bold text-sm shrink-0 shadow-lg ${selectedIds.size > 0 ? 'hidden sm:flex' : ''}`}
             style={{
               background: `linear-gradient(to right, var(--theme-gradient-from), var(--theme-gradient-to))`,
               boxShadow: `0 10px 15px -3px rgba(var(--theme-accent-rgb), 0.2), 0 4px 6px -4px rgba(var(--theme-accent-rgb), 0.2)`
@@ -500,21 +500,30 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
 
           {/* Bulk Actions */}
           {selectedIds.size > 0 && (
-            <div className="flex items-center gap-2 p-2 bg-cyan-500/5 dark:bg-cyan-500/10 border border-cyan-500/20 rounded-2xl animate-in fade-in slide-in-from-left-4">
-              <span className="text-xs font-bold text-cyan-600 dark:text-cyan-400 px-3 uppercase tracking-tight">{selectedIds.size} Selected</span>
+            <div className="flex items-center justify-between sm:justify-start gap-1.5 sm:gap-2 p-1.5 sm:p-2 bg-cyan-500/5 dark:bg-cyan-500/10 border border-cyan-500/20 rounded-2xl animate-in fade-in slide-in-from-left-4 w-full sm:w-auto">
+              <span className="text-xs font-bold text-cyan-600 dark:text-cyan-400 px-2 sm:px-3 uppercase tracking-tight shrink-0">
+                {selectedIds.size} Selected
+              </span>
+              <div className="flex items-center gap-1.5 sm:gap-2 grow sm:grow-0 justify-end sm:justify-start">
+                <button
+                  onClick={() => setIsBulkEditDialogOpen(true)}
+                  className="px-3 sm:px-4 py-2 bg-cyan-600 text-white text-xs font-bold rounded-xl shadow-lg shadow-cyan-600/20 hover:bg-cyan-500 transition-all uppercase tracking-widest text-center"
+                >
+                  Edit
+                </button>
+                <button
+                  onClick={() => setIsBulkDeleteDialogOpen(true)}
+                  className="px-3 sm:px-4 py-2 bg-rose-500 text-white text-xs font-bold rounded-xl shadow-lg shadow-rose-500/20 hover:bg-rose-400 transition-all uppercase tracking-widest text-center"
+                >
+                  Delete
+                </button>
+              </div>
               <button
-                onClick={() => setIsBulkEditDialogOpen(true)}
-                className="px-4 py-2 bg-cyan-600 text-white text-xs font-bold rounded-xl shadow-lg shadow-cyan-600/20 hover:bg-cyan-500 transition-all uppercase tracking-widest"
+                onClick={() => setSelectedIds(new Set())}
+                className="text-[10px] text-slate-400 hover:text-slate-600 px-1 sm:px-2 uppercase font-bold tracking-tighter shrink-0"
               >
-                Edit
+                Cancel
               </button>
-              <button
-                onClick={() => setIsBulkDeleteDialogOpen(true)}
-                className="px-4 py-2 bg-rose-500 text-white text-xs font-bold rounded-xl shadow-lg shadow-rose-500/20 hover:bg-rose-400 transition-all uppercase tracking-widest"
-              >
-                Delete
-              </button>
-              <button onClick={() => setSelectedIds(new Set())} className="text-[10px] text-slate-400 hover:text-slate-600 px-2 uppercase font-bold tracking-tighter">Cancel</button>
             </div>
           )}
         </div>
