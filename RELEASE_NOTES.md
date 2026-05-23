@@ -1,5 +1,27 @@
 # 🚀 Release Notes
 
+## [May 23, 2026] Goal Types & Direct Funding
+
+This release introduces **Goal Types** (`PERSISTENT` vs `ONE_TIME`) and **Goal-Funded Transactions**, allowing users to fund expenses directly from investment goals, automatically manage budget exclusions, track refills for persistent goals, and prevent overdrafts with interactive UI indicators.
+
+### 🔄 Dynamic Goal Types & Refill Tracker
+- **Persistent vs One-Time Goals**: Goals can now be configured as either `PERSISTENT` (e.g., Emergency Fund) or `ONE_TIME` (e.g., Buying a Car/Home).
+- **Persistent Deductions**: Spending funded by a `PERSISTENT` goal reduces its `current_amount` and automatically tags the goal with a high-fidelity **"Refill Needed"** warning badge of equal value.
+- **One-Time Achievements**: Spending funded by a `ONE_TIME` goal acts as a direct allocation toward the purchase. The spent amount counts as dynamic progress but leaves the achieved balance intact.
+- **Auto-Credit Isolation**: Added tag-based cyclic dependency detection that prevents a transaction from being funded by a goal it already contributes to via Category/Subcategory/Item auto-credit tags.
+
+### 💰 Direct Transaction Funding
+- **Fund from Goal**: Non-income transactions can now be directly linked to any active investment goal from the expense creation and edit forms.
+- **Auto Budget Exclusion**: Funding a transaction from a goal automatically marks it as `include_in_budget = false`, locking it out of budget utilization calculations to prevent double-counting.
+- **Automatic Balance Rollbacks**: Modifying, deleting, or unlinking goal-funded transactions automatically rolls back and recalculates the balance on persistent goals.
+- **Proactive Overdraft Prevention**: The backend rigorously blocks overdrafts and throws a structured error if a transaction value exceeds the goal's remaining balance.
+
+### 🎨 Sleek UI Indicators & Warnings
+- **Available Balance Dropdown**: The transaction form dropdown now displays each goal's actual **Available Balance** dynamically (subtracting spent allocations for one-time goals and adjusting for active edits) rather than simple achieved totals.
+- **Zero Balance & Overdraft Alerts**: Added real-time visual warning cards in the transaction modal that appear immediately when a user selects a goal with a ₹0 balance or types an amount that exceeds the goal's available limit.
+- **Stunning Detail Planner**: Expanded the goal details view with persistent refill notices, spending metrics cards, and a paginated list of all transactions funded from that goal.
+- **Responsive Bulk Edit**: Integrates goal funding in bulk edit actions, strictly filtering the selection to open goals with a positive spendable balance ($> ₹0$).
+
 ## [May 15, 2026] Session Management & Credit Card Clarity
 
 ### 🔐 Active Session Management
