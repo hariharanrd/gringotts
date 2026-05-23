@@ -1,5 +1,6 @@
 package com.luna.Gringotts.records;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -10,6 +11,7 @@ import java.util.List;
 
 @Entity
 @Table(name = "investment_goal", schema = "public")
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class InvestmentGoal {
 
     public InvestmentGoal() {}
@@ -81,8 +83,9 @@ public class InvestmentGoal {
     User user;
 
     @Column(name = "goal_type", nullable = false)
+    @Enumerated(EnumType.STRING)
     @JsonProperty("goal_type")
-    String goalType = "PERSISTENT";
+    GoalType goalType = GoalType.PERSISTENT;
 
     // ── Getters ───────────────────────────────────────────────────────────────
 
@@ -101,7 +104,7 @@ public class InvestmentGoal {
     public List<InvestmentGoalTag> getTags() { return tags; }
     public List<TagRequest> getTagsPayload() { return tagsPayload; }
     public User getUser() { return user; }
-    public String getGoalType() { return goalType; }
+    public GoalType getGoalType() { return goalType; }
 
     // ── Setters ───────────────────────────────────────────────────────────────
 
@@ -120,5 +123,5 @@ public class InvestmentGoal {
     public void setTags(List<InvestmentGoalTag> tags) { this.tags = tags; }
     public void setTagsPayload(List<TagRequest> tagsPayload) { this.tagsPayload = tagsPayload; }
     public void setUser(User user) { this.user = user; }
-    public void setGoalType(String goalType) { this.goalType = goalType; }
+    public void setGoalType(GoalType goalType) { this.goalType = goalType; }
 }

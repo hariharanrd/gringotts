@@ -71,6 +71,13 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, on
   };
   const [showTypeChangeConfirm, setShowTypeChangeConfirm] = useState(false);
 
+  const selectedGoalForValidation = formData.funding_goal_id ? goals.find(g => g.id === formData.funding_goal_id) : undefined;
+  const isGoalFundingInvalid = selectedGoalForValidation ? (() => {
+    const available = getAvailableBalance(selectedGoalForValidation, transaction);
+    const txVal = Number(formData.value) || 0;
+    return available === 0 || txVal > available;
+  })() : false;
+
   const resetForm = () => {
     setFormData({
       value: 0,
@@ -610,7 +617,7 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, on
             </button>
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || isGoalFundingInvalid}
               className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r ${typeColors[type]} text-white font-semibold rounded-xl shadow-lg transition-all disabled:opacity-50`}
             >
               {loading ? (

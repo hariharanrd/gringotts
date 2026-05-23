@@ -101,7 +101,7 @@ public class Transaction {
     @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     User user;
 
-    @ManyToOne(fetch = FetchType.EAGER)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "funding_goal_id")
     @JsonProperty("funding_goal")
     InvestmentGoal fundingGoal;
