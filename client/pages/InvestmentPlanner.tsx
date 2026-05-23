@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Plus, Target, TrendingUp, Edit2, Trash2, Tag, X, Check, Goal,
-  Search, Sparkles, Folder, Layers, Archive, CheckCircle2
+  Search, Sparkles, Folder, Layers, Archive, CheckCircle2, RefreshCw
 } from 'lucide-react';
 import { api } from '../services/api';
 import { InvestmentGoal, Item, Category } from '../types';
@@ -104,15 +104,19 @@ interface GoalCardProps {
   onEdit: (g: InvestmentGoal) => void;
   onDelete: (g: InvestmentGoal) => void;
   onArchive?: (g: InvestmentGoal) => void;
+  onClick: () => void;
 }
 
-const GoalCard: React.FC<GoalCardProps> = ({ goal, onEdit, onDelete, onArchive }) => {
+const GoalCard: React.FC<GoalCardProps> = ({ goal, onEdit, onDelete, onArchive, onClick }) => {
   const pct = goal.percent_achieved ?? 0;
   const color = goal.is_closed ? '#94a3b8' : (goal.color ?? '#6366f1');
   const remaining = Math.max(goal.target_amount - goal.current_amount, 0);
 
   return (
-    <div className={`group relative bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl rounded-2xl border ${goal.is_closed ? 'border-slate-300 dark:border-slate-700 opacity-80' : 'border-slate-200 dark:border-slate-700/50'} overflow-hidden hover:shadow-xl hover:shadow-black/10 dark:hover:shadow-black/30 transition-all duration-300 hover:-translate-y-1`}>
+    <div
+      onClick={onClick}
+      className={`group relative bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl rounded-2xl border ${goal.is_closed ? 'border-slate-300 dark:border-slate-700 opacity-80' : 'border-slate-200 dark:border-slate-700/50'} overflow-hidden hover:shadow-xl hover:shadow-black/10 dark:hover:shadow-black/30 transition-all duration-300 hover:-translate-y-1 cursor-pointer`}
+    >
       {/* Color accent bar */}
       <div className="h-1 w-full" style={{ background: `linear-gradient(90deg, ${color}, ${color}88)` }} />
 
@@ -125,28 +129,36 @@ const GoalCard: React.FC<GoalCardProps> = ({ goal, onEdit, onDelete, onArchive }
               {goal.icon ?? '🎯'}
             </div>
             <div>
-              <div className="flex items-center gap-2">
-                <h3 className="font-bold text-slate-800 dark:text-slate-100 text-base leading-tight">{goal.name}</h3>
-                {goal.is_closed && <span className="px-1.5 py-0.5 rounded text-[10px] uppercase font-bold bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400">Closed</span>}
+              <div className="flex flex-col gap-1">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <h3 className="font-bold text-slate-800 dark:text-slate-100 text-sm leading-tight truncate max-w-[120px]">{goal.name}</h3>
+                  {goal.is_closed && <span className="px-1.5 py-0.5 rounded text-[8px] uppercase font-bold bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400">Closed</span>}
+                  <span className={`px-1.5 py-0.25 rounded text-[8px] uppercase font-black border tracking-wider ${goal.goal_type === 'ONE_TIME'
+                    ? 'bg-amber-500/10 text-amber-500 border-amber-500/20'
+                    : 'bg-violet-500/10 text-violet-500 border-violet-500/20'
+                    }`}>
+                    {goal.goal_type === 'ONE_TIME' ? 'One-time' : 'Refillable'}
+                  </span>
+                </div>
+                <p className="text-[10px] text-slate-400 dark:text-slate-500">{goal.annual_rate}% p.a.</p>
               </div>
-              <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">{goal.annual_rate}% p.a.</p>
             </div>
           </div>
           <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
             {!goal.is_closed && pct >= 100 && onArchive && (
-              <button onClick={() => onArchive(goal)}
+              <button onClick={(e) => { e.stopPropagation(); onArchive(goal); }}
                 title="Mark as Closed"
                 className="p-1.5 rounded-lg text-slate-400 hover:text-emerald-500 hover:bg-emerald-500/10 transition-all">
                 <Archive className="w-4 h-4" />
               </button>
             )}
             {!goal.is_closed && (
-              <button onClick={() => onEdit(goal)}
+              <button onClick={(e) => { e.stopPropagation(); onEdit(goal); }}
                 className="p-1.5 rounded-lg text-slate-400 hover:text-cyan-500 hover:bg-cyan-500/10 transition-all">
                 <Edit2 className="w-4 h-4" />
               </button>
             )}
-            <button onClick={() => onDelete(goal)}
+            <button onClick={(e) => { e.stopPropagation(); onDelete(goal); }}
               className="p-1.5 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 transition-all">
               <Trash2 className="w-4 h-4" />
             </button>
@@ -204,6 +216,16 @@ const GoalCard: React.FC<GoalCardProps> = ({ goal, onEdit, onDelete, onArchive }
             ))}
           </div>
         )}
+
+        {/* Spent / Funded from Goal */}
+        {goal.total_funded && goal.total_funded > 0 ? (
+          <div className="mt-3 pt-3 border-t border-dashed border-slate-200 dark:border-slate-800/60 flex items-center justify-between text-xs font-semibold">
+            <span className="text-slate-400 dark:text-slate-500 font-medium">Spent from Goal</span>
+            <span className="text-rose-500 dark:text-rose-400 tabular-nums">
+              -{fmt(goal.total_funded)}
+            </span>
+          </div>
+        ) : null}
       </div>
     </div>
   );
@@ -220,6 +242,7 @@ interface GoalModalProps {
 const EMPTY_FORM: Partial<InvestmentGoal> = {
   name: '', icon: '🎯', color: '#6366f1',
   target_amount: 0, current_amount: 0, annual_rate: 8, notes: '',
+  goal_type: 'PERSISTENT',
 };
 
 const GoalModal: React.FC<GoalModalProps> = ({ isOpen, onClose, onSaved, editGoal }) => {
@@ -463,6 +486,35 @@ const GoalModal: React.FC<GoalModalProps> = ({ isOpen, onClose, onSaved, editGoa
             </div>
           </div>
 
+          {/* Goal Type */}
+          <div>
+            <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Goal Type</label>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => setForm(f => ({ ...f, goal_type: 'PERSISTENT' }))}
+                className={`px-4 py-2.5 rounded-2xl border text-sm font-semibold transition-all flex flex-col items-center justify-center text-center gap-0.5 ${form.goal_type !== 'ONE_TIME'
+                  ? 'border-violet-500 bg-violet-500/10 text-violet-700 dark:text-violet-300 shadow-sm'
+                  : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-500'
+                  }`}
+              >
+                <span className="text-xs">🔄 Persistent</span>
+                <span className="text-[9px] font-normal opacity-70">Emergency Fund, etc.</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setForm(f => ({ ...f, goal_type: 'ONE_TIME' }))}
+                className={`px-4 py-2.5 rounded-2xl border text-sm font-semibold transition-all flex flex-col items-center justify-center text-center gap-0.5 ${form.goal_type === 'ONE_TIME'
+                  ? 'border-violet-500 bg-violet-500/10 text-violet-700 dark:text-violet-300 shadow-sm'
+                  : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-500'
+                  }`}
+              >
+                <span className="text-xs">🎯 One-Time</span>
+                <span className="text-[9px] font-normal opacity-70">Buying Car/Home, etc.</span>
+              </button>
+            </div>
+          </div>
+
           {/* Amounts */}
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -608,6 +660,217 @@ const GoalModal: React.FC<GoalModalProps> = ({ isOpen, onClose, onSaved, editGoa
   );
 };
 
+// ── Goal Detail Modal ────────────────────────────────────────────────────────
+interface GoalDetailModalProps {
+  goal: InvestmentGoal | null;
+  onClose: () => void;
+}
+
+const GoalDetailModal: React.FC<GoalDetailModalProps> = ({ goal, onClose }) => {
+  const { showToast } = useToast();
+  const [transactions, setTransactions] = useState<any[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const [loading, setLoading] = useState(false);
+
+  const fetchGoalTransactions = async (page: number) => {
+    if (!goal?.id) return;
+    setLoading(true);
+    try {
+      const res = await api.getGoalTransactions(goal.id, page);
+      setTransactions(res.data ?? []);
+      setTotalPages(Math.ceil((res.total_count || 0) / 10));
+      setTotalCount(res.total_count || 0);
+    } catch (e: any) {
+      showToast(e.message ?? 'Failed to load spending transactions', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (goal) {
+      setCurrentPage(1);
+      fetchGoalTransactions(1);
+    } else {
+      setTransactions([]);
+    }
+  }, [goal]);
+
+  useEffect(() => {
+    if (goal && currentPage > 1) {
+      fetchGoalTransactions(currentPage);
+    }
+  }, [currentPage]);
+
+  if (!goal) return null;
+
+  const pct = goal.percent_achieved ?? 0;
+  const color = goal.color ?? '#6366f1';
+  const remaining = Math.max(goal.target_amount - goal.current_amount, 0);
+  const totalFunded = goal.total_funded ?? 0;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center animate-in fade-in duration-200">
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative w-full sm:max-w-2xl bg-white dark:bg-slate-900 rounded-t-3xl sm:rounded-3xl shadow-2xl max-h-[85vh] overflow-y-auto animate-in slide-in-from-bottom-4 duration-300">
+        {/* Header */}
+        <div className="sticky top-0 z-10 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl px-6 py-4 flex items-center justify-between border-b border-slate-200 dark:border-slate-800/50">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl shrink-0 shadow-sm"
+              style={{ background: `${color}22` }}>
+              {goal.icon ?? '🎯'}
+            </div>
+            <div>
+              <h2 className="text-base font-black text-slate-900 dark:text-white flex items-center gap-2">
+                {goal.name}
+              </h2>
+              <span className={`px-2 py-0.5 rounded text-[9px] uppercase font-black border ${goal.goal_type === 'ONE_TIME'
+                ? 'bg-amber-500/10 text-amber-500 border-amber-500/20'
+                : 'bg-violet-500/10 text-violet-500 border-violet-500/20'
+                }`}>
+                {goal.goal_type === 'ONE_TIME' ? 'One-time' : 'Refillable / Persistent'}
+              </span>
+            </div>
+          </div>
+          <button onClick={onClose} className="p-2 rounded-xl text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <div className="px-6 py-6 space-y-6">
+          {/* Visual Alert Box */}
+          {totalFunded > 0 && (
+            goal.goal_type === 'ONE_TIME' ? (
+              <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-slate-700 dark:text-amber-300 space-y-2">
+                <p className="text-sm font-bold flex items-center gap-1.5">
+                  <Sparkles className="w-4 h-4 text-amber-500" />
+                  Allocated towards spending: {fmt(totalFunded)}
+                </p>
+                <p className="text-xs leading-relaxed text-slate-500 dark:text-slate-300">
+                  This goal is for one-time spending (e.g. buying a car, home). The spend is part of the achievement itself, and the goal progress remains at <span className="font-bold text-amber-600 dark:text-amber-400">{pct.toFixed(0)}%</span>.
+                </p>
+                {/* Secondary spent progress bar */}
+                <div className="w-full bg-slate-200 dark:bg-slate-800 rounded-full h-1.5 mt-2 overflow-hidden">
+                  <div className="bg-amber-500 h-1.5 rounded-full" style={{ width: `${Math.min((totalFunded / goal.target_amount) * 100, 100)}%` }} />
+                </div>
+                <div className="flex justify-between text-[9px] uppercase tracking-wider font-bold text-slate-400">
+                  <span>Spent: {fmt(totalFunded)}</span>
+                  <span>Target: {fmt(goal.target_amount)}</span>
+                </div>
+              </div>
+            ) : (
+              <div className="p-4 rounded-2xl bg-violet-500/10 border border-violet-500/20 text-slate-700 dark:text-violet-300 space-y-2">
+                <p className="text-sm font-bold flex items-center gap-1.5 text-violet-600 dark:text-violet-400">
+                  <RefreshCw className="w-4 h-4 text-violet-500 animate-spin-slow" />
+                  Refill needed: {fmt(totalFunded)}
+                </p>
+                <p className="text-xs leading-relaxed text-slate-500 dark:text-slate-300">
+                  This is a persistent goal (e.g. Emergency Fund). Spending has reduced the available amount. You must contribute an additional <span className="font-bold text-violet-600 dark:text-violet-400">{fmt(totalFunded)}</span> to restore it to the original target.
+                </p>
+              </div>
+            )
+          )}
+
+          {/* Quick Metrics */}
+          <div className="grid grid-cols-3 gap-4">
+            <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-2xl border border-slate-100 dark:border-slate-800/60">
+              <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Target</p>
+              <p className="text-base font-black text-slate-800 dark:text-white tabular-nums mt-1">{fmt(goal.target_amount)}</p>
+            </div>
+            <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-2xl border border-slate-100 dark:border-slate-800/60">
+              <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Available Balance</p>
+              <p className="text-base font-black text-slate-800 dark:text-white tabular-nums mt-1" style={{ color }}>{fmt(goal.current_amount)}</p>
+            </div>
+            <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-2xl border border-slate-100 dark:border-slate-800/60">
+              <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Total Spent</p>
+              <p className="text-base font-black text-slate-800 dark:text-white tabular-nums mt-1">{fmt(totalFunded)}</p>
+            </div>
+          </div>
+
+          {/* Projection Indicator Card */}
+          <div className="px-4 py-3 rounded-2xl text-xs font-semibold"
+            style={{ background: `${color}18`, color }}>
+            <TrendingUp className="w-4 h-4 inline mr-2 -mt-0.5" />
+            {projectYearLabel(goal.years_to_goal)}
+          </div>
+
+          {/* Spending List */}
+          <div className="space-y-3">
+            <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest">Spending from this Goal</h3>
+            {loading && transactions.length === 0 ? (
+              <div className="space-y-2 py-4">
+                {[1, 2].map(i => (
+                  <div key={i} className="h-12 rounded-xl bg-slate-100 dark:bg-slate-800 animate-pulse" />
+                ))}
+              </div>
+            ) : transactions.length === 0 ? (
+              <div className="text-center py-8 bg-slate-50/50 dark:bg-slate-900/50 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800/50 text-slate-400 text-xs font-medium">
+                No spending from this goal recorded.
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <div className="divide-y divide-slate-100 dark:divide-slate-800/20 max-h-60 overflow-y-auto">
+                  {transactions.map(t => (
+                    <div key={t.id} className="py-2.5 flex items-center justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">{t.description}</p>
+                        <p className="text-[10px] text-slate-400 font-medium">
+                          {new Date(t.transaction_time).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm font-black text-rose-500 tabular-nums">
+                          -₹{t.value.toLocaleString('en-IN')}
+                        </p>
+                        <span className="text-[9px] uppercase font-bold px-1.5 py-0.25 bg-slate-100 dark:bg-slate-800 text-slate-400 rounded-md">
+                          {t.type}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Localized compact Pagination */}
+                {totalPages > 1 && (
+                  <div className="flex items-center justify-between pt-4 border-t border-slate-100 dark:border-slate-800">
+                    <button
+                      onClick={() => setCurrentPage(p => Math.max(p - 1, 1))}
+                      disabled={currentPage === 1}
+                      className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-[10px] font-bold text-slate-500 uppercase tracking-widest hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-40 transition-colors"
+                    >
+                      Prev
+                    </button>
+                    <span className="text-[10px] font-bold text-slate-400">
+                      Page {currentPage} of {totalPages} ({totalCount} spent)
+                    </span>
+                    <button
+                      onClick={() => setCurrentPage(p => Math.min(p + 1, totalPages))}
+                      disabled={currentPage === totalPages}
+                      className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-[10px] font-bold text-slate-500 uppercase tracking-widest hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-40 transition-colors"
+                    >
+                      Next
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="sticky bottom-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl px-6 py-4 border-t border-slate-200 dark:border-slate-800/50 flex justify-end">
+          <button onClick={onClose}
+            className="px-6 py-2.5 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-sm font-semibold hover:bg-slate-200 dark:hover:bg-slate-750 transition-all">
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // ── Main page ─────────────────────────────────────────────────────────────────
 const InvestmentPlanner: React.FC = () => {
   const { showToast } = useToast();
@@ -617,6 +880,7 @@ const InvestmentPlanner: React.FC = () => {
   const [editGoal, setEditGoal] = useState<InvestmentGoal | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<InvestmentGoal | null>(null);
   const [activeTab, setActiveTab] = useState<'active' | 'archived'>('active');
+  const [selectedGoal, setSelectedGoal] = useState<InvestmentGoal | null>(null);
 
   const fetchGoals = async () => {
     setLoading(true);
@@ -640,6 +904,9 @@ const InvestmentPlanner: React.FC = () => {
     });
     if (editGoal?.id === updated.id) {
       setEditGoal(updated);
+    }
+    if (selectedGoal?.id === updated.id) {
+      setSelectedGoal(updated);
     }
     // Re-fetch to get fresh projection data from backend
     fetchGoals();
@@ -772,6 +1039,7 @@ const InvestmentPlanner: React.FC = () => {
               onEdit={(goal) => { setEditGoal(goal); setModalOpen(true); }}
               onDelete={setDeleteTarget}
               onArchive={handleArchive}
+              onClick={() => setSelectedGoal(g)}
             />
           ))}
         </div>
@@ -792,6 +1060,11 @@ const InvestmentPlanner: React.FC = () => {
         onClose={() => { setModalOpen(false); setEditGoal(null); }}
         onSaved={handleSaved}
         editGoal={editGoal}
+      />
+
+      <GoalDetailModal
+        goal={selectedGoal}
+        onClose={() => setSelectedGoal(null)}
       />
 
       <ConfirmationDialog

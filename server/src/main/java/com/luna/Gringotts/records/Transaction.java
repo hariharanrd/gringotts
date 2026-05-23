@@ -101,6 +101,11 @@ public class Transaction {
     @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     User user;
 
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "funding_goal_id")
+    @JsonProperty("funding_goal")
+    InvestmentGoal fundingGoal;
+
     public Long getId() {
         return id;
     }
@@ -195,6 +200,14 @@ public class Transaction {
 
     public void setUser(User user) {
         this.user = user;
+    }
+
+    public InvestmentGoal getFundingGoal() {
+        return fundingGoal;
+    }
+
+    public void setFundingGoal(InvestmentGoal fundingGoal) {
+        this.fundingGoal = fundingGoal;
     }
 
     public String getCreatedBy() {

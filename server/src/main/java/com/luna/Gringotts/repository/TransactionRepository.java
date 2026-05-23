@@ -3,6 +3,7 @@ package com.luna.Gringotts.repository;
 import com.luna.Gringotts.records.CreditCard;
 import com.luna.Gringotts.records.Transaction;
 import com.luna.Gringotts.records.User;
+import com.luna.Gringotts.records.InvestmentGoal;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -38,6 +39,9 @@ public interface TransactionRepository<T extends Transaction> extends JpaReposit
 
     @EntityGraph(attributePaths = {"category", "subCategory", "item"})
     Page<T> findAll(Specification<T> spec, Pageable pageable);
+
+    List<T> findByFundingGoalAndUser(InvestmentGoal fundingGoal, User user);
+    Page<T> findByFundingGoalAndUser(InvestmentGoal fundingGoal, User user, Pageable pageable);
 
     boolean existsByCategoryId(Long categoryId);
     boolean existsBySubCategoryId(Long subCategoryId);

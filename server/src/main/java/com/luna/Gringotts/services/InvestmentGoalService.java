@@ -6,6 +6,7 @@ import com.luna.Gringotts.repository.InvestmentGoalRepository;
 import com.luna.Gringotts.repository.ItemRepository;
 import com.luna.Gringotts.repository.CategoryRepository;
 import com.luna.Gringotts.repository.SubCategoryRepository;
+import com.luna.Gringotts.repository.TransactionRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,6 +18,9 @@ public class InvestmentGoalService {
 
     @Autowired
     private InvestmentGoalRepository goalRepository;
+
+    @Autowired
+    private TransactionRepository<Transaction> transactionRepository;
 
     @Autowired
     private InvestmentGoalTagRepository tagRepository;
@@ -50,8 +54,6 @@ public class InvestmentGoalService {
         return toDto(goal);
     }
 
-    // ── Create ────────────────────────────────────────────────────────────────
-
     @Transactional
     public Map<String, Object> createGoal(InvestmentGoal incoming) {
         User user = iamService.getCurrentUser();
@@ -63,6 +65,17 @@ public class InvestmentGoalService {
         if (incoming.getAnnualRate() == null) incoming.setAnnualRate(8.0);
         if (incoming.getIcon() == null || incoming.getIcon().isBlank()) incoming.setIcon("🎯");
         if (incoming.getColor() == null || incoming.getColor().isBlank()) incoming.setColor("#6366f1");
+        
+        if (incoming.getGoalType() == null || incoming.getGoalType().isBlank()) {
+            incoming.setGoalType("PERSISTENT");
+        } else {
+            String type = incoming.getGoalType().toUpperCase();
+            if (!"PERSISTENT".equals(type) && !"ONE_TIME".equals(type)) {
+                throw new IllegalArgumentException("Invalid goal type: " + incoming.getGoalType());
+            }
+            incoming.setGoalType(type);
+        }
+        
         incoming.setIsClosed(false);
         InvestmentGoal saved = goalRepository.save(incoming);
         if (incoming.getTagsPayload() != null) {
@@ -90,6 +103,15 @@ public class InvestmentGoalService {
                 : existing.getMonthlyContribution());
         existing.setAnnualRate(incoming.getAnnualRate() != null ? incoming.getAnnualRate() : existing.getAnnualRate());
         existing.setNotes(incoming.getNotes());
+        
+        if (incoming.getGoalType() != null && !incoming.getGoalType().isBlank()) {
+            String type = incoming.getGoalType().toUpperCase();
+            if (!"PERSISTENT".equals(type) && !"ONE_TIME".equals(type)) {
+                throw new IllegalArgumentException("Invalid goal type: " + incoming.getGoalType());
+            }
+            existing.setGoalType(type);
+        }
+
         if (incoming.getIsClosed() != null) {
             existing.setIsClosed(incoming.getIsClosed());
             existing.setClosedAt(incoming.getClosedAt());
@@ -255,6 +277,12 @@ public class InvestmentGoalService {
         dto.put("is_closed", goal.getIsClosed());
         dto.put("closed_at", goal.getClosedAt());
         dto.put("created_at", goal.getCreatedAt());
+        dto.put("goal_type", goal.getGoalType());
+
+        // Compute total spending funded from this goal
+        List<Transaction> fundedTransactions = transactionRepository.findByFundingGoalAndUser(goal, goal.getUser());
+        double totalFunded = fundedTransactions.stream().mapToDouble(Transaction::getValue).sum();
+        dto.put("total_funded", totalFunded);
 
         // Tags: strip back-reference to goal to avoid cycles
         List<Map<String, Object>> tagDtos = new ArrayList<>();
@@ -289,9 +317,84 @@ public class InvestmentGoalService {
         return dto;
     }
 
+    // ── Goal Funding Helpers ──────────────────────────────────────────────────
+
+    /**
+     * Validates that the transaction amount does not exceed the available balance of the goal.
+     * For PERSISTENT goals, available balance is goal.getCurrentAmount().
+     * For ONE_TIME goals, available balance is goal.getCurrentAmount() - sum(other_funded_transactions).
+     */
+    public void validateOverdraft(Long goalId, double amount, Long excludeTransactionId) {
+        InvestmentGoal goal = requireGoal(goalId);
+        double available;
+        if ("ONE_TIME".equals(goal.getGoalType())) {
+            List<Transaction> funded = transactionRepository.findByFundingGoalAndUser(goal, goal.getUser());
+            double otherFunded = funded.stream()
+                    .filter(t -> !t.getId().equals(excludeTransactionId))
+                    .mapToDouble(Transaction::getValue)
+                    .sum();
+            available = goal.getCurrentAmount() - otherFunded;
+        } else {
+            available = goal.getCurrentAmount();
+        }
+
+        if (amount > available) {
+            throw new IllegalArgumentException(
+                "Transaction value (₹" + amount + ") exceeds the goal's available balance (₹" + available + ")");
+        }
+    }
+
+    /**
+     * Deduct amount from a PERSISTENT goal's current_amount.
+     * Throws IllegalArgumentException if amount exceeds the available limit.
+     * For ONE_TIME goals, only performs validation and returns without deducting.
+     */
+    @Transactional
+    public void deductFromGoal(Long goalId, double amount) {
+        deductFromGoal(goalId, amount, null);
+    }
+
+    @Transactional
+    public void deductFromGoal(Long goalId, double amount, Long excludeTransactionId) {
+        validateOverdraft(goalId, amount, excludeTransactionId);
+
+        InvestmentGoal goal = requireGoal(goalId);
+        if (!"PERSISTENT".equals(goal.getGoalType())) return;
+        goal.setCurrentAmount(goal.getCurrentAmount() - amount);
+        goalRepository.save(goal);
+    }
+
+    /**
+     * Restore amount to a PERSISTENT goal's current_amount.
+     * No-op for ONE_TIME goals.
+     */
+    @Transactional
+    public void restoreToGoal(Long goalId, double amount) {
+        InvestmentGoal goal = requireGoal(goalId);
+        if (!"PERSISTENT".equals(goal.getGoalType())) return;
+        goal.setCurrentAmount(goal.getCurrentAmount() + amount);
+        goalRepository.save(goal);
+    }
+
+    /**
+     * Cyclic dependency check: returns true if the transaction's CSI is tagged to the goal.
+     */
+    public boolean isTransactionTaggedToGoal(Transaction transaction, Long goalId) {
+        InvestmentGoal goal = requireGoal(goalId);
+        for (InvestmentGoalTag tag : goal.getTags()) {
+            if (tag.getItem() != null && transaction.getItem() != null
+                    && tag.getItem().getId().equals(transaction.getItem().getId())) return true;
+            if (tag.getSubCategory() != null && transaction.getSubCategory() != null
+                    && tag.getSubCategory().getId().equals(transaction.getSubCategory().getId())) return true;
+            if (tag.getCategory() != null && transaction.getCategory() != null
+                    && tag.getCategory().getId().equals(transaction.getCategory().getId())) return true;
+        }
+        return false;
+    }
+
     // ── Guard ─────────────────────────────────────────────────────────────────
 
-    private InvestmentGoal requireGoal(Long id) {
+    public InvestmentGoal requireGoal(Long id) {
         User user = iamService.getCurrentUser();
         InvestmentGoal goal = goalRepository.findById(id)
                 .orElseThrow(() -> new NoSuchElementException("Goal not found: " + id));

@@ -262,6 +262,20 @@ const TransactionDetails: React.FC = () => {
             <Field icon={CreditCard} label="Credit Card" value={transaction.credit_card.nickname} />
           )}
 
+          {/* Funding Goal Info */}
+          {transaction.funding_goal && (
+            <Field icon={PiggyBank} label="Funded from Goal"
+              value={
+                <button
+                  onClick={() => navigate(`/investment-planner`)}
+                  className="flex items-center gap-1.5 px-3 py-1 bg-violet-50 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400 rounded-full text-xs font-bold hover:bg-violet-100 dark:hover:bg-violet-900/50 transition-all border border-violet-100 dark:border-violet-800"
+                >
+                  <span>{transaction.funding_goal.icon || '🎯'} {transaction.funding_goal.name}</span>
+                </button>
+              }
+            />
+          )}
+
           {/* Schedule Info */}
           {transaction.schedule_id && (
             <Field icon={RefreshCw} label="Created Via"

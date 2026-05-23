@@ -80,6 +80,10 @@ public class InvestmentGoal {
     @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     User user;
 
+    @Column(name = "goal_type", nullable = false)
+    @JsonProperty("goal_type")
+    String goalType = "PERSISTENT";
+
     // ── Getters ───────────────────────────────────────────────────────────────
 
     public Long getId() { return id; }
@@ -97,6 +101,7 @@ public class InvestmentGoal {
     public List<InvestmentGoalTag> getTags() { return tags; }
     public List<TagRequest> getTagsPayload() { return tagsPayload; }
     public User getUser() { return user; }
+    public String getGoalType() { return goalType; }
 
     // ── Setters ───────────────────────────────────────────────────────────────
 
@@ -115,4 +120,5 @@ public class InvestmentGoal {
     public void setTags(List<InvestmentGoalTag> tags) { this.tags = tags; }
     public void setTagsPayload(List<TagRequest> tagsPayload) { this.tagsPayload = tagsPayload; }
     public void setUser(User user) { this.user = user; }
+    public void setGoalType(String goalType) { this.goalType = goalType; }
 }
