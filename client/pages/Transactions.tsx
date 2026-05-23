@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { personalizationSync } from '../services/personalizationSync';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
-import { Transaction, TransactionType, Category, SubCategory, Item, CreditCard, Saving, Revolving } from '../types';
+import { Transaction, TransactionType, Category, SubCategory, Item, CreditCard, Saving, Revolving, InvestmentGoal } from '../types';
 import { PAYMENT_MODES, SAVING_DIRECTIONS, REVOLVING_DIRECTIONS, REVOLVING_STATUSES } from '../constants';
 import {
   Landmark,
@@ -42,7 +42,7 @@ const TABS: { id: TabType; label: string; icon: any; color: string }[] = [
   { id: 'revolving', label: 'Revolving', icon: RefreshCw, color: 'from-blue-500 to-cyan-600' },
 ];
 
-type BulkField = 'category' | 'subcategory' | 'item' | 'notes' | 'payment_mode' | 'is_in' | 'is_give' | 'closed' | 'credit_card';
+type BulkField = 'category' | 'subcategory' | 'item' | 'notes' | 'payment_mode' | 'is_in' | 'is_give' | 'closed' | 'credit_card' | 'funding_goal';
 
 type ColumnKey = 'date' | 'description' | 'category' | 'subcategory' | 'item' | 'amount' | 'type' | 'payment_mode' | 'is_in' | 'is_give' | 'closed' | 'notes';
 
@@ -127,6 +127,15 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
   const [bulkLoading, setBulkLoading] = useState(false);
   const [isBulkEditDialogOpen, setIsBulkEditDialogOpen] = useState(false);
   const [isBulkDeleteDialogOpen, setIsBulkDeleteDialogOpen] = useState(false);
+  const [bulkFundingGoalId, setBulkFundingGoalId] = useState<number | ''>('');
+  const [goals, setGoals] = useState<InvestmentGoal[]>([]);
+
+  const getAvailableBalance = (g: InvestmentGoal) => {
+    if (g.goal_type === 'ONE_TIME') {
+      return g.current_amount - (g.total_funded ?? 0);
+    }
+    return g.current_amount;
+  };
 
 
 
@@ -162,7 +171,7 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
     setIsLoading(true);
     // Strip label field as it's only for client-side display
     const cleanedFilters = currentFilters.map(({ field, condition, value }) => ({ field, condition, value }));
-    
+
     try {
       let response;
       switch (currentTab) {
@@ -233,6 +242,12 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
   }, [bulkField, currentTab]);
 
   useEffect(() => {
+    if (isBulkEditDialogOpen && bulkField === 'funding_goal' && goals.length === 0) {
+      api.getGoals().then(res => setGoals(res.data)).catch(() => { });
+    }
+  }, [isBulkEditDialogOpen, bulkField, goals.length]);
+
+  useEffect(() => {
     if (bulkCategoryId !== '') {
       api.getSubCategories(bulkCategoryId as number).then(setSubCategories).catch(() => { });
     } else {
@@ -278,11 +293,13 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
       if (bulkField === 'is_give') fields['is_give'] = bulkIsGive;
       if (bulkField === 'closed') fields['closed'] = bulkClosed;
       if (bulkField === 'credit_card') fields['credit_card'] = { id: bulkCreditCardId };
+      if (bulkField === 'funding_goal') fields['funding_goal_id'] = bulkFundingGoalId === '' ? null : bulkFundingGoalId;
 
       await api.bulkUpdate(Array.from(selectedIds), fields);
       showToast(`Updated ${bulkField.replace('_', ' ')} for ${selectedIds.size} transaction(s)`, 'success');
       setSelectedIds(new Set());
       setBulkField('');
+      setBulkFundingGoalId('');
       setIsBulkEditDialogOpen(false);
       fetchTransactions(currentPage, filters);
     } catch (error: any) {
@@ -328,7 +345,7 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
   };
 
   const activeTabInfo = TABS.find(t => t.id === currentTab) || TABS[0];
-  
+
   const pageTotal = transactions.reduce((acc, t) => {
     const val = t.value;
     if (t.type === TransactionType.INCOME) return acc + val;
@@ -480,27 +497,27 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
             <PlusCircle className="w-4 h-4" />
             <span className="hidden sm:inline">Add</span>
           </button>
-        </div>
 
-        {/* Bulk Actions */}
-        {selectedIds.size > 0 && (
-          <div className="flex items-center gap-2 p-2 bg-cyan-500/5 dark:bg-cyan-500/10 border border-cyan-500/20 rounded-2xl animate-in fade-in slide-in-from-left-4">
-            <span className="text-xs font-bold text-cyan-600 dark:text-cyan-400 px-3 uppercase tracking-tight">{selectedIds.size} Selected</span>
-            <button
-              onClick={() => setIsBulkEditDialogOpen(true)}
-              className="px-4 py-2 bg-cyan-600 text-white text-xs font-bold rounded-xl shadow-lg shadow-cyan-600/20 hover:bg-cyan-500 transition-all uppercase tracking-widest"
-            >
-              Bulk Edit
-            </button>
-            <button
-              onClick={() => setIsBulkDeleteDialogOpen(true)}
-              className="px-4 py-2 bg-rose-500 text-white text-xs font-bold rounded-xl shadow-lg shadow-rose-500/20 hover:bg-rose-400 transition-all uppercase tracking-widest"
-            >
-              Bulk Delete
-            </button>
-            <button onClick={() => setSelectedIds(new Set())} className="text-[10px] text-slate-400 hover:text-slate-600 px-2 uppercase font-bold tracking-tighter">Cancel</button>
-          </div>
-        )}
+          {/* Bulk Actions */}
+          {selectedIds.size > 0 && (
+            <div className="flex items-center gap-2 p-2 bg-cyan-500/5 dark:bg-cyan-500/10 border border-cyan-500/20 rounded-2xl animate-in fade-in slide-in-from-left-4">
+              <span className="text-xs font-bold text-cyan-600 dark:text-cyan-400 px-3 uppercase tracking-tight">{selectedIds.size} Selected</span>
+              <button
+                onClick={() => setIsBulkEditDialogOpen(true)}
+                className="px-4 py-2 bg-cyan-600 text-white text-xs font-bold rounded-xl shadow-lg shadow-cyan-600/20 hover:bg-cyan-500 transition-all uppercase tracking-widest"
+              >
+                Edit
+              </button>
+              <button
+                onClick={() => setIsBulkDeleteDialogOpen(true)}
+                className="px-4 py-2 bg-rose-500 text-white text-xs font-bold rounded-xl shadow-lg shadow-rose-500/20 hover:bg-rose-400 transition-all uppercase tracking-widest"
+              >
+                Delete
+              </button>
+              <button onClick={() => setSelectedIds(new Set())} className="text-[10px] text-slate-400 hover:text-slate-600 px-2 uppercase font-bold tracking-tighter">Cancel</button>
+            </div>
+          )}
+        </div>
         {/* Right Section Tools */}
         <div className="flex items-center gap-2 sm:gap-3">
           <div className="relative hidden lg:block" ref={columnDropdownRef}>
@@ -648,7 +665,17 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
                     <td className="p-4 min-w-[200px]">
                       <div className="flex items-center gap-3">
                         <CategoryIcon category={t.category} />
-                        <span className="text-sm font-semibold text-slate-800 dark:text-slate-200 line-clamp-1">{t.description}</span>
+                        <div className="flex flex-col">
+                          <span className="text-sm font-semibold text-slate-800 dark:text-slate-200 line-clamp-1">{t.description}</span>
+                          {t.funding_goal && (
+                            <div className="flex items-center gap-1.5 mt-0.5">
+                              <span className="px-2 py-0.5 bg-violet-500/10 text-violet-500 dark:bg-violet-500/20 dark:text-violet-400 text-[9px] font-black rounded-md flex items-center gap-1 border border-violet-500/20">
+                                <span>{t.funding_goal.icon || '🎯'}</span>
+                                <span>{t.funding_goal.name}</span>
+                              </span>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </td>
                   )}
@@ -789,8 +816,14 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
                       </span>
                     </div>
 
-                    {((t as any).payment_mode || t.notes) && (
-                      <div className="pt-0.5 flex gap-2 flex-wrap">
+                    {((t as any).payment_mode || t.notes || t.funding_goal) && (
+                      <div className="pt-0.5 flex gap-2 flex-wrap animate-in fade-in duration-200">
+                        {t.funding_goal && (
+                          <span className="px-1.5 py-0.5 bg-violet-500/10 text-violet-500 dark:bg-violet-500/20 dark:text-violet-400 text-[9px] font-black rounded border border-violet-500/20 flex items-center gap-1">
+                            <span>{t.funding_goal.icon || '🎯'}</span>
+                            <span>{t.funding_goal.name}</span>
+                          </span>
+                        )}
                         {(t as any).payment_mode && (
                           <span className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 text-[9px] text-slate-500 rounded border border-slate-200 dark:border-slate-700">
                             {(t as any).payment_mode.replace('_', ' ')}
@@ -842,7 +875,10 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
               <select
                 className={`${selectClass} w-full`}
                 value={bulkField}
-                onChange={e => setBulkField(e.target.value as BulkField | '')}
+                onChange={e => {
+                  setBulkField(e.target.value as BulkField | '');
+                  setBulkFundingGoalId('');
+                }}
               >
                 <option value="">Choose Field…</option>
                 <option value="category">Category</option>
@@ -851,6 +887,9 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
                 <option value="notes">Notes</option>
                 <option value="payment_mode">Payment Mode</option>
                 <option value="credit_card">Credit Card</option>
+                {currentTab !== 'income' && currentTab !== 'all' && (
+                  <option value="funding_goal">Fund from Goal</option>
+                )}
                 {currentTab === 'saving' && <option value="is_in">In/Out</option>}
                 {currentTab === 'revolving' && (
                   <>
@@ -938,6 +977,26 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
                 >
                   <option value="">Select Credit Card…</option>
                   {creditCards.map(cc => <option key={cc.id} value={cc.id}>{cc.nickname} ({cc.issuer})</option>)}
+                </select>
+              )}
+
+              {bulkField === 'funding_goal' && (
+                <select
+                  value={bulkFundingGoalId}
+                  onChange={(e) => setBulkFundingGoalId(e.target.value ? Number(e.target.value) : '')}
+                  className={`${selectClass} w-full`}
+                >
+                  <option value="">Do not fund from a Goal (Clear funding)</option>
+                  {goals
+                    .filter(g => !g.is_closed && getAvailableBalance(g) > 0)
+                    .map(g => {
+                      const available = getAvailableBalance(g);
+                      return (
+                        <option key={g.id} value={g.id}>
+                          {g.icon || '🎯'} {g.name} — Available: ₹{available.toLocaleString('en-IN')} ({g.goal_type === 'ONE_TIME' ? 'One-Time' : 'Persistent'})
+                        </option>
+                      );
+                    })}
                 </select>
               )}
 

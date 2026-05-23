@@ -97,6 +97,33 @@ public class TransactionService {
         return revolvingRepository.findById(id).orElse(null);
     }
 
+    /**
+     * Handles goal funding logic when saving a transaction.
+     * 1. Validates no cyclic dependency (transaction's CSI is not tagged to the funding goal)
+     * 2. Auto-sets include_in_budget = false
+     * 3. Validates that transaction value doesn't exceed the goal's current_amount
+     * 4. For PERSISTENT goals, deducts from goal's current_amount
+     */
+    private void handleGoalFunding(Transaction t) {
+        if (t.getFundingGoal() == null) return;
+        if (t instanceof Income) {
+            throw new IllegalArgumentException("Income transactions cannot be funded from a goal");
+        }
+
+        Long goalId = t.getFundingGoal().getId();
+        InvestmentGoal fullGoal = investmentGoalService.requireGoal(goalId);
+
+        // Cyclic dependency check
+        if (investmentGoalService.isTransactionTaggedToGoal(t, goalId)) {
+            throw new IllegalArgumentException(
+                "Cannot fund from a goal that this transaction contributes to via tags");
+        }
+
+        t.setFundingGoal(fullGoal);
+        t.setIncludeInBudget(false);
+        investmentGoalService.deductFromGoal(goalId, t.getValue(), t.getId());
+    }
+
     public void saveExpense(Expense e) {
         if (e.getPaymentMode() == null) {
             e.setPaymentMode(Expense.ExpenseMode.OTHERS.name());
@@ -107,12 +134,14 @@ public class TransactionService {
             e.setPaymentMode(Expense.ExpenseMode.OTHERS.name());
         }
         e.setUser(iamService.getCurrentUser());
+        handleGoalFunding(e);
         expenseRepository.save(e);
         handleCreditCardDebit(e);
     }
 
     public void saveIncome(Income i) {
         i.setIncludeInBudget(true);
+        i.setFundingGoal(null); // Ensure income cannot be goal funded
         i.setUser(iamService.getCurrentUser());
         incomeRepository.save(i);
         handleCreditCardDebit(i);
@@ -123,6 +152,7 @@ public class TransactionService {
             s.setIncludeInBudget(true);
         }
         s.setUser(iamService.getCurrentUser());
+        handleGoalFunding(s);
         savingRepository.save(s);
         // Auto-credit linked investment goals.
         double delta = Boolean.TRUE.equals(s.getIsIn()) ? s.getValue() : -s.getValue();
@@ -135,6 +165,7 @@ public class TransactionService {
             r.setIncludeInBudget(true);
         }
         r.setUser(iamService.getCurrentUser());
+        handleGoalFunding(r);
         revolvingRepository.save(r);
 
         handleCreditCardDebit(r);
@@ -203,6 +234,9 @@ public class TransactionService {
     public void deleteExpense(Long id) {
         expenseRepository.findById(id).ifPresent(existing -> {
             handleCreditCardCredit(existing);
+            if (existing.getFundingGoal() != null) {
+                investmentGoalService.restoreToGoal(existing.getFundingGoal().getId(), existing.getValue());
+            }
         });
         expenseRepository.deleteById(id);
     }
@@ -220,6 +254,9 @@ public class TransactionService {
             double reversal = Boolean.TRUE.equals(existing.getIsIn()) ? -existing.getValue() : existing.getValue();
             investmentGoalService.adjustGoalsForSaving(existing, reversal);
             handleCreditCardCredit(existing);
+            if (existing.getFundingGoal() != null) {
+                investmentGoalService.restoreToGoal(existing.getFundingGoal().getId(), existing.getValue());
+            }
         }
         savingRepository.deleteById(id);
     }
@@ -227,6 +264,9 @@ public class TransactionService {
     public void deleteRevolving(Long id) {
         revolvingRepository.findById(id).ifPresent(existing -> {
             handleCreditCardCredit(existing);
+            if (existing.getFundingGoal() != null) {
+                investmentGoalService.restoreToGoal(existing.getFundingGoal().getId(), existing.getValue());
+            }
         });
         revolvingRepository.deleteById(id);
     }
@@ -261,6 +301,11 @@ public class TransactionService {
         target.setPaymentMode(source.getPaymentMode());
         target.setCreditCard(source.getCreditCard());
         target.setIncludeInBudget(source.getIncludeInBudget());
+        if (source.getFundingGoal() != null) {
+            target.setFundingGoal(investmentGoalService.requireGoal(source.getFundingGoal().getId()));
+        } else {
+            target.setFundingGoal(null);
+        }
     }
 
     private void handleCreditCardDebit(Transaction t) {
@@ -293,10 +338,25 @@ public class TransactionService {
         Transaction existing = transactionRepository.findById(id).orElseThrow();
         handleCreditCardCredit(existing);
 
+        // Reverse old goal first
+        if (existing.getFundingGoal() != null) {
+            investmentGoalService.restoreToGoal(existing.getFundingGoal().getId(), existing.getValue());
+        }
+
         if (existing instanceof Expense current) {
             applyBaseFields(current, incoming);
             current.setPaymentMode(incoming.getPaymentMode());
             current.setCreditCard(incoming.getCreditCard());
+
+            // Apply new goal funding
+            if (current.getFundingGoal() != null) {
+                if (investmentGoalService.isTransactionTaggedToGoal(current, current.getFundingGoal().getId())) {
+                    throw new IllegalArgumentException("Cyclic dependency: transaction tagged to funding goal");
+                }
+                current.setIncludeInBudget(false);
+                investmentGoalService.deductFromGoal(current.getFundingGoal().getId(), current.getValue(), current.getId());
+            }
+
             Expense saved = expenseRepository.save(current);
             handleCreditCardDebit(saved);
             return saved;
@@ -310,6 +370,16 @@ public class TransactionService {
 
         Expense saved = expenseRepository.findById(id).orElseThrow();
         applyBaseFields(saved, incoming);
+
+        // Apply new goal funding
+        if (saved.getFundingGoal() != null) {
+            if (investmentGoalService.isTransactionTaggedToGoal(saved, saved.getFundingGoal().getId())) {
+                throw new IllegalArgumentException("Cyclic dependency: transaction tagged to funding goal");
+            }
+            saved.setIncludeInBudget(false);
+            investmentGoalService.deductFromGoal(saved.getFundingGoal().getId(), saved.getValue(), saved.getId());
+        }
+
         saved = expenseRepository.save(saved);
         handleCreditCardDebit(saved);
         return saved;
@@ -318,8 +388,14 @@ public class TransactionService {
     @Transactional
     public Income updateToIncome(Long id, Income incoming) {
         incoming.setIncludeInBudget(true);
+        incoming.setFundingGoal(null); // Ensure income cannot be goal funded
         Transaction existing = transactionRepository.findById(id).orElseThrow();
         handleCreditCardCredit(existing);
+
+        // Reverse old goal first
+        if (existing.getFundingGoal() != null) {
+            investmentGoalService.restoreToGoal(existing.getFundingGoal().getId(), existing.getValue());
+        }
 
         if (existing instanceof Income current) {
             applyBaseFields(current, incoming);
@@ -349,6 +425,11 @@ public class TransactionService {
         Transaction existing = transactionRepository.findById(id).orElseThrow();
         handleCreditCardCredit(existing);
 
+        // Reverse old goal first
+        if (existing.getFundingGoal() != null) {
+            investmentGoalService.restoreToGoal(existing.getFundingGoal().getId(), existing.getValue());
+        }
+
         if (existing instanceof Saving current) {
             // Reverse old contribution then apply new one
             double oldDelta = Boolean.TRUE.equals(current.getIsIn()) ? current.getValue() : -current.getValue();
@@ -356,6 +437,16 @@ public class TransactionService {
 
             applyBaseFields(current, incoming);
             current.setIsIn(incoming.getIsIn());
+
+            // Apply new goal funding
+            if (current.getFundingGoal() != null) {
+                if (investmentGoalService.isTransactionTaggedToGoal(current, current.getFundingGoal().getId())) {
+                    throw new IllegalArgumentException("Cyclic dependency: transaction tagged to funding goal");
+                }
+                current.setIncludeInBudget(false);
+                investmentGoalService.deductFromGoal(current.getFundingGoal().getId(), current.getValue(), current.getId());
+            }
+
             Saving saved = savingRepository.save(current);
 
             double newDelta = Boolean.TRUE.equals(saved.getIsIn()) ? saved.getValue() : -saved.getValue();
@@ -371,6 +462,16 @@ public class TransactionService {
 
         Saving saved = savingRepository.findById(id).orElseThrow();
         applyBaseFields(saved, incoming);
+
+        // Apply new goal funding
+        if (saved.getFundingGoal() != null) {
+            if (investmentGoalService.isTransactionTaggedToGoal(saved, saved.getFundingGoal().getId())) {
+                throw new IllegalArgumentException("Cyclic dependency: transaction tagged to funding goal");
+            }
+            saved.setIncludeInBudget(false);
+            investmentGoalService.deductFromGoal(saved.getFundingGoal().getId(), saved.getValue(), saved.getId());
+        }
+
         saved = savingRepository.save(saved);
 
         double newDelta = Boolean.TRUE.equals(saved.getIsIn()) ? saved.getValue() : -saved.getValue();
@@ -387,10 +488,25 @@ public class TransactionService {
         Transaction existing = transactionRepository.findById(id).orElseThrow();
         handleCreditCardCredit(existing);
 
+        // Reverse old goal first
+        if (existing.getFundingGoal() != null) {
+            investmentGoalService.restoreToGoal(existing.getFundingGoal().getId(), existing.getValue());
+        }
+
         if (existing instanceof Revolving current) {
             applyBaseFields(current, incoming);
             current.setIsGive(incoming.getIsGive());
             current.setClosed(incoming.getClosed());
+
+            // Apply new goal funding
+            if (current.getFundingGoal() != null) {
+                if (investmentGoalService.isTransactionTaggedToGoal(current, current.getFundingGoal().getId())) {
+                    throw new IllegalArgumentException("Cyclic dependency: transaction tagged to funding goal");
+                }
+                current.setIncludeInBudget(false);
+                investmentGoalService.deductFromGoal(current.getFundingGoal().getId(), current.getValue(), current.getId());
+            }
+
             Revolving saved = revolvingRepository.save(current);
             handleCreditCardDebit(saved);
             return saved;
@@ -404,6 +520,16 @@ public class TransactionService {
 
         Revolving saved = revolvingRepository.findById(id).orElseThrow();
         applyBaseFields(saved, incoming);
+
+        // Apply new goal funding
+        if (saved.getFundingGoal() != null) {
+            if (investmentGoalService.isTransactionTaggedToGoal(saved, saved.getFundingGoal().getId())) {
+                throw new IllegalArgumentException("Cyclic dependency: transaction tagged to funding goal");
+            }
+            saved.setIncludeInBudget(false);
+            investmentGoalService.deductFromGoal(saved.getFundingGoal().getId(), saved.getValue(), saved.getId());
+        }
+
         saved = revolvingRepository.save(saved);
         handleCreditCardDebit(saved);
         return saved;
@@ -557,6 +683,16 @@ public class TransactionService {
                     .orElseThrow(() -> new IllegalArgumentException("Credit Card not found: " + id));
         }
 
+        InvestmentGoal bulkFundingGoal = null;
+        boolean updateFundingGoal = fields.containsKey("funding_goal_id");
+        if (updateFundingGoal) {
+            Object fgVal = fields.get("funding_goal_id");
+            if (fgVal != null) {
+                Long goalId = toLong(fgVal);
+                bulkFundingGoal = investmentGoalService.requireGoal(goalId);
+            }
+        }
+
         final Category finalCategory = category;
         final SubCategory finalSubCategory = subCategory;
         final Item finalItem = item;
@@ -578,6 +714,25 @@ public class TransactionService {
                 t.setPaymentMode((String) fields.get("payment_mode"));
             }
 
+            if (updateFundingGoal) {
+                if (!(t instanceof Income)) {
+                    InvestmentGoal oldGoal = t.getFundingGoal();
+                    if (oldGoal != null) {
+                        investmentGoalService.restoreToGoal(oldGoal.getId(), t.getValue());
+                    }
+                    t.setFundingGoal(bulkFundingGoal);
+                    if (bulkFundingGoal != null) {
+                        if (investmentGoalService.isTransactionTaggedToGoal(t, bulkFundingGoal.getId())) {
+                            throw new IllegalArgumentException("Cyclic dependency: transaction tagged to funding goal");
+                        }
+                        t.setIncludeInBudget(false);
+                        investmentGoalService.deductFromGoal(bulkFundingGoal.getId(), t.getValue(), t.getId());
+                    } else {
+                        t.setIncludeInBudget(true);
+                    }
+                }
+            }
+
             if (fields.containsKey("include_in_budget")) {
                 boolean val = toBoolean(fields.get("include_in_budget"));
                 if (!val) {
@@ -587,6 +742,12 @@ public class TransactionService {
                         val = true;
                     } else if (t instanceof Revolving r && Boolean.FALSE.equals(r.getIsGive())) {
                         val = true;
+                    } else if (t.getFundingGoal() != null) {
+                        val = false;
+                    }
+                } else {
+                    if (t.getFundingGoal() != null) {
+                        val = false;
                     }
                 }
                 t.setIncludeInBudget(val);

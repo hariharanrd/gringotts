@@ -55,6 +55,7 @@ export interface Transaction {
   payment_mode?: string;
   credit_card?: CreditCard;
   include_in_budget?: boolean;
+  funding_goal?: InvestmentGoal;
 }
 
 
@@ -140,6 +141,8 @@ export interface InvestmentGoal {
   percent_achieved?: number;
   is_closed?: boolean;
   closed_at?: string;
+  goal_type?: 'PERSISTENT' | 'ONE_TIME';
+  total_funded?: number;
 }
 
 export enum ScheduleFrequency {
@@ -168,6 +171,7 @@ export interface ScheduledTransaction {
   is_active: boolean;
   created_at?: string;
   credit_card?: CreditCard;
+  funding_goal?: InvestmentGoal;
 }
 
 export interface CreditCard {

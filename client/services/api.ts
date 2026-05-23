@@ -504,6 +504,11 @@ export const api = {
     });
     await handleResponse(response);
   },
+
+  getGoalTransactions: async (goalId: number, page: number = 1): Promise<{ data: Transaction[], total_count: number, has_more: boolean }> => {
+    const response = await fetchWithCredentials(`${BASE_URL}/investment-goals/${goalId}/transactions?page=${page}`);
+    return handleResponse(response);
+  },
   // Investment Goals API End
 
   // Account API Start

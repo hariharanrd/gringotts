@@ -1,8 +1,14 @@
 package com.luna.Gringotts.controlller;
 
 import com.luna.Gringotts.records.InvestmentGoal;
+import com.luna.Gringotts.records.Transaction;
+import com.luna.Gringotts.repository.TransactionRepository;
 import com.luna.Gringotts.services.InvestmentGoalService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -15,6 +21,9 @@ public class InvestmentGoalController {
 
     @Autowired
     private InvestmentGoalService investmentGoalService;
+
+    @Autowired
+    private TransactionRepository<Transaction> transactionRepository;
 
     // ── GET ───────────────────────────────────────────────────────────────────
 
@@ -71,6 +80,29 @@ public class InvestmentGoalController {
         try {
             investmentGoalService.deleteGoal(id);
             return ResponseEntity.ok(Map.of("status", "success"));
+        } catch (java.util.NoSuchElementException e) {
+            return ResponseEntity.status(404).body(Map.of("error", e.getMessage()));
+        } catch (SecurityException e) {
+            return ResponseEntity.status(403).body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    // ── GOAL TRANSACTIONS ──────────────────────────────────────────────────────
+
+    @GetMapping("/{id}/transactions")
+    public ResponseEntity<Map<String, Object>> getGoalTransactions(
+            @PathVariable Long id,
+            @RequestParam(value = "page", defaultValue = "1") int page) {
+        try {
+            // Retrieve goal to check ownership and existence
+            InvestmentGoal goal = investmentGoalService.requireGoal(id);
+            Pageable pageable = PageRequest.of(page - 1, 10, Sort.by(Sort.Direction.DESC, "transactionTime"));
+            Page<Transaction> result = transactionRepository.findByFundingGoalAndUser(goal, goal.getUser(), pageable);
+            return ResponseEntity.ok(Map.of(
+                "data", result.getContent(),
+                "total_count", result.getTotalElements(),
+                "has_more", result.hasNext()
+            ));
         } catch (java.util.NoSuchElementException e) {
             return ResponseEntity.status(404).body(Map.of("error", e.getMessage()));
         } catch (SecurityException e) {
