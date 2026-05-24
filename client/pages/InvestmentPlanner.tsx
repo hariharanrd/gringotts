@@ -779,6 +779,14 @@ const GoalDetailModal: React.FC<GoalDetailModalProps> = ({ goal, onClose }) => {
             )
           )}
 
+          {/* Notes */}
+          {goal.notes && (
+            <div className="p-4 bg-slate-50/50 dark:bg-slate-900/50 rounded-2xl border border-slate-100 dark:border-slate-800/40 text-sm text-slate-600 dark:text-slate-400 italic">
+              <span className="not-italic text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest block mb-1">Notes</span>
+              “{goal.notes}”
+            </div>
+          )}
+
           {/* Quick Metrics */}
           <div className="grid grid-cols-3 gap-4">
             <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-2xl border border-slate-100 dark:border-slate-800/60">
