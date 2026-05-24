@@ -165,32 +165,36 @@ const GoalCard: React.FC<GoalCardProps> = ({ goal, onEdit, onDelete, onArchive, 
           </div>
         </div>
 
-        {/* Arc + percent */}
-        <div className="flex items-center justify-between mt-4">
-          <div className="relative flex items-center justify-center">
-            <ArcProgress percent={pct} color={color} size={100} />
-            <div className="absolute inset-0 flex items-center justify-center">
-              <span className="text-lg font-bold tabular-nums" style={{ color }}>
-                {pct.toFixed(0)}%
+        {/* Progress Bar + Labels */}
+        <div className="mt-4 space-y-2">
+          <div className="flex justify-between items-baseline">
+            <div className="text-xs font-semibold text-slate-800 dark:text-slate-200">
+              <span className="font-bold text-sm tabular-nums text-slate-900 dark:text-white">{fmt(goal.current_amount)}</span>
+              <span className="mx-1 text-slate-400 dark:text-slate-500">/</span>
+              <span className="font-medium text-xs tabular-nums text-slate-500 dark:text-slate-400">{fmt(goal.target_amount)}</span>
+              <span className="ml-1.5 text-[10px] text-slate-400 dark:text-slate-500 font-bold">({pct.toFixed(0)}%)</span>
+            </div>
+            {remaining > 0 ? (
+              <span className="text-[10px] uppercase tracking-wider font-bold text-rose-500 dark:text-rose-400 tabular-nums">
+                {fmt(remaining)} required
               </span>
-            </div>
+            ) : (
+              <span className="text-[10px] uppercase tracking-wider font-bold text-emerald-500 dark:text-emerald-400">
+                Goal Achieved!
+              </span>
+            )}
           </div>
-          <div className="flex-1 ml-4 space-y-2">
-            <div>
-              <p className="text-[10px] uppercase tracking-wider font-medium text-slate-400 dark:text-slate-500">Achieved</p>
-              <p className="text-xl font-bold text-slate-900 dark:text-white tabular-nums">{fmt(goal.current_amount)}</p>
-            </div>
-            <div>
-              <p className="text-[10px] uppercase tracking-wider font-medium text-slate-400 dark:text-slate-500">Remaining</p>
-              <p className="font-semibold text-slate-600 dark:text-slate-300 tabular-nums">{fmt(remaining)}</p>
-            </div>
-          </div>
-        </div>
 
-        {/* Target */}
-        <div className="mt-3 flex items-center justify-between text-sm">
-          <span className="text-slate-400 dark:text-slate-500 text-xs">Target</span>
-          <span className="font-semibold text-slate-700 dark:text-slate-200 tabular-nums">{fmt(goal.target_amount)}</span>
+          {/* Progress Bar Track */}
+          <div className="w-full bg-slate-100 dark:bg-slate-800/80 rounded-full h-3 overflow-hidden p-0.5 border border-slate-200/20 dark:border-slate-700/10">
+            <div 
+              className="h-2 rounded-full transition-all duration-500 shadow-sm" 
+              style={{ 
+                width: `${Math.min(pct, 100)}%`,
+                background: `linear-gradient(90deg, ${color}, ${color}cc)`
+              }} 
+            />
+          </div>
         </div>
 
         {/* Monthly Contribution */}
@@ -226,6 +230,16 @@ const GoalCard: React.FC<GoalCardProps> = ({ goal, onEdit, onDelete, onArchive, 
             </span>
           </div>
         ) : null}
+
+        {/* Trimmed Notes */}
+        {goal.notes && (
+          <div 
+            className="mt-3 text-[11px] text-slate-400 dark:text-slate-500 italic bg-slate-50/50 dark:bg-slate-900/30 px-2.5 py-1.5 rounded-xl border border-slate-100/50 dark:border-slate-800/20 truncate font-medium"
+            title={goal.notes}
+          >
+            “{goal.notes}”
+          </div>
+        )}
       </div>
     </div>
   );
