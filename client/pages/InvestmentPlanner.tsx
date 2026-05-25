@@ -42,6 +42,26 @@ const ArcProgress: React.FC<{ percent: number; color: string; size?: number }> =
 const fmt = (n: number) =>
   new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(n);
 
+const fmtCompact = (n: number) => {
+  if (n < 1000) return '₹' + n;
+  if (n >= 10000000) {
+    const cr = n / 10000000;
+    const formatted = cr % 1 === 0 ? cr.toString() : cr.toFixed(2).replace(/\.?0+$/, '');
+    return '₹' + formatted + 'C';
+  }
+  if (n >= 100000) {
+    const lakh = n / 100000;
+    const formatted = lakh % 1 === 0 ? lakh.toString() : lakh.toFixed(2).replace(/\.?0+$/, '');
+    return '₹' + formatted + 'L';
+  }
+  if (n >= 1000) {
+    const k = n / 1000;
+    const formatted = k % 1 === 0 ? k.toString() : k.toFixed(1).replace(/\.?0+$/, '');
+    return '₹' + formatted + 'K';
+  }
+  return '₹' + n.toLocaleString('en-IN');
+};
+
 function projectYearLabel(yearsToGoal: number | null | undefined): string {
   if (yearsToGoal == null) return '—';
   if (yearsToGoal === 0) return 'Achieved! 🎉';
@@ -169,14 +189,14 @@ const GoalCard: React.FC<GoalCardProps> = ({ goal, onEdit, onDelete, onArchive, 
         <div className="mt-4 space-y-2">
           <div className="flex justify-between items-baseline">
             <div className="text-xs font-semibold text-slate-800 dark:text-slate-200">
-              <span className="font-bold text-sm tabular-nums text-slate-900 dark:text-white">{fmt(goal.current_amount)}</span>
+              <span className="font-bold text-sm tabular-nums text-slate-900 dark:text-white">{fmtCompact(goal.current_amount)}</span>
               <span className="mx-1 text-slate-400 dark:text-slate-500">/</span>
-              <span className="font-medium text-xs tabular-nums text-slate-500 dark:text-slate-400">{fmt(goal.target_amount)}</span>
+              <span className="font-medium text-xs tabular-nums text-slate-500 dark:text-slate-400">{fmtCompact(goal.target_amount)}</span>
               <span className="ml-1.5 text-[10px] text-slate-400 dark:text-slate-500 font-bold">({pct.toFixed(0)}%)</span>
             </div>
             {remaining > 0 ? (
               <span className="text-[10px] uppercase tracking-wider font-bold text-rose-500 dark:text-rose-400 tabular-nums">
-                {fmt(remaining)} required
+                {fmtCompact(remaining)} required
               </span>
             ) : (
               <span className="text-[10px] uppercase tracking-wider font-bold text-emerald-500 dark:text-emerald-400">
