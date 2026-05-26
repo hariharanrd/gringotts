@@ -1,7 +1,10 @@
 package com.luna.Gringotts.services;
 
+import com.luna.Gringotts.records.Category;
+import com.luna.Gringotts.records.Item;
 import com.luna.Gringotts.records.Loan;
 import com.luna.Gringotts.records.LoanPartPayment;
+import com.luna.Gringotts.records.SubCategory;
 import com.luna.Gringotts.records.User;
 import com.luna.Gringotts.repository.LoanRepository;
 import com.luna.Gringotts.repository.LoanPartPaymentRepository;
@@ -26,6 +29,10 @@ public class LoanService {
     @Autowired
     private IAMService iamService;
 
+    @Autowired
+    @org.springframework.context.annotation.Lazy
+    private LoanLinkingService loanLinkingService;
+
     // ── CRUD Operations ────────────────────────────────────────────────────────
 
     public List<Map<String, Object>> getAllLoans() {
@@ -44,8 +51,10 @@ public class LoanService {
         loan.setUser(iamService.getCurrentUser());
         double emi = calculateEmi(loan.getPrincipalAmount(), loan.getAnnualRate(), loan.getTenureMonths());
         loan.setEmiAmount(Math.round(emi * 100.0) / 100.0);
-        if (loan.getEmisPaid() == null) loan.setEmisPaid(0);
-        if (loan.getIsClosed() == null) loan.setIsClosed(false);
+        if (loan.getEmisPaid() == null)
+            loan.setEmisPaid(0);
+        if (loan.getIsClosed() == null)
+            loan.setIsClosed(false);
         return toDto(loanRepository.save(loan));
     }
 
@@ -60,6 +69,9 @@ public class LoanService {
         existing.setStartDate(incoming.getStartDate());
         existing.setEmisPaid(incoming.getEmisPaid());
         existing.setNotes(incoming.getNotes());
+        existing.setExpenseCategory(incoming.getExpenseCategory());
+        existing.setExpenseSubCategory(incoming.getExpenseSubCategory());
+        existing.setExpenseItem(incoming.getExpenseItem());
 
         double emi = calculateEmi(existing.getPrincipalAmount(), existing.getAnnualRate(), existing.getTenureMonths());
         existing.setEmiAmount(Math.round(emi * 100.0) / 100.0);
@@ -100,10 +112,10 @@ public class LoanService {
     }
 
     @Transactional
-    public Map<String, Object> markEmiPaid(Long id, int count) {
-        Loan existing = requireLoan(id);
+    public void markEmiPaidInternal(Long id, int count) {
+        Loan existing = loanRepository.findById(id).orElseThrow();
         int newPaid = existing.getEmisPaid() + count;
-        
+
         List<LoanPartPayment> pps = loanPartPaymentRepository.findAllByLoanOrderByPaymentDateAsc(existing);
         Map<String, Object> summary = calculateLoanSummary(existing, pps);
         int adjustedTenure = (Integer) summary.get("adjusted_tenure_months");
@@ -116,16 +128,28 @@ public class LoanService {
             existing.setIsClosed(true);
             existing.setClosedAt(LocalDateTime.now());
         }
-        return toDto(loanRepository.save(existing));
+        loanRepository.save(existing);
+    }
+
+    @Transactional
+    public Map<String, Object> markEmiPaid(Long id, int count) {
+        Loan existing = requireLoan(id);
+        markEmiPaidInternal(id, count);
+
+        // Auto-create expense record
+        loanLinkingService.createExpenseForEmiPayment(existing);
+
+        return toDto(existing);
     }
 
     // ── Part Payment Endpoints ──────────────────────────────────────────────────
 
     @Transactional
-    public Map<String, Object> addPartPayment(Long loanId, LoanPartPayment partPayment) {
-        Loan loan = requireLoan(loanId);
+    public void addPartPaymentInternal(Long loanId, LoanPartPayment partPayment) {
+        Loan loan = loanRepository.findById(loanId).orElseThrow();
         partPayment.setLoan(loan);
-        if (partPayment.getPaymentDate() == null) partPayment.setPaymentDate(LocalDate.now());
+        if (partPayment.getPaymentDate() == null)
+            partPayment.setPaymentDate(LocalDate.now());
         loanPartPaymentRepository.save(partPayment);
 
         // Auto-close loan if outstanding principal hits 0
@@ -136,16 +160,24 @@ public class LoanService {
             loan.setClosedAt(LocalDateTime.now());
             loanRepository.save(loan);
         }
+    }
+
+    @Transactional
+    public Map<String, Object> addPartPayment(Long loanId, LoanPartPayment partPayment) {
+        Loan loan = requireLoan(loanId);
+        addPartPaymentInternal(loanId, partPayment);
+
+        // Auto-create expense record
+        loanLinkingService.createExpenseForPartPayment(loan, partPayment);
 
         return toDto(loan);
     }
 
     @Transactional
-    public Map<String, Object> deletePartPayment(Long paymentId) {
+    public void deletePartPaymentInternal(Long paymentId) {
         LoanPartPayment pp = loanPartPaymentRepository.findById(paymentId)
                 .orElseThrow(() -> new NoSuchElementException("Part payment not found: " + paymentId));
         Loan loan = pp.getLoan();
-        requireLoan(loan.getId());
 
         loanPartPaymentRepository.delete(pp);
 
@@ -157,6 +189,19 @@ public class LoanService {
             loan.setClosedAt(null);
             loanRepository.save(loan);
         }
+    }
+
+    @Transactional
+    public Map<String, Object> deletePartPayment(Long paymentId) {
+        LoanPartPayment pp = loanPartPaymentRepository.findById(paymentId)
+                .orElseThrow(() -> new NoSuchElementException("Part payment not found: " + paymentId));
+        Loan loan = pp.getLoan();
+        requireLoan(loan.getId());
+
+        // Auto-delete linked expense
+        loanLinkingService.deleteExpenseForPartPayment(pp);
+
+        deletePartPaymentInternal(paymentId);
 
         return toDto(loan);
     }
@@ -170,6 +215,7 @@ public class LoanService {
             dto.put("amount", pp.getAmount());
             dto.put("payment_date", pp.getPaymentDate().toString());
             dto.put("notes", pp.getNotes());
+            dto.put("linked_expense_id", pp.getLinkedExpenseId());
             dto.put("created_at", pp.getCreatedAt() != null ? pp.getCreatedAt().toString() : null);
             return dto;
         }).collect(Collectors.toList());
@@ -178,8 +224,10 @@ public class LoanService {
     // ── Business Logic ─────────────────────────────────────────────────────────
 
     public double calculateEmi(double principal, double annualRate, int tenureMonths) {
-        if (tenureMonths <= 0) return 0.0;
-        if (annualRate <= 0.0) return principal / tenureMonths;
+        if (tenureMonths <= 0)
+            return 0.0;
+        if (annualRate <= 0.0)
+            return principal / tenureMonths;
         double r = (annualRate / 12.0) / 100.0;
         return (principal * r * Math.pow(1 + r, tenureMonths)) / (Math.pow(1 + r, tenureMonths) - 1);
     }
@@ -227,7 +275,8 @@ public class LoanService {
         summary.put("amount_paid_so_far", Math.round(amountPaidSoFar * 100.0) / 100.0);
         summary.put("outstanding_principal", Math.round(outstandingPrincipal * 100.0) / 100.0);
         summary.put("emis_remaining", Math.max(0, activeMonths - emisPaid));
-        double completion = activeMonths > 0 ? ((double) Math.min(emisPaid, activeMonths) / activeMonths) * 100.0 : 100.0;
+        double completion = activeMonths > 0 ? ((double) Math.min(emisPaid, activeMonths) / activeMonths) * 100.0
+                : 100.0;
         summary.put("completion_percent", Math.min(100.0, Math.round(completion * 10.0) / 10.0));
         summary.put("adjusted_tenure_months", activeMonths);
 
@@ -252,7 +301,8 @@ public class LoanService {
         LocalDate currentDate = startDate;
 
         for (int month = 1; month <= originalTenure; month++) {
-            if (balance <= 0.0) break;
+            if (balance <= 0.0)
+                break;
 
             double interestComponent = (annualRate > 0.0) ? (balance * r) : 0.0;
             double principalComponent = emi - interestComponent;
@@ -279,7 +329,8 @@ public class LoanService {
                 balance -= monthPartPaymentsTotal;
             }
 
-            if (balance < 0.0) balance = 0.0;
+            if (balance < 0.0)
+                balance = 0.0;
 
             Map<String, Object> row = new LinkedHashMap<>();
             row.put("month", month);
@@ -357,6 +408,10 @@ public class LoanService {
         dto.put("notes", loan.getNotes());
         dto.put("created_at", loan.getCreatedAt() != null ? loan.getCreatedAt().toString() : null);
 
+        dto.put("expense_category", categoryToDto(loan.getExpenseCategory()));
+        dto.put("expense_subcategory", subCategoryToDto(loan.getExpenseSubCategory()));
+        dto.put("expense_item", itemToDto(loan.getExpenseItem()));
+
         List<LoanPartPayment> pps = loanPartPaymentRepository.findAllByLoanOrderByPaymentDateAsc(loan);
         dto.put("summary", calculateLoanSummary(loan, pps));
 
@@ -366,10 +421,38 @@ public class LoanService {
             ppMap.put("amount", pp.getAmount());
             ppMap.put("payment_date", pp.getPaymentDate().toString());
             ppMap.put("notes", pp.getNotes());
+            ppMap.put("linked_expense_id", pp.getLinkedExpenseId());
             return ppMap;
         }).collect(Collectors.toList());
         dto.put("part_payments", ppsDtos);
 
+        return dto;
+    }
+
+    private Map<String, Object> categoryToDto(Category c) {
+        if (c == null)
+            return null;
+        Map<String, Object> dto = new LinkedHashMap<>();
+        dto.put("id", c.getId());
+        dto.put("name", c.getName());
+        return dto;
+    }
+
+    private Map<String, Object> subCategoryToDto(SubCategory sc) {
+        if (sc == null)
+            return null;
+        Map<String, Object> dto = new LinkedHashMap<>();
+        dto.put("id", sc.getId());
+        dto.put("name", sc.getName());
+        return dto;
+    }
+
+    private Map<String, Object> itemToDto(Item item) {
+        if (item == null)
+            return null;
+        Map<String, Object> dto = new LinkedHashMap<>();
+        dto.put("id", item.getId());
+        dto.put("name", item.getName());
         return dto;
     }
 }

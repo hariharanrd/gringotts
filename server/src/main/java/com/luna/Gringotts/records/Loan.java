@@ -65,6 +65,21 @@ public class Loan {
     @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     private User user;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "expense_category_id")
+    @JsonProperty("expense_category")
+    private Category expenseCategory;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "expense_subcategory_id")
+    @JsonProperty("expense_subcategory")
+    private SubCategory expenseSubCategory;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "expense_item_id")
+    @JsonProperty("expense_item")
+    private Item expenseItem;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     @CreationTimestamp
     @JsonProperty("created_at")
@@ -112,4 +127,13 @@ public class Loan {
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+
+    public Category getExpenseCategory() { return expenseCategory; }
+    public void setExpenseCategory(Category expenseCategory) { this.expenseCategory = expenseCategory; }
+
+    public SubCategory getExpenseSubCategory() { return expenseSubCategory; }
+    public void setExpenseSubCategory(SubCategory expenseSubCategory) { this.expenseSubCategory = expenseSubCategory; }
+
+    public Item getExpenseItem() { return expenseItem; }
+    public void setExpenseItem(Item expenseItem) { this.expenseItem = expenseItem; }
 }

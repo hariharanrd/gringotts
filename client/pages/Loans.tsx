@@ -345,7 +345,7 @@ const Loans: React.FC = () => {
         onClose={() => setEmiPaidTarget(null)}
         onConfirm={handleConfirmMarkEmiPaid}
         title="Log EMI Payment?"
-        message={emiPaidTarget ? `Are you sure you want to log the next monthly EMI payment of ${fmt(emiPaidTarget.emi_amount)} for "${emiPaidTarget.name}"? This will advance the repayment progress.` : ''}
+        message={emiPaidTarget ? `Are you sure you want to log the next monthly EMI payment of ${fmt(emiPaidTarget.emi_amount)} for "${emiPaidTarget.name}"? This will advance the repayment progress and auto-create an expense record of ${fmt(emiPaidTarget.emi_amount)}.` : ''}
         confirmLabel="Log Payment"
         type="info"
       />

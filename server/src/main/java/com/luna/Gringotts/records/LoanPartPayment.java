@@ -33,6 +33,10 @@ public class LoanPartPayment {
     @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     private Loan loan;
 
+    @Column(name = "linked_expense_id")
+    @JsonProperty("linked_expense_id")
+    private Long linkedExpenseId;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     @CreationTimestamp
     @JsonProperty("created_at")
@@ -56,4 +60,7 @@ public class LoanPartPayment {
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+
+    public Long getLinkedExpenseId() { return linkedExpenseId; }
+    public void setLinkedExpenseId(Long linkedExpenseId) { this.linkedExpenseId = linkedExpenseId; }
 }

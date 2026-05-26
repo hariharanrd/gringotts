@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Landmark, Calendar, Sparkles, TrendingUp, HelpCircle, ArrowRight, CheckCircle2, ChevronRight, Trash2, PlusCircle } from 'lucide-react';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
 import { api } from '../services/api';
-import { Loan, LoanAmortizationRow, LoanSimulation } from '../types';
+import { Loan, LoanAmortizationRow, LoanSimulation, Category, SubCategory, Item } from '../types';
 import { useToast } from './ToastContext';
 import ConfirmationDialog from './ConfirmationDialog';
 
@@ -46,6 +46,81 @@ export const LoanDetailModal: React.FC<LoanDetailModalProps> = ({ loan, onClose,
   const [prepayDate, setPrepayDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [prepayNotes, setPrepayNotes] = useState<string>('');
   const [addingPrepay, setAddingPrepay] = useState(false);
+
+  // Default Categorization State
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [subCategories, setSubCategories] = useState<SubCategory[]>([]);
+  const [items, setItems] = useState<Item[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<number | undefined>(loan?.expense_category?.id);
+  const [selectedSubCategory, setSelectedSubCategory] = useState<number | undefined>(loan?.expense_subcategory?.id);
+  const [selectedItem, setSelectedItem] = useState<number | undefined>(loan?.expense_item?.id);
+  const [savingCategorySettings, setSavingCategorySettings] = useState(false);
+
+  // Sync category state when loan details change
+  useEffect(() => {
+    if (loan?.id) {
+      api.getCategories('EXPENSE').then(cats => setCategories(cats));
+
+      if (loan.expense_category?.id) {
+        api.getSubCategories(loan.expense_category.id).then(subs => setSubCategories(subs));
+      } else {
+        setSubCategories([]);
+      }
+
+      if (loan.expense_subcategory?.id) {
+        api.getItems(loan.expense_subcategory.id).then(its => setItems(its));
+      } else {
+        setItems([]);
+      }
+
+      setSelectedCategory(loan.expense_category?.id);
+      setSelectedSubCategory(loan.expense_subcategory?.id);
+      setSelectedItem(loan.expense_item?.id);
+    }
+  }, [loan]);
+
+  const handleCategoryChange = async (catId: number) => {
+    setSelectedCategory(catId || undefined);
+    setSelectedSubCategory(undefined);
+    setSelectedItem(undefined);
+    if (catId) {
+      const subs = await api.getSubCategories(catId);
+      setSubCategories(subs);
+    } else {
+      setSubCategories([]);
+    }
+    setItems([]);
+  };
+
+  const handleSubCategoryChange = async (subId: number) => {
+    setSelectedSubCategory(subId || undefined);
+    setSelectedItem(undefined);
+    if (subId) {
+      const its = await api.getItems(subId);
+      setItems(its);
+    } else {
+      setItems([]);
+    }
+  };
+
+  const handleSaveCategorySettings = async () => {
+    if (!loan?.id) return;
+    setSavingCategorySettings(true);
+    try {
+      await api.updateLoan(loan.id, {
+        ...loan,
+        expense_category: selectedCategory ? { id: selectedCategory } as any : null,
+        expense_subcategory: selectedSubCategory ? { id: selectedSubCategory } as any : null,
+        expense_item: selectedItem ? { id: selectedItem } as any : null,
+      });
+      showToast('Default categorization settings saved successfully', 'success');
+      onSuccess(); // Refresh loan data
+    } catch (e: any) {
+      showToast(e.message || 'Failed to save default categorization', 'error');
+    } finally {
+      setSavingCategorySettings(false);
+    }
+  };
 
   // Load amortization schedule
   useEffect(() => {
@@ -311,6 +386,68 @@ export const LoanDetailModal: React.FC<LoanDetailModalProps> = ({ loan, onClose,
                 )}
               </div>
 
+              {/* Default Categorization Settings */}
+              <div className="bg-slate-50 dark:bg-slate-950 p-5 rounded-2xl border border-slate-200 dark:border-slate-850 space-y-4">
+                <div className="space-y-1">
+                  <h4 className="text-xs font-black text-slate-800 dark:text-slate-200 flex items-center gap-1.5 uppercase tracking-wider">
+                    Auto-Expense Categorization Settings
+                  </h4>
+                  <p className="text-[11px] text-slate-450 dark:text-slate-500 leading-normal">
+                    When you log an EMI or part prepayment from the Loan module, Gringotts will automatically create a linked Expense transaction using these default categories:
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Category</label>
+                    <select
+                      className="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2 text-xs text-slate-850 dark:text-slate-150 focus:outline-none focus:ring-1 focus:ring-cyan-500 focus:border-cyan-500"
+                      value={selectedCategory || ''}
+                      onChange={(e) => handleCategoryChange(Number(e.target.value))}
+                    >
+                      <option value="">Select Category</option>
+                      {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                    </select>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Sub-Category</label>
+                    <select
+                      className="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2 text-xs text-slate-850 dark:text-slate-150 focus:outline-none focus:ring-1 focus:ring-cyan-500 focus:border-cyan-500 disabled:opacity-50"
+                      disabled={!selectedCategory}
+                      value={selectedSubCategory || ''}
+                      onChange={(e) => handleSubCategoryChange(Number(e.target.value))}
+                    >
+                      <option value="">Select Sub-Category</option>
+                      {subCategories.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                    </select>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Item</label>
+                    <select
+                      className="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2 text-xs text-slate-850 dark:text-slate-150 focus:outline-none focus:ring-1 focus:ring-cyan-500 focus:border-cyan-500 disabled:opacity-50"
+                      disabled={!selectedSubCategory}
+                      value={selectedItem || ''}
+                      onChange={(e) => setSelectedItem(Number(e.target.value) || undefined)}
+                    >
+                      <option value="">Select Item</option>
+                      {items.map(i => <option key={i.id} value={i.id}>{i.name}</option>)}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="flex justify-end pt-1">
+                  <button
+                    type="button"
+                    onClick={handleSaveCategorySettings}
+                    disabled={savingCategorySettings}
+                    className="px-4 py-2 text-xs font-bold rounded-xl text-white shadow-md hover:brightness-105 transition-all disabled:opacity-50"
+                    style={{ background: 'var(--theme-gradient-from)' }}
+                  >
+                    {savingCategorySettings ? 'Saving...' : 'Save Settings'}
+                  </button>
+                </div>
+              </div>
+
               {/* Quick Actions (Unsettled Only) */}
               {!isSettled && (
                 <div className="flex justify-end gap-3 pt-2">
@@ -458,6 +595,11 @@ export const LoanDetailModal: React.FC<LoanDetailModalProps> = ({ loan, onClose,
                           <p className="text-[10px] text-slate-400 dark:text-slate-500 font-semibold">
                             Paid on {new Date(pp.payment_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
                             {pp.notes && ` • “${pp.notes}”`}
+                            {pp.linked_expense_id && (
+                              <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded-md text-[9px] font-bold bg-cyan-100 dark:bg-cyan-950/40 text-cyan-700 dark:text-cyan-400 border border-cyan-200 dark:border-cyan-800/40">
+                                🔗 Linked Expense
+                              </span>
+                            )}
                           </p>
                         </div>
                         <button
@@ -623,7 +765,7 @@ export const LoanDetailModal: React.FC<LoanDetailModalProps> = ({ loan, onClose,
         onClose={() => setShowEmiConfirm(false)}
         onConfirm={handleMarkEmiPaid}
         title="Log EMI Payment?"
-        message={`Are you sure you want to log the next monthly EMI payment of ${fmt(loan.emi_amount)} for "${loan.name}"? This will advance the repayment progress.`}
+        message={`Are you sure you want to log the next monthly EMI payment of ${fmt(loan.emi_amount)} for "${loan.name}"? This will advance the repayment progress and auto-create an expense record of ${fmt(loan.emi_amount)}.`}
         confirmLabel="Log Payment"
         type="info"
       />

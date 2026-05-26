@@ -56,6 +56,9 @@ export interface Transaction {
   credit_card?: CreditCard;
   include_in_budget?: boolean;
   funding_goal?: InvestmentGoal;
+  loan_id?: number;
+  loan_payment_type?: 'EMI' | 'PART_PAYMENT';
+  loan_name?: string;
 }
 
 
@@ -240,6 +243,7 @@ export interface LoanPartPayment {
   payment_date: string;
   notes?: string;
   created_at?: string;
+  linked_expense_id?: number;
 }
 
 export interface LoanSummary {
@@ -287,5 +291,8 @@ export interface Loan {
   created_at?: string;
   summary?: LoanSummary;
   part_payments?: LoanPartPayment[];
+  expense_category?: Category;
+  expense_subcategory?: SubCategory;
+  expense_item?: Item;
 }
 
