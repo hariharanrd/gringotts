@@ -37,6 +37,7 @@ const navItems = [
   { id: 'transactions', label: 'Transactions', icon: ReceiptText, path: '/transactions' },
   { id: 'budget', label: 'Budget', icon: Table2, path: '/budget' },
   { id: 'investment-planner', label: 'Goals', icon: Goal, path: '/investment-planner' },
+  { id: 'loans', label: 'Loans', icon: Landmark, path: '/loans' },
   { id: 'credit-cards', label: 'Cards', icon: CreditCard, path: '/credit-cards' },
   { id: 'schedules', label: 'Schedules', icon: Clock, path: '/schedules' },
   { id: 'configuration', label: 'Configuration', icon: Settings, path: '/configuration' },

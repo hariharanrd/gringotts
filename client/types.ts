@@ -233,3 +233,59 @@ export interface UserSession {
   created_at: string;
   last_active_at: string;
 }
+
+export interface LoanPartPayment {
+  id?: number;
+  amount: number;
+  payment_date: string;
+  notes?: string;
+  created_at?: string;
+}
+
+export interface LoanSummary {
+  total_payable: number;
+  total_interest: number;
+  amount_paid_so_far: number;
+  outstanding_principal: number;
+  emis_remaining: number;
+  completion_percent: number;
+  adjusted_tenure_months: number;
+}
+
+export interface LoanAmortizationRow {
+  month: number;
+  date: string;
+  emi: number;
+  principal_component: number;
+  interest_component: number;
+  part_payment_amount: number;
+  outstanding_balance: number;
+}
+
+export interface LoanSimulation {
+  target_months: number;
+  new_emi: number;
+  total_payable: number;
+  total_interest: number;
+  interest_saved: number;
+  months_saved: number;
+}
+
+export interface Loan {
+  id?: number;
+  name: string;
+  lender?: string;
+  principal_amount: number;
+  annual_rate: number;
+  tenure_months: number;
+  start_date: string;
+  emi_amount: number;
+  emis_paid: number;
+  is_closed?: boolean;
+  closed_at?: string;
+  notes?: string;
+  created_at?: string;
+  summary?: LoanSummary;
+  part_payments?: LoanPartPayment[];
+}
+
