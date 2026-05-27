@@ -30,6 +30,10 @@ To save users from typing in every single coffee purchase, the app includes:
   * **Auto-Crediting & Projections**: Linked saving transactions automatically credit active goals via tag matching, utilizing compound growth math to calculate precise target dates.
   * **Direct Goal Funding**: Users can fund manual or scheduled transactions (expenses and savings) directly from an active goal. Funded transactions are automatically marked `include_in_budget = false` to prevent budget double-counting, and persistent goals automatically track refill balances.
   * **Strict Overdraft & Cyclic Safeguards**: Backed by DB-level pessimistic write locking, the application prevents concurrent balance deductions, blocks tag cyclic dependencies, and strictly restricts overdraft saves across both manual and automated scheduler runs.
+* **Loan Management & Payment Linking**: Hardened financial command center to organize, track, and pay off active loans.
+  * **Amortization Schedules & Prepayment Simulator**: View computed month-by-month principal and interest components. Simulate target payoff tenures to calculate exact interest and months saved.
+  * **Bi-directional Expense Linking**: Link normal Expense transactions to a Loan. Transactions matching the EMI log as EMI payments (advancing paid count), while others register as part-payments (reducing outstanding principal). Reciprocally, logging payments in the Loan dashboard auto-generates categorized Expense entries.
+  * **Scheduled Transaction Auto-Pilot**: Link scheduled expense transactions to loans to fully automate monthly recurring EMI payments.
 
 ### 🏷️ Ultimate Organization
 

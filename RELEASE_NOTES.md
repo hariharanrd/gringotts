@@ -1,5 +1,29 @@
 # 🚀 Release Notes
 
+## [May 27, 2026] Dedicated Loan Management Module
+
+This release introduces the brand new **Loan Management Module** to Gringotts, giving users a complete command center to track, schedule, and optimize active loans and liabilities. 
+
+### 💼 Comprehensive Loan Accounts
+- **Loan Details Tracking**: Register loans with details including Lender Name, Principal Amount, Annual Interest Rate, Tenure Months, and Start Date.
+- **Automated Monthly EMI Calculator**: Automatically computes high-fidelity monthly Equated Monthly Installment (EMI) values using standard amortization formula.
+- **Overview Dashboard**: A unified dashboard showing total payable amount, total interest due, amount paid so far, outstanding principal, and EMIs remaining, coupled with an interactive repayment progress ring.
+- **Notes & History Log**: Add customized notes to active loan accounts to keep track of loan references or contact information.
+
+### 📊 Dynamic Amortization Schedules & Prepayment Simulator
+- **Month-by-Month Amortization**: View a complete breakdown of every future installment with exact interest component, principal component, and remaining balance details.
+- **Target Tenure Prepayment Simulator**: Simulate prepayment/early payoff paths by inputting custom target payoff months. Calculate exactly how much interest will be saved and the number of months shaved off the loan term.
+- **Prepayments & Part-Payments History**: Add manual part-payments directly to principal balance. The amortization schedule and dashboard automatically recalculate future remaining installments.
+
+### 💼 Bi-directional Expense ↔ Loan Payment Linking
+- **Automatic Payment Tracking**: Link normal Expense transactions to a Loan. If the amount matches the monthly EMI and is the first payment of the calendar month, it registers as an EMI payment (advancing the repayment progress). Otherwise, it is automatically logged as a part-payment.
+- **Auto-Expense Generation**: Logging an EMI payment or part-payment from the Loan dashboard automatically creates a corresponding Expense transaction with pre-configured category, subcategory, and item settings.
+
+### ⏰ Scheduled Transaction Loan Integration
+- **Automated Recurring EMIs**: Link a Scheduled Transaction of type `EXPENSE` to a Loan to automate periodic EMI payments.
+- **Smart Execution Cascade**: When a scheduled expense triggers (automatically or manually), it populates the linked loan reference, and registers the loan-side payment.
+- **Visual Status Badges**: Added responsive desktop and mobile status badges next to scheduled transaction names showing a premium `💼 Loan Name` indicator for linked schedules.
+
 ## [May 23, 2026] Goal Types, Direct Funding & Scheduled Transaction Funding
 
 This release introduces **Goal Types** (`PERSISTENT` vs `ONE_TIME`), **Goal-Funded Transactions**, and **Scheduled Transaction Goal Funding**. Users can now fund manual or recurring expenses directly from investment goals, automatically manage budget exclusions, track refills for persistent goals, and prevent overdrafts with interactive UI indicators and housekeeper-safe validations.
