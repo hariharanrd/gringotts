@@ -48,6 +48,13 @@ public class ScheduledTransactionService {
     @Autowired
     com.luna.Gringotts.repository.InvestmentGoalRepository goalRepository;
 
+    @Autowired
+    private LoanService loanService;
+
+    @Autowired
+    @org.springframework.context.annotation.Lazy
+    private LoanLinkingService loanLinkingService;
+
     public ScheduledTransaction create(ScheduledTransaction s) {
         if (s.getStartDate() != null && s.getStartDate().isBefore(LocalDate.now())) {
             throw new IllegalArgumentException("Schedule Start Date cannot be in the past");
@@ -56,6 +63,16 @@ public class ScheduledTransactionService {
             s.setEndDate(null);
         }
         s.setUser(iamService.getCurrentUser());
+
+        if (s.getLoan() != null && s.getLoan().getId() != null) {
+            if (!"EXPENSE".equals(s.getTransactionType())) {
+                throw new IllegalArgumentException("Only expense scheduled transactions can be linked to a loan");
+            }
+            Loan fullLoan = loanService.requireLoan(s.getLoan().getId());
+            s.setLoan(fullLoan);
+        } else {
+            s.setLoan(null);
+        }
 
         if (s.getFundingGoal() != null && s.getFundingGoal().getId() != null) {
             if ("INCOME".equals(s.getTransactionType())) {
@@ -135,6 +152,24 @@ public class ScheduledTransactionService {
             } else {
                 existing.setFundingGoal(null);
             }
+        }
+        if (incoming.getLoan() != null) {
+            if (incoming.getLoan().getId() != null) {
+                String type = incoming.getTransactionType() != null ? incoming.getTransactionType() : existing.getTransactionType();
+                if (!"EXPENSE".equals(type)) {
+                    throw new IllegalArgumentException("Only expense scheduled transactions can be linked to a loan");
+                }
+                Loan fullLoan = loanService.requireLoan(incoming.getLoan().getId());
+                existing.setLoan(fullLoan);
+            } else {
+                existing.setLoan(null);
+            }
+        }
+
+        // Clear loan link if type switches away from EXPENSE
+        String finalType = incoming.getTransactionType() != null ? incoming.getTransactionType() : existing.getTransactionType();
+        if (!"EXPENSE".equals(finalType)) {
+            existing.setLoan(null);
         }
 
         // Only validate/reset if start date is actually changing and provided
@@ -295,8 +330,14 @@ public class ScheduledTransactionService {
                 e.setUser(owner);
                 e.setCreatedBy("SCHEDULE");
                 e.setScheduleId(s.getId());
+                e.setLoan(s.getLoan());
                 handleScheduledGoalFunding(e, s.getFundingGoal());
                 created = expenseRepository.save(e);
+
+                if (e.getLoan() != null && e.getLoan().getId() != null) {
+                    loanLinkingService.linkExpenseToLoan(e);
+                }
+
                 if ("CREDIT_CARD".equals(e.getPaymentMode()) && e.getCreditCard() != null) {
                     creditCardService.addTransactionToBill(e);
                 }

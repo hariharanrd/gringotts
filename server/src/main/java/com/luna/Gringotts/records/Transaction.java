@@ -106,6 +106,15 @@ public class Transaction {
     @JsonProperty("funding_goal")
     InvestmentGoal fundingGoal;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "loan_id")
+    @JsonProperty("loan")
+    Loan loan;
+
+    @Column(name = "loan_payment_type")
+    @JsonProperty("loan_payment_type")
+    String loanPaymentType; // "EMI" or "PART_PAYMENT"
+
     public Long getId() {
         return id;
     }
@@ -258,5 +267,31 @@ public class Transaction {
         if (this instanceof Saving) return "SAVING";
         if (this instanceof Revolving) return "REVOLVING";
         return null;
+    }
+
+    public Loan getLoan() {
+        return loan;
+    }
+
+    public void setLoan(Loan loan) {
+        this.loan = loan;
+    }
+
+    public String getLoanPaymentType() {
+        return loanPaymentType;
+    }
+
+    public void setLoanPaymentType(String loanPaymentType) {
+        this.loanPaymentType = loanPaymentType;
+    }
+
+    @JsonProperty("loan_id")
+    public Long getLoanId() {
+        return loan != null ? loan.getId() : null;
+    }
+
+    @JsonProperty("loan_name")
+    public String getLoanName() {
+        return loan != null ? loan.getName() : null;
     }
 }

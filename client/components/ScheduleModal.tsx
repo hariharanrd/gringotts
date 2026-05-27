@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { X, Save, Clock, TrendingDown, TrendingUp, PiggyBank, RefreshCw, AlertTriangle } from 'lucide-react';
 import { api } from '../services/api';
-import { ScheduledTransaction, ScheduleFrequency, TransactionType, Category, SubCategory, Item, CreditCard, InvestmentGoal } from '../types';
+import { ScheduledTransaction, ScheduleFrequency, TransactionType, Category, SubCategory, Item, CreditCard, InvestmentGoal, Loan } from '../types';
 import { useToast } from './ToastContext';
 import { PAYMENT_MODES } from '../constants';
 import { toLocalDateString } from '../services/dateUtils';
@@ -28,6 +28,7 @@ const ScheduleModal: React.FC<Props> = ({ isOpen, onClose, schedule }) => {
   const [items, setItems] = useState<Item[]>([]);
   const [creditCards, setCreditCards] = useState<CreditCard[]>([]);
   const [goals, setGoals] = useState<InvestmentGoal[]>([]);
+  const [loans, setLoans] = useState<Loan[]>([]);
   const subCategoryCache = useRef<Record<number, SubCategory[]>>({});
   const itemCache = useRef<Record<number, Item[]>>({});
 
@@ -42,6 +43,7 @@ const ScheduleModal: React.FC<Props> = ({ isOpen, onClose, schedule }) => {
     payment_mode: 'UPI',
     credit_card: undefined,
     funding_goal: undefined,
+    loan: undefined,
   });
 
   const getSubCategories = async (categoryId: number) => {
@@ -87,10 +89,16 @@ const ScheduleModal: React.FC<Props> = ({ isOpen, onClose, schedule }) => {
           setGoals(activeGoals);
         });
 
+        api.getLoans().then(res => {
+          const activeLoans = res.data.filter(l => !l.is_closed);
+          setLoans(activeLoans);
+        });
+
         if (schedule) {
           setForm({
             ...schedule,
-            funding_goal: schedule.funding_goal
+            funding_goal: schedule.funding_goal,
+            loan: schedule.loan
           });
           if (schedule.category) {
             const subs = await getSubCategories(schedule.category.id);
@@ -112,6 +120,7 @@ const ScheduleModal: React.FC<Props> = ({ isOpen, onClose, schedule }) => {
             payment_mode: 'UPI',
             is_in: true,
             funding_goal: undefined,
+            loan: undefined,
           });
           setSubCategories([]);
           setItems([]);
@@ -199,6 +208,11 @@ const ScheduleModal: React.FC<Props> = ({ isOpen, onClose, schedule }) => {
           changes.funding_goal = id ? { id } : null;
         }
 
+        if (getRelId(form.loan) !== schedule.loan?.id) {
+          const id = getRelId(form.loan);
+          changes.loan = (form.transaction_type === TransactionType.EXPENSE && id) ? { id } : null;
+        }
+
         // If nothing changed, just close
         if (Object.keys(changes).length === 0) {
           onClose();
@@ -217,6 +231,7 @@ const ScheduleModal: React.FC<Props> = ({ isOpen, onClose, schedule }) => {
           item: form.item ? { id: getRelId(form.item) } : undefined,
           credit_card: (form.payment_mode === 'CREDIT_CARD' && form.credit_card) ? { id: getRelId(form.credit_card) } : undefined,
           funding_goal: form.funding_goal ? { id: getRelId(form.funding_goal) } : undefined,
+          loan: (form.transaction_type === TransactionType.EXPENSE && form.loan) ? { id: getRelId(form.loan) } : undefined,
         };
         await api.createScheduledTransaction(payload as any);
         showToast('Schedule created successfully', 'success');
@@ -507,6 +522,41 @@ const ScheduleModal: React.FC<Props> = ({ isOpen, onClose, schedule }) => {
                       </option>
                     ))}
                   </select>
+                </div>
+              )}
+
+              {form.transaction_type === TransactionType.EXPENSE && (
+                <div className="space-y-1.5 animate-in slide-in-from-top-2 duration-300">
+                  <label className="text-sm font-semibold text-slate-600 dark:text-slate-400 ml-1">Link to Loan (Optional)</label>
+                  <select
+                    value={form.loan?.id || ''}
+                    onChange={(e) => {
+                      const loanId = e.target.value ? Number(e.target.value) : undefined;
+                      const selectedLoan = loans.find(l => l.id === loanId);
+                      setForm(f => ({ ...f, loan: selectedLoan }));
+                    }}
+                    className={inputClass}
+                  >
+                    <option value="" className="dark:bg-slate-900">Do not link to a Loan</option>
+                    {loans.map(l => (
+                      <option key={l.id} value={l.id} className="dark:bg-slate-900">
+                        💼 {l.name} ({l.lender || 'No Lender'}) — EMI: ₹{l.emi_amount.toLocaleString('en-IN')}
+                      </option>
+                    ))}
+                  </select>
+                  {form.loan?.id && (() => {
+                    const selectedLoan = loans.find(l => l.id === form.loan?.id);
+                    if (!selectedLoan) return null;
+                    const emiVal = selectedLoan.emi_amount;
+                    const txVal = Number(form.amount) || 0;
+                    const isEmi = Math.abs(txVal - emiVal) < 0.01;
+
+                    return (
+                      <p className={`text-xs font-semibold ml-1 leading-tight ${isEmi ? 'text-cyan-600 dark:text-cyan-400' : 'text-amber-600 dark:text-amber-400'}`}>
+                        {isEmi ? `Amount matches EMI (₹${emiVal.toLocaleString('en-IN')}) — will be logged as EMI payment.` : `Amount differs from EMI (₹${emiVal.toLocaleString('en-IN')}) — will be logged as a part payment.`}
+                      </p>
+                    );
+                  })()}
                 </div>
               )}
 

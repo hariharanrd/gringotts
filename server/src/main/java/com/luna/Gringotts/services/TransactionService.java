@@ -77,6 +77,9 @@ public class TransactionService {
     @Autowired
     PersonalizationService personalizationService;
 
+    @Autowired
+    private LoanLinkingService loanLinkingService;
+
     public Transaction getTransactionById(Long id) {
         return transactionRepository.findById(id).orElse(null);
     }
@@ -137,6 +140,10 @@ public class TransactionService {
         handleGoalFunding(e);
         expenseRepository.save(e);
         handleCreditCardDebit(e);
+
+        if (e.getLoan() != null && e.getLoan().getId() != null) {
+            loanLinkingService.linkExpenseToLoan(e);
+        }
     }
 
     public void saveIncome(Income i) {
@@ -237,6 +244,9 @@ public class TransactionService {
             if (existing.getFundingGoal() != null) {
                 investmentGoalService.restoreToGoal(existing.getFundingGoal().getId(), existing.getValue());
             }
+            if (existing.getLoan() != null) {
+                loanLinkingService.unlinkExpenseFromLoan(existing);
+            }
         });
         expenseRepository.deleteById(id);
     }
@@ -306,6 +316,8 @@ public class TransactionService {
         } else {
             target.setFundingGoal(null);
         }
+        target.setLoan(source.getLoan());
+        target.setLoanPaymentType(source.getLoanPaymentType());
     }
 
     private void handleCreditCardDebit(Transaction t) {
@@ -343,6 +355,13 @@ public class TransactionService {
             investmentGoalService.restoreToGoal(existing.getFundingGoal().getId(), existing.getValue());
         }
 
+        // Reverse old loan payment if linked
+        if (existing.getLoan() != null && existing instanceof Expense) {
+            loanLinkingService.unlinkExpenseFromLoan((Expense) existing);
+            existing.setLoan(null);
+            existing.setLoanPaymentType(null);
+        }
+
         if (existing instanceof Expense current) {
             applyBaseFields(current, incoming);
             current.setPaymentMode(incoming.getPaymentMode());
@@ -359,6 +378,10 @@ public class TransactionService {
 
             Expense saved = expenseRepository.save(current);
             handleCreditCardDebit(saved);
+
+            if (saved.getLoan() != null && saved.getLoan().getId() != null) {
+                loanLinkingService.linkExpenseToLoan(saved);
+            }
             return saved;
         }
 
@@ -382,6 +405,10 @@ public class TransactionService {
 
         saved = expenseRepository.save(saved);
         handleCreditCardDebit(saved);
+
+        if (saved.getLoan() != null && saved.getLoan().getId() != null) {
+            loanLinkingService.linkExpenseToLoan(saved);
+        }
         return saved;
     }
 
@@ -395,6 +422,13 @@ public class TransactionService {
         // Reverse old goal first
         if (existing.getFundingGoal() != null) {
             investmentGoalService.restoreToGoal(existing.getFundingGoal().getId(), existing.getValue());
+        }
+
+        // Reverse old loan payment if linked
+        if (existing.getLoan() != null && existing instanceof Expense) {
+            loanLinkingService.unlinkExpenseFromLoan((Expense) existing);
+            existing.setLoan(null);
+            existing.setLoanPaymentType(null);
         }
 
         if (existing instanceof Income current) {
@@ -428,6 +462,13 @@ public class TransactionService {
         // Reverse old goal first
         if (existing.getFundingGoal() != null) {
             investmentGoalService.restoreToGoal(existing.getFundingGoal().getId(), existing.getValue());
+        }
+
+        // Reverse old loan payment if linked
+        if (existing.getLoan() != null && existing instanceof Expense) {
+            loanLinkingService.unlinkExpenseFromLoan((Expense) existing);
+            existing.setLoan(null);
+            existing.setLoanPaymentType(null);
         }
 
         if (existing instanceof Saving current) {
@@ -491,6 +532,13 @@ public class TransactionService {
         // Reverse old goal first
         if (existing.getFundingGoal() != null) {
             investmentGoalService.restoreToGoal(existing.getFundingGoal().getId(), existing.getValue());
+        }
+
+        // Reverse old loan payment if linked
+        if (existing.getLoan() != null && existing instanceof Expense) {
+            loanLinkingService.unlinkExpenseFromLoan((Expense) existing);
+            existing.setLoan(null);
+            existing.setLoanPaymentType(null);
         }
 
         if (existing instanceof Revolving current) {

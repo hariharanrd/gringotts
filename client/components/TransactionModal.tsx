@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Save, TrendingDown, TrendingUp, PiggyBank, RefreshCw, AlertTriangle, CreditCard as CardIcon, ChevronDown } from 'lucide-react';
 import { api } from '../services/api';
-import { Category, SubCategory, Item, TransactionType, Expense, Income, Saving, Revolving, Transaction, CreditCard, InvestmentGoal } from '../types';
+import { Category, SubCategory, Item, TransactionType, Expense, Income, Saving, Revolving, Transaction, CreditCard, InvestmentGoal, Loan } from '../types';
 import { useToast } from '../components/ToastContext';
 import { PAYMENT_MODES } from '../constants';
 import { toLocalISOString } from '../services/dateUtils';
@@ -27,12 +27,14 @@ type TransactionFormState = Omit<Partial<Transaction>, 'value' | 'credit_card'> 
   credit_card?: number;
   include_in_budget?: boolean;
   funding_goal_id?: number;
+  loan_id?: number;
 };
 
 const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, onSuccess, transaction, defaultType }) => {
   const { showToast } = useToast();
   const [type, setType] = useState<TransactionType>(TransactionType.EXPENSE);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [loans, setLoans] = useState<Loan[]>([]);
   const [subCategories, setSubCategories] = useState<SubCategory[]>([]);
   const [items, setItems] = useState<Item[]>([]);
   const subCategoryCache = useRef<Record<number, SubCategory[]>>({});
@@ -54,7 +56,8 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, on
     notes: '',
     credit_card: undefined,
     include_in_budget: true,
-    funding_goal_id: undefined
+    funding_goal_id: undefined,
+    loan_id: undefined
   });
 
   const [loading, setLoading] = useState(false);
@@ -93,7 +96,8 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, on
       notes: '',
       credit_card: undefined,
       include_in_budget: true,
-      funding_goal_id: undefined
+      funding_goal_id: undefined,
+      loan_id: undefined
     });
     setSubCategories([]);
     setItems([]);
@@ -149,7 +153,8 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, on
             item: transaction.item,
             credit_card: (transaction as any).credit_card?.id,
             include_in_budget: transaction.include_in_budget ?? true,
-            funding_goal_id: transaction.funding_goal?.id
+            funding_goal_id: transaction.funding_goal?.id,
+            loan_id: transaction.loan_id
           });
         } else if (defaultType) {
           setType(defaultType);
@@ -162,6 +167,11 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, on
         api.getGoals().then(res => {
           const activeGoals = res.data.filter(g => !g.is_closed);
           setGoals(activeGoals);
+        });
+
+        // Fetch active loans
+        api.getLoans().then(res => {
+          setLoans(res.data.filter(l => !l.is_closed));
         });
       }
     };
@@ -231,7 +241,8 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, on
         payment_mode: formData.payment_mode,
         credit_card: formData.payment_mode === 'CREDIT_CARD' && formData.credit_card ? { id: formData.credit_card } : undefined,
         include_in_budget: formData.funding_goal_id ? false : formData.include_in_budget,
-        funding_goal: formData.funding_goal_id ? { id: formData.funding_goal_id } : undefined
+        funding_goal: formData.funding_goal_id ? { id: formData.funding_goal_id } : undefined,
+        loan: formData.loan_id ? { id: formData.loan_id } : undefined
       };
 
       let savedResponse: any;
@@ -507,6 +518,49 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, on
                           </div>
                         </div>
                       ) : null}
+                    </div>
+                  );
+                })()}
+              </div>
+            )}
+
+            {type === TransactionType.EXPENSE && !formData.funding_goal_id && (
+              <div className="space-y-1.5 animate-in slide-in-from-top-2 duration-200">
+                <label className="text-sm font-medium text-slate-600 dark:text-slate-300">Link to Loan (Optional)</label>
+                <select
+                  className="w-full px-4 py-2.5 bg-slate-100 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 rounded-xl focus:ring-2 focus:ring-cyan-500/40 outline-none text-slate-900 dark:text-white"
+                  value={formData.loan_id || ''}
+                  onChange={(e) => {
+                    const loanIdVal = e.target.value ? Number(e.target.value) : undefined;
+                    setFormData(prev => ({ ...prev, loan_id: loanIdVal }));
+                  }}
+                >
+                  <option value="">Do not link to a Loan</option>
+                  {loans.map(l => (
+                    <option key={l.id} value={l.id}>
+                      {l.name} (EMI: ₹{l.emi_amount.toLocaleString('en-IN')})
+                    </option>
+                  ))}
+                </select>
+                {formData.loan_id && (() => {
+                  const selectedLoan = loans.find(l => l.id === formData.loan_id);
+                  if (!selectedLoan) return null;
+                  const txVal = Number(formData.value) || 0;
+                  const emiAmount = selectedLoan.emi_amount;
+                  const matchesEmi = Math.abs(txVal - emiAmount) < 0.01;
+                  console.log("matchesEmi debug:", { txVal, emiAmount, matchesEmi, diff: Math.abs(txVal - emiAmount), valueType: typeof formData.value, rawValue: formData.value });
+
+                  return (
+                    <div className="mt-2 text-xs font-medium">
+                      {matchesEmi ? (
+                        <p className="text-emerald-600 dark:text-emerald-400">
+                          ✓ Amount matches EMI (₹{emiAmount.toLocaleString('en-IN')}) — will be logged as the EMI payment for this month if not already done.
+                        </p>
+                      ) : (
+                        <p className="text-indigo-600 dark:text-indigo-400">
+                          ℹ Amount differs from EMI (₹{emiAmount.toLocaleString('en-IN')}) — will be logged as a Part Payment.
+                        </p>
+                      )}
                     </div>
                   );
                 })()}

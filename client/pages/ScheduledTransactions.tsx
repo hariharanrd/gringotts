@@ -132,7 +132,14 @@ const ScheduledTransactions: React.FC = () => {
                   className="group hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors cursor-pointer"
                 >
                   <td className="p-4">
-                    <div className="font-bold text-slate-800 dark:text-slate-200">{s.name}</div>
+                    <div className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                      {s.name}
+                      {s.loan && (
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[8px] font-black uppercase bg-cyan-50 text-cyan-600 dark:bg-cyan-950/40 dark:text-cyan-400 border border-cyan-100 dark:border-cyan-900/50">
+                          💼 {s.loan.name}
+                        </span>
+                      )}
+                    </div>
                     <div className="text-[10px] text-slate-400 font-bold uppercase truncate max-w-[200px]">{s.description || 'No description'}</div>
                   </td>
                   <td className="p-4">
@@ -197,7 +204,14 @@ const ScheduledTransactions: React.FC = () => {
             >
               <div className="flex justify-between items-start gap-3">
                 <div className="min-w-0 flex-1">
-                  <div className="font-black text-slate-900 dark:text-white truncate text-base leading-tight">{s.name}</div>
+                  <div className="font-black text-slate-900 dark:text-white truncate text-base leading-tight flex items-center gap-1.5">
+                    {s.name}
+                    {s.loan && (
+                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[8px] font-black uppercase bg-cyan-50 text-cyan-600 dark:bg-cyan-950/40 dark:text-cyan-400 border border-cyan-100 dark:border-cyan-900/50">
+                        💼 {s.loan.name}
+                      </span>
+                    )}
+                  </div>
                   <div className="flex items-center gap-2 mt-1">
                     <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider ${config.bg} ${config.color}`}>
                       {s.transaction_type}
