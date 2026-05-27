@@ -89,6 +89,11 @@ public class ScheduledTransaction {
     @JsonProperty("funding_goal")
     InvestmentGoal fundingGoal;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "loan_id")
+    @JsonProperty("loan")
+    Loan loan;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     @CreationTimestamp
     @JsonProperty(value = "created_at", access = JsonProperty.Access.READ_ONLY)
@@ -263,5 +268,13 @@ public class ScheduledTransaction {
 
     public void setFundingGoal(InvestmentGoal fundingGoal) {
         this.fundingGoal = fundingGoal;
+    }
+
+    public Loan getLoan() {
+        return loan;
+    }
+
+    public void setLoan(Loan loan) {
+        this.loan = loan;
     }
 }

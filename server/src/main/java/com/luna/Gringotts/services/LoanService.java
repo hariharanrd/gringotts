@@ -83,7 +83,8 @@ public class LoanService {
         int adjustedTenure = (Integer) summary.get("adjusted_tenure_months");
 
         if (existing.getEmisPaid() > adjustedTenure) {
-            throw new IllegalArgumentException("EMIs paid (" + existing.getEmisPaid() + ") cannot exceed the adjusted tenure (" + adjustedTenure + " months)");
+            throw new IllegalArgumentException("EMIs paid (" + existing.getEmisPaid()
+                    + ") cannot exceed the adjusted tenure (" + adjustedTenure + " months)");
         }
 
         if (existing.getEmisPaid() >= adjustedTenure) {
@@ -176,8 +177,8 @@ public class LoanService {
         Map<String, Object> summary = getLoanSummary(loan);
         double outstanding = (Double) summary.get("outstanding_principal");
         if (partPayment.getAmount() - outstanding > 0.01) {
-            throw new IllegalArgumentException("Part payment amount (" + partPayment.getAmount() + 
-                ") exceeds the current outstanding principal (" + outstanding + ")");
+            throw new IllegalArgumentException("Part payment amount (" + partPayment.getAmount() +
+                    ") exceeds the current outstanding principal (" + outstanding + ")");
         }
 
         partPayment.setLoan(loan);
@@ -415,7 +416,7 @@ public class LoanService {
 
     // ── Helper Methods ─────────────────────────────────────────────────────────
 
-    private Loan requireLoan(Long id) {
+    protected Loan requireLoan(Long id) {
         User user = iamService.getCurrentUser();
         Loan loan = loanRepository.findById(id)
                 .orElseThrow(() -> new NoSuchElementException("Loan not found: " + id));

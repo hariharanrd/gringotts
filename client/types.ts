@@ -175,6 +175,7 @@ export interface ScheduledTransaction {
   created_at?: string;
   credit_card?: CreditCard;
   funding_goal?: InvestmentGoal;
+  loan?: Loan;
 }
 
 export interface CreditCard {
