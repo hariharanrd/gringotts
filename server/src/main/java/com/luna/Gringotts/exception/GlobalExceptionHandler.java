@@ -36,6 +36,16 @@ public class GlobalExceptionHandler {
     }
 
 
+    @ExceptionHandler(SecurityException.class)
+    public ResponseEntity<Map<String, String>> handleSecurityException(SecurityException ex) {
+        LOGGER.log(Level.WARNING, "Security violation: " + ex.getMessage());
+        Map<String, String> response = new HashMap<>();
+        response.put("status", "error");
+        response.put("message", ex.getMessage() != null ? ex.getMessage() : "Access denied");
+        return new ResponseEntity<>(response, HttpStatus.FORBIDDEN);
+    }
+
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, String>> handleGeneralException(Exception ex) {
         LOGGER.log(Level.SEVERE, "Exception occurred", ex);

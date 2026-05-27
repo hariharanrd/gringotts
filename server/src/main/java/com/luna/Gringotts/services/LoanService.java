@@ -48,6 +48,7 @@ public class LoanService {
 
     @Transactional
     public Map<String, Object> createLoan(Loan loan) {
+        validateLoan(loan);
         loan.setUser(iamService.getCurrentUser());
         double emi = calculateEmi(loan.getPrincipalAmount(), loan.getAnnualRate(), loan.getTenureMonths());
         loan.setEmiAmount(Math.round(emi * 100.0) / 100.0);
@@ -61,6 +62,7 @@ public class LoanService {
     @Transactional
     public Map<String, Object> updateLoan(Long id, Loan incoming) {
         Loan existing = requireLoan(id);
+        validateLoan(incoming);
         existing.setName(incoming.getName());
         existing.setLender(incoming.getLender());
         existing.setPrincipalAmount(incoming.getPrincipalAmount());
@@ -79,6 +81,10 @@ public class LoanService {
         List<LoanPartPayment> pps = loanPartPaymentRepository.findAllByLoanOrderByPaymentDateAsc(existing);
         Map<String, Object> summary = calculateLoanSummary(existing, pps);
         int adjustedTenure = (Integer) summary.get("adjusted_tenure_months");
+
+        if (existing.getEmisPaid() > adjustedTenure) {
+            throw new IllegalArgumentException("EMIs paid (" + existing.getEmisPaid() + ") cannot exceed the adjusted tenure (" + adjustedTenure + " months)");
+        }
 
         if (existing.getEmisPaid() >= adjustedTenure) {
             existing.setIsClosed(true);
@@ -114,6 +120,13 @@ public class LoanService {
     @Transactional
     public void markEmiPaidInternal(Long id, int count) {
         Loan existing = loanRepository.findById(id).orElseThrow();
+        if (count <= 0) {
+            throw new IllegalArgumentException("EMI count to pay must be greater than zero");
+        }
+        if (Boolean.TRUE.equals(existing.getIsClosed())) {
+            throw new IllegalStateException("Cannot pay EMI on a closed loan");
+        }
+
         int newPaid = existing.getEmisPaid() + count;
 
         List<LoanPartPayment> pps = loanPartPaymentRepository.findAllByLoanOrderByPaymentDateAsc(existing);
@@ -134,6 +147,12 @@ public class LoanService {
     @Transactional
     public Map<String, Object> markEmiPaid(Long id, int count) {
         Loan existing = requireLoan(id);
+        if (count <= 0) {
+            throw new IllegalArgumentException("EMI count to pay must be greater than zero");
+        }
+        if (Boolean.TRUE.equals(existing.getIsClosed())) {
+            throw new IllegalStateException("Cannot pay EMI on a closed loan");
+        }
         markEmiPaidInternal(id, count);
 
         // Auto-create expense record
@@ -147,15 +166,29 @@ public class LoanService {
     @Transactional
     public void addPartPaymentInternal(Long loanId, LoanPartPayment partPayment) {
         Loan loan = loanRepository.findById(loanId).orElseThrow();
+        if (partPayment == null || partPayment.getAmount() == null || partPayment.getAmount() <= 0.0) {
+            throw new IllegalArgumentException("Part payment amount must be greater than zero");
+        }
+        if (Boolean.TRUE.equals(loan.getIsClosed())) {
+            throw new IllegalStateException("Cannot add part payment to a closed loan");
+        }
+
+        Map<String, Object> summary = getLoanSummary(loan);
+        double outstanding = (Double) summary.get("outstanding_principal");
+        if (partPayment.getAmount() - outstanding > 0.01) {
+            throw new IllegalArgumentException("Part payment amount (" + partPayment.getAmount() + 
+                ") exceeds the current outstanding principal (" + outstanding + ")");
+        }
+
         partPayment.setLoan(loan);
         if (partPayment.getPaymentDate() == null)
             partPayment.setPaymentDate(LocalDate.now());
         loanPartPaymentRepository.save(partPayment);
 
         // Auto-close loan if outstanding principal hits 0
-        Map<String, Object> summary = getLoanSummary(loan);
-        double outstanding = (Double) summary.get("outstanding_principal");
-        if (outstanding <= 0.0) {
+        Map<String, Object> updatedSummary = getLoanSummary(loan);
+        double updatedOutstanding = (Double) updatedSummary.get("outstanding_principal");
+        if (updatedOutstanding <= 0.0) {
             loan.setIsClosed(true);
             loan.setClosedAt(LocalDateTime.now());
             loanRepository.save(loan);
@@ -390,6 +423,30 @@ public class LoanService {
             throw new SecurityException("Access denied to loan: " + id);
         }
         return loan;
+    }
+
+    private void validateLoan(Loan loan) {
+        if (loan == null) {
+            throw new IllegalArgumentException("Loan payload cannot be null");
+        }
+        if (loan.getName() == null || loan.getName().trim().isEmpty()) {
+            throw new IllegalArgumentException("Loan name is required");
+        }
+        if (loan.getPrincipalAmount() == null || loan.getPrincipalAmount() <= 0.0) {
+            throw new IllegalArgumentException("Principal amount must be greater than zero");
+        }
+        if (loan.getAnnualRate() == null || loan.getAnnualRate() < 0.0 || loan.getAnnualRate() > 50.0) {
+            throw new IllegalArgumentException("Annual interest rate must be between 0% and 50%");
+        }
+        if (loan.getTenureMonths() == null || loan.getTenureMonths() <= 0) {
+            throw new IllegalArgumentException("Tenure months must be greater than zero");
+        }
+        if (loan.getStartDate() == null) {
+            throw new IllegalArgumentException("Start date is required");
+        }
+        if (loan.getEmisPaid() != null && loan.getEmisPaid() < 0) {
+            throw new IllegalArgumentException("EMIs paid cannot be negative");
+        }
     }
 
     private Map<String, Object> toDto(Loan loan) {
