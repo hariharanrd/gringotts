@@ -164,7 +164,7 @@ const GoalCard: React.FC<GoalCardProps> = ({ goal, onEdit, onDelete, onArchive, 
               </div>
             </div>
           </div>
-          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          <div className="flex gap-1 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
             {!goal.is_closed && pct >= 100 && onArchive && (
               <button onClick={(e) => { e.stopPropagation(); onArchive(goal); }}
                 title="Mark as Closed"
