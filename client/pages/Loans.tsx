@@ -230,7 +230,7 @@ const Loans: React.FC = () => {
                     </div>
 
                     {/* Card Actions (Hover trigger) */}
-                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="flex gap-1 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
                       <button
                         onClick={(e) => handleEdit(loan, e)}
                         className="p-1.5 rounded-lg text-slate-400 hover:text-cyan-500 hover:bg-cyan-500/10 transition-all"

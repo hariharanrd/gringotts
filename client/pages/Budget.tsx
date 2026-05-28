@@ -44,7 +44,7 @@ const BudgetCard: React.FC<{
         <span className={`text-[10px] font-bold uppercase tracking-widest ${budget.is_master ? 'text-cyan-500' : 'text-slate-400'}`}>
           {budget.is_master ? 'Master Template' : `${budget.year} • Month ${budget.month}`}
         </span>
-        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="flex items-center gap-1 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
           <button onClick={(e) => { e.stopPropagation(); onEdit(); }} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 hover:text-cyan-500 transition-colors">
             <Edit2 className="w-3.5 h-3.5" />
           </button>

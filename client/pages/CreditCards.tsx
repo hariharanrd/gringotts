@@ -377,7 +377,7 @@ const CreditCards: React.FC = () => {
                     />
                   </div>
                   {/* Card Management Bar - subtle and at the bottom */}
-                  <div className="mt-auto relative z-10 border-t border-white/5 bg-black/10 flex justify-end p-3 px-6 gap-2 opacity-40 group-hover:opacity-100 transition-opacity">
+                  <div className="mt-auto relative z-10 border-t border-white/5 bg-black/10 flex justify-end p-3 px-6 gap-2 opacity-100 md:opacity-40 md:group-hover:opacity-100 transition-opacity">
                     <button
                       onClick={() => handleOpenModal(card)}
                       className="p-2 rounded-xl text-white/40 hover:text-white hover:bg-white/10 transition-all flex items-center gap-2"

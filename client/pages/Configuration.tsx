@@ -277,7 +277,7 @@ const Configuration: React.FC = () => {
                                         <Package className="w-3.5 h-3.5 text-emerald-500 dark:text-emerald-400" />
                                         <span className="text-sm text-slate-600 dark:text-slate-300">{item.name}</span>
                                       </div>
-                                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                                      <div className="flex items-center gap-1 opacity-100 md:opacity-0 group-hover:opacity-100 transition-all">
                                         <button 
                                           onClick={() => openEditModal('ITEM', { id: item.id, name: item.name, description: item.description }, sub.id)}
                                           className="p-1 text-slate-400 dark:text-slate-600 hover:text-cyan-500 dark:hover:text-cyan-400 hover:bg-cyan-500/10 rounded transition-all"
