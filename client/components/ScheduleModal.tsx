@@ -169,7 +169,7 @@ const ScheduleModal: React.FC<Props> = ({ isOpen, onClose, schedule }) => {
       if (schedule) {
         // Partial Update: Only include fields that changed
         const changes: any = {};
-        
+
         if (form.name !== schedule.name) changes.name = form.name;
         if (form.transaction_type !== schedule.transaction_type) changes.transaction_type = form.transaction_type;
         if (form.amount !== schedule.amount) changes.amount = form.amount;
@@ -196,7 +196,7 @@ const ScheduleModal: React.FC<Props> = ({ isOpen, onClose, schedule }) => {
           const id = getRelId(form.item);
           changes.item = id ? { id } : null;
         }
-        
+
         const currentCardId = (schedule.credit_card as any)?.id;
         if (getRelId(form.credit_card) !== currentCardId) {
           const id = getRelId(form.credit_card);
@@ -395,6 +395,18 @@ const ScheduleModal: React.FC<Props> = ({ isOpen, onClose, schedule }) => {
 
             <div className="space-y-4">
               <div className="space-y-1.5">
+                <label className="text-sm font-semibold text-slate-600 dark:text-slate-400 ml-1">Transaction Description</label>
+                <textarea
+                  required
+                  rows={2}
+                  value={form.description || ''}
+                  onChange={(e) => setForm(f => ({ ...f, description: e.target.value }))}
+                  className={`${inputClass} resize-none`}
+                  placeholder="This description will be logged as Transaction Description"
+                />
+              </div>
+
+              <div className="space-y-1.5">
                 <label className="text-sm font-semibold text-slate-600 dark:text-slate-400 ml-1">Category</label>
                 <select
                   value={form.category?.id || ''}
@@ -581,18 +593,6 @@ const ScheduleModal: React.FC<Props> = ({ isOpen, onClose, schedule }) => {
                   </div>
                 </div>
               )}
-
-              <div className="space-y-1.5">
-                <label className="text-sm font-semibold text-slate-600 dark:text-slate-400 ml-1">Description</label>
-                <textarea
-                  required
-                  rows={2}
-                  value={form.description || ''}
-                  onChange={(e) => setForm(f => ({ ...f, description: e.target.value }))}
-                  className={`${inputClass} resize-none`}
-                  placeholder="What is this schedule for?"
-                />
-              </div>
             </div>
           </div>
 
