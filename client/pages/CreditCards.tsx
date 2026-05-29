@@ -17,6 +17,7 @@ import { api } from '../services/api';
 import { CreditCard } from '../types';
 import { useToast } from '../components/ToastContext';
 import { useNavigate } from 'react-router-dom';
+import ConfirmationDialog from '../components/ConfirmationDialog';
 
 const CARD_THEMES = [
   {
@@ -63,6 +64,7 @@ const CreditCards: React.FC = () => {
   const navigate = useNavigate();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCard, setEditingCard] = useState<CreditCard | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<number | null>(null);
 
   const [formData, setFormData] = useState({
     nickname: '',
@@ -138,15 +140,17 @@ const CreditCards: React.FC = () => {
     }
   };
 
-  const handleDelete = async (id: number) => {
-    if (!window.confirm("Are you sure you want to delete this credit card? All associated billing history will be permanently removed.")) return;
+  const handleDeleteConfirm = async () => {
+    if (deleteTarget === null) return;
     try {
-      await api.deleteCreditCard(id);
+      await api.deleteCreditCard(deleteTarget);
       showToast("Credit card deleted", "success");
       fetchCards();
     } catch (error) {
       console.error("Failed to delete credit card:", error);
       showToast("Failed to delete credit card", "error");
+    } finally {
+      setDeleteTarget(null);
     }
   };
 
@@ -386,7 +390,7 @@ const CreditCards: React.FC = () => {
                       <span className="text-[10px] font-bold uppercase tracking-widest">Edit Card</span>
                     </button>
                     <button
-                      onClick={() => handleDelete(card.id!)}
+                      onClick={() => setDeleteTarget(card.id!)}
                       className="p-2 rounded-xl text-white/40 hover:text-rose-400 hover:bg-rose-500/10 transition-all flex items-center gap-2"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
@@ -530,6 +534,16 @@ const CreditCards: React.FC = () => {
           </div>
         </div>
       )}
+
+      <ConfirmationDialog
+        isOpen={deleteTarget !== null}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={handleDeleteConfirm}
+        title="Delete Credit Card?"
+        message="Are you sure you want to delete this credit card? All associated billing history will be permanently removed."
+        confirmLabel="Delete"
+        type="danger"
+      />
     </div>
   );
 };
