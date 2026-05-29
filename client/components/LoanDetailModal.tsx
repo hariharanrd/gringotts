@@ -40,6 +40,8 @@ export const LoanDetailModal: React.FC<LoanDetailModalProps> = ({ loan, onClose,
   const [simulatedTenure, setSimulatedTenure] = useState<number>(1);
   const [markingEmi, setMarkingEmi] = useState(false);
   const [showEmiConfirm, setShowEmiConfirm] = useState(false);
+  const [showSettleConfirm, setShowSettleConfirm] = useState(false);
+  const [settlingLoan, setSettlingLoan] = useState(false);
 
   // Prepayment Form State
   const [prepayAmount, setPrepayAmount] = useState<number>(10000);
@@ -208,14 +210,27 @@ export const LoanDetailModal: React.FC<LoanDetailModalProps> = ({ loan, onClose,
     }
   };
 
-  const handleCloseLoan = async () => {
+  const handleSettleLoan = async () => {
     if (!loan.id) return;
+    setSettlingLoan(true);
     try {
-      await api.closeLoan(loan.id);
-      showToast('Loan marked as settled/closed', 'success');
+      if (outstandingPrincipal > 0) {
+        await api.addLoanPartPayment(loan.id, {
+          amount: outstandingPrincipal,
+          payment_date: new Date().toISOString().split('T')[0],
+          notes: "Final settlement prepayment"
+        });
+        showToast('Loan settled with a final payment successfully', 'success');
+      } else {
+        await api.closeLoan(loan.id);
+        showToast('Loan marked as closed/settled', 'success');
+      }
+      setShowSettleConfirm(false);
       onSuccess();
     } catch (e: any) {
       showToast(e.message || 'Failed to settle loan', 'error');
+    } finally {
+      setSettlingLoan(false);
     }
   };
 
@@ -452,10 +467,11 @@ export const LoanDetailModal: React.FC<LoanDetailModalProps> = ({ loan, onClose,
               {!isSettled && (
                 <div className="flex justify-end gap-3 pt-2">
                   <button
-                    onClick={handleCloseLoan}
-                    className="px-4 py-2 text-xs font-bold rounded-xl border border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-450 hover:bg-slate-50 dark:hover:bg-slate-950 transition-all"
+                    onClick={() => setShowSettleConfirm(true)}
+                    disabled={settlingLoan}
+                    className="px-4 py-2 text-xs font-bold rounded-xl border border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-450 hover:bg-slate-50 dark:hover:bg-slate-950 transition-all disabled:opacity-50"
                   >
-                    Mark as Settled
+                    {settlingLoan ? 'Settling...' : 'Mark as Settled'}
                   </button>
                   <button
                     onClick={() => setShowEmiConfirm(true)}
@@ -767,6 +783,19 @@ export const LoanDetailModal: React.FC<LoanDetailModalProps> = ({ loan, onClose,
         title="Log EMI Payment?"
         message={`Are you sure you want to log the next monthly EMI payment of ${fmt(loan.emi_amount)} for "${loan.name}"? This will advance the repayment progress and auto-create an expense record of ${fmt(loan.emi_amount)}.`}
         confirmLabel="Log Payment"
+        type="info"
+      />
+
+      {/* Settle Loan Confirmation */}
+      <ConfirmationDialog
+        isOpen={showSettleConfirm}
+        onClose={() => setShowSettleConfirm(false)}
+        onConfirm={handleSettleLoan}
+        title="Mark Loan as Settled?"
+        message={outstandingPrincipal > 0 
+          ? `Are you sure you want to mark "${loan.name}" as settled? This will log a final part payment of ${fmt(outstandingPrincipal)} to pay off the remaining balance and close the loan.`
+          : `Are you sure you want to close the loan "${loan.name}"?`}
+        confirmLabel="Settle Loan"
         type="info"
       />
     </div>
