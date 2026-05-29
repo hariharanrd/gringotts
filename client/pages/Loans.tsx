@@ -62,11 +62,11 @@ const Loans: React.FC = () => {
   const { showToast } = useToast();
   const [loans, setLoans] = useState<Loan[]>([]);
   const [loading, setLoading] = useState(true);
-  
+
   // Modals state
   const [isAddEditOpen, setIsAddEditOpen] = useState(false);
   const [selectedLoan, setSelectedLoan] = useState<Loan | null>(null);
-  
+
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [viewingLoan, setViewingLoan] = useState<Loan | null>(null);
 
@@ -147,7 +147,7 @@ const Loans: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      
+
       {/* KPI Stats Bar */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
@@ -198,25 +198,23 @@ const Loans: React.FC = () => {
               <div
                 key={loan.id}
                 onClick={() => handleCardClick(loan)}
-                className={`group relative bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl rounded-3xl border transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-black/5 cursor-pointer overflow-hidden ${
-                  active 
-                    ? 'border-slate-200 dark:border-slate-800/80' 
-                    : 'border-slate-350 dark:border-slate-850 opacity-70'
-                }`}
+                className={`group relative bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl rounded-3xl border transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-black/5 cursor-pointer overflow-hidden ${active
+                  ? 'border-slate-200 dark:border-slate-800/80'
+                  : 'border-slate-350 dark:border-slate-850 opacity-70'
+                  }`}
               >
                 {/* Visual Top Highlight Accent */}
-                <div 
+                <div
                   className={`h-1.5 w-full ${active ? 'bg-cyan-500' : 'bg-slate-400 dark:bg-slate-700'}`}
                 />
 
                 <div className="p-5 space-y-4">
-                  
+
                   {/* Header Row */}
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-center gap-3">
-                      <div className={`w-11 h-11 rounded-2xl flex items-center justify-center text-xl shrink-0 shadow-sm ${
-                        active ? 'bg-cyan-500/10 text-cyan-600 dark:text-cyan-400' : 'bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500'
-                      }`}>
+                      <div className={`w-11 h-11 rounded-2xl flex items-center justify-center text-xl shrink-0 shadow-sm ${active ? 'bg-cyan-500/10 text-cyan-600 dark:text-cyan-400' : 'bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500'
+                        }`}>
                         <Landmark className="w-5 h-5" />
                       </div>
                       <div>
@@ -304,7 +302,7 @@ const Loans: React.FC = () => {
                   {/* Dimmed banner if closed */}
                   {!active && (
                     <div className="py-1 text-center bg-slate-100 dark:bg-slate-850 text-slate-500 dark:text-slate-450 font-bold rounded-xl text-[10px] uppercase tracking-wider">
-                      Settle Balance Closed
+                      Balance Settled
                     </div>
                   )}
 
