@@ -1,10 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import QRCode from 'qrcode';
 import { api } from '../services/api';
 import { useToast } from '../components/ToastContext';
 import { useTheme, THEME_LIBRARY, ThemeId } from '../components/ThemeContext';
 import {
-  User, KeyRound, Trash2, Camera, Save, Eye, EyeOff, AlertTriangle, X, Check, Palette, Sun, Moon, ChevronDown, Loader2, Info, RefreshCcw, Globe, Monitor, LogOut
+  User, KeyRound, Trash2, Camera, Save, Eye, EyeOff, AlertTriangle, X, Check, Palette, Sun, Moon, ChevronDown, Loader2, Info, RefreshCcw, Globe, Monitor, LogOut, QrCode, Copy, CheckCircle2
 } from 'lucide-react';
 import { UserSession } from '../types';
 import { personalizationSync } from '../services/personalizationSync';
@@ -179,6 +180,18 @@ const Account: React.FC<AccountProps> = ({ onProfileUpdate }) => {
   const [showConf, setShowConf] = useState(false);
   const [pwSaving, setPwSaving] = useState(false);
 
+  // Reset MFA state
+  const [mfaStep, setMfaStep] = useState(1); // 1 = idle/pw, 2 = QR/verify, 3 = success
+  const [mfaCurrentPassword, setMfaCurrentPassword] = useState('');
+  const [showMfaPw, setShowMfaPw] = useState(false);
+  const [mfaLoading, setMfaLoading] = useState(false);
+  const [mfaSecret, setMfaSecret] = useState('');
+  const [mfaQrCodeUrl, setMfaQrCodeUrl] = useState('');
+  const [showMfaManual, setShowMfaManual] = useState(false);
+  const [mfaCopied, setMfaCopied] = useState(false);
+  const [mfaCode, setMfaCode] = useState('');
+  const [mfaError, setMfaError] = useState('');
+
   // Danger section
   const [showDeleteModal, setDeleteModal] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -302,6 +315,70 @@ const Account: React.FC<AccountProps> = ({ onProfileUpdate }) => {
       showToast(err.message || 'Failed to change password', 'error');
     } finally {
       setPwSaving(false);
+    }
+  };
+
+  // ── Reset MFA handlers ─────────────────────────────────────────────────────
+
+  const handleMfaInitiate = async () => {
+    if (!mfaCurrentPassword) {
+      showToast('Enter your current password to reset MFA', 'error');
+      return;
+    }
+    setMfaLoading(true);
+    setMfaError('');
+    try {
+      const response = await api.initiateResetMfa(mfaCurrentPassword);
+      setMfaSecret(response.secret);
+      const qrUrl = await QRCode.toDataURL(response.otpAuthTotpURL);
+      setMfaQrCodeUrl(qrUrl);
+      setMfaStep(2);
+      setMfaError('');
+    } catch (err: any) {
+      setMfaError(err.message || 'Verification failed. Please check your password.');
+      showToast(err.message || 'Failed to initiate MFA reset', 'error');
+    } finally {
+      setMfaLoading(false);
+    }
+  };
+
+  const handleMfaConfirm = async () => {
+    if (!mfaCode || mfaCode.length < 6) {
+      showToast('Please enter a valid 6-digit verification code', 'error');
+      return;
+    }
+    setMfaLoading(true);
+    setMfaError('');
+    try {
+      await api.confirmResetMfa(parseInt(mfaCode));
+      setMfaStep(3);
+      setMfaCode('');
+      showToast('MFA Authenticator reset successfully', 'success');
+    } catch (err: any) {
+      setMfaError(err.message || 'Invalid code. Please try again.');
+      showToast(err.message || 'Failed to verify MFA code', 'error');
+    } finally {
+      setMfaLoading(false);
+    }
+  };
+
+  const handleMfaCancel = () => {
+    setMfaStep(1);
+    setMfaCurrentPassword('');
+    setMfaCode('');
+    setMfaSecret('');
+    setMfaQrCodeUrl('');
+    setShowMfaManual(false);
+    setMfaError('');
+  };
+
+  const copyMfaSecretToClipboard = async () => {
+    try {
+      await navigator.clipboard.writeText(mfaSecret);
+      setMfaCopied(true);
+      setTimeout(() => setMfaCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy secret: ', err);
     }
   };
 
@@ -625,111 +702,288 @@ const Account: React.FC<AccountProps> = ({ onProfileUpdate }) => {
 
           {/* ─ Security ─ */}
           {section === 'security' && (
-            <div className="bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700/50 rounded-2xl p-6 space-y-5">
-              <div>
-                <h2 className="text-base font-semibold text-slate-900 dark:text-white">Change Password</h2>
-                <p className="text-xs text-slate-400 mt-0.5">Verify your current password before setting a new one.</p>
-              </div>
-
-              {/* Current password */}
-              <div>
-                <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">
-                  Current Password
-                </label>
-                <div className="relative">
-                  <input
-                    type={showCur ? 'text' : 'password'}
-                    value={currentPw}
-                    onChange={e => setCurrentPw(e.target.value)}
-                    placeholder="Your current password"
-                    className="w-full px-4 py-2.5 pr-11 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 transition-all"
-                  />
-                  <button type="button" onClick={() => setShowCur(v => !v)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
-                    {showCur ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
+            <div className="space-y-6">
+              {/* Change Password Card */}
+              <div className="bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700/50 rounded-2xl p-6 space-y-5">
+                <div>
+                  <h2 className="text-base font-semibold text-slate-900 dark:text-white">Change Password</h2>
+                  <p className="text-xs text-slate-400 mt-0.5">Verify your current password before setting a new one.</p>
                 </div>
-              </div>
 
-              {/* New password */}
-              <div>
-                <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">
-                  New Password
-                </label>
-                <div className="relative">
-                  <input
-                    type={showNew ? 'text' : 'password'}
-                    value={newPw}
-                    onChange={e => setNewPw(e.target.value)}
-                    placeholder="At least 8 characters"
-                    className="w-full px-4 py-2.5 pr-11 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 transition-all"
-                  />
-                  <button type="button" onClick={() => setShowNew(v => !v)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
-                    {showNew ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-                {newPw && (
-                  <div className="mt-2 space-y-1">
-                    <div className="flex gap-1">
-                      {[1, 2, 3].map(i => (
-                        <div key={i} className={`h-1 flex-1 rounded-full transition-all duration-300 ${i <= pwStrength ? strengthColor : 'bg-slate-200 dark:bg-slate-700'}`} />
-                      ))}
-                    </div>
-                    <p className={`text-[11px] font-medium ${['', 'text-rose-500', 'text-amber-500', 'text-emerald-500'][pwStrength]}`}>
-                      {strengthLabel}
-                    </p>
+                {/* Current password */}
+                <div>
+                  <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">
+                    Current Password
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showCur ? 'text' : 'password'}
+                      value={currentPw}
+                      onChange={e => setCurrentPw(e.target.value)}
+                      placeholder="Your current password"
+                      className="w-full px-4 py-2.5 pr-11 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 transition-all"
+                    />
+                    <button type="button" onClick={() => setShowCur(v => !v)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                      {showCur ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
                   </div>
-                )}
-              </div>
+                </div>
 
-              {/* Confirm password */}
-              <div>
-                <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">
-                  Confirm New Password
-                </label>
-                <div className="relative">
-                  <input
-                    type={showConf ? 'text' : 'password'}
-                    value={confirmPw}
-                    onChange={e => setConfirmPw(e.target.value)}
-                    placeholder="Repeat new password"
-                    className={`w-full px-4 py-2.5 pr-11 rounded-xl bg-slate-100 dark:bg-slate-800 border text-slate-900 dark:text-white text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 transition-all
-                      ${confirmPw && confirmPw !== newPw ? 'border-rose-400 focus:ring-rose-400/50' : 'border-slate-200 dark:border-slate-700'}`}
-                  />
-                  <button type="button" onClick={() => setShowConf(v => !v)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
-                    {showConf ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                  {confirmPw && confirmPw === newPw && (
-                    <div className="absolute right-9 top-1/2 -translate-y-1/2">
-                      <Check className="w-4 h-4 text-emerald-500" />
+                {/* New password */}
+                <div>
+                  <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">
+                    New Password
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showNew ? 'text' : 'password'}
+                      value={newPw}
+                      onChange={e => setNewPw(e.target.value)}
+                      placeholder="At least 8 characters"
+                      className="w-full px-4 py-2.5 pr-11 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 transition-all"
+                    />
+                    <button type="button" onClick={() => setShowNew(v => !v)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                      {showNew ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                  {newPw && (
+                    <div className="mt-2 space-y-1">
+                      <div className="flex gap-1">
+                        {[1, 2, 3].map(i => (
+                          <div key={i} className={`h-1 flex-1 rounded-full transition-all duration-300 ${i <= pwStrength ? strengthColor : 'bg-slate-200 dark:bg-slate-700'}`} />
+                        ))}
+                      </div>
+                      <p className={`text-[11px] font-medium ${['', 'text-rose-500', 'text-amber-500', 'text-emerald-500'][pwStrength]}`}>
+                        {strengthLabel}
+                      </p>
                     </div>
                   )}
                 </div>
-                {confirmPw && confirmPw !== newPw && (
-                  <p className="mt-1 text-[11px] text-rose-500">Passwords do not match</p>
-                )}
+
+                {/* Confirm password */}
+                <div>
+                  <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">
+                    Confirm New Password
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showConf ? 'text' : 'password'}
+                      value={confirmPw}
+                      onChange={e => setConfirmPw(e.target.value)}
+                      placeholder="Repeat new password"
+                      className={`w-full px-4 py-2.5 pr-11 rounded-xl bg-slate-100 dark:bg-slate-800 border text-slate-900 dark:text-white text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 transition-all
+                        ${confirmPw && confirmPw !== newPw ? 'border-rose-400 focus:ring-rose-400/50' : 'border-slate-200 dark:border-slate-700'}`}
+                    />
+                    <button type="button" onClick={() => setShowConf(v => !v)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                      {showConf ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                    {confirmPw && confirmPw === newPw && (
+                      <div className="absolute right-9 top-1/2 -translate-y-1/2">
+                        <Check className="w-4 h-4 text-emerald-500" />
+                      </div>
+                    )}
+                  </div>
+                  {confirmPw && confirmPw !== newPw && (
+                    <p className="mt-1 text-[11px] text-rose-500">Passwords do not match</p>
+                  )}
+                </div>
+
+                <div className="pt-1">
+                  <button
+                    onClick={handlePasswordReset}
+                    disabled={pwSaving}
+                    className="flex items-center gap-2 px-5 py-2.5 rounded-xl disabled:opacity-60 text-white text-sm font-semibold shadow-lg transition-all"
+                    style={{
+                      background: `linear-gradient(to right, var(--theme-gradient-from), var(--theme-gradient-to))`,
+                      boxShadow: `0 10px 15px -3px rgba(var(--theme-accent-rgb), 0.2), 0 4px 6px -4px rgba(var(--theme-accent-rgb), 0.2)`
+                    }}
+                    onMouseEnter={(e) => { if (!e.currentTarget.disabled) e.currentTarget.style.filter = 'brightness(1.1)'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.filter = 'none'; }}
+                  >
+                    {pwSaving
+                      ? <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                      : <KeyRound className="w-4 h-4" />
+                    }
+                    Change Password
+                  </button>
+                </div>
               </div>
 
-              <div className="pt-1">
-                <button
-                  onClick={handlePasswordReset}
-                  disabled={pwSaving}
-                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl disabled:opacity-60 text-white text-sm font-semibold shadow-lg transition-all"
-                  style={{
-                    background: `linear-gradient(to right, var(--theme-gradient-from), var(--theme-gradient-to))`,
-                    boxShadow: `0 10px 15px -3px rgba(var(--theme-accent-rgb), 0.2), 0 4px 6px -4px rgba(var(--theme-accent-rgb), 0.2)`
-                  }}
-                  onMouseEnter={(e) => { if (!e.currentTarget.disabled) e.currentTarget.style.filter = 'brightness(1.1)'; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.filter = 'none'; }}
-                >
-                  {pwSaving
-                    ? <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-                    : <KeyRound className="w-4 h-4" />
-                  }
-                  Change Password
-                </button>
+              {/* Reset MFA Card */}
+              <div className="bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700/50 rounded-2xl p-6 space-y-5">
+                <div className="flex items-start gap-4">
+                  <div className="w-11 h-11 rounded-xl bg-violet-500/10 flex items-center justify-center shrink-0 mt-0.5">
+                    <QrCode className="w-5 h-5 text-violet-500" />
+                  </div>
+                  <div className="flex-1">
+                    <h2 className="text-base font-semibold text-slate-900 dark:text-white">Reset MFA Authenticator</h2>
+                    <p className="text-xs text-slate-400 mt-0.5">Replace your existing TOTP secret with a new one. This will invalidate all your trusted browsers.</p>
+                  </div>
+                </div>
+
+                {mfaError && (
+                  <div className="p-3 bg-rose-500/10 border border-rose-500/20 rounded-xl text-rose-500 dark:text-rose-400 text-xs font-medium flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 shrink-0" />
+                    <span>{mfaError}</span>
+                  </div>
+                )}
+
+                {mfaStep === 1 && (
+                  <div className="space-y-4">
+                    <div className="p-4 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/50 rounded-xl">
+                      <div className="flex gap-3">
+                        <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+                        <div className="text-xs text-amber-800 dark:text-amber-400 leading-relaxed">
+                          <p className="font-bold mb-1">Important Warning:</p>
+                          <p>
+                            Resetting MFA generates a completely new authenticator key. The old key will stop working immediately. 
+                            You must scan the new QR code with your authenticator app to avoid losing access to your account.
+                            All trusted browsers will also be cleared.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">
+                        Confirm Current Password
+                      </label>
+                      <div className="relative">
+                        <input
+                          type={showMfaPw ? 'text' : 'password'}
+                          value={mfaCurrentPassword}
+                          onChange={e => setMfaCurrentPassword(e.target.value)}
+                          placeholder="Your current password"
+                          className="w-full px-4 py-2.5 pr-11 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 transition-all"
+                        />
+                        <button type="button" onClick={() => setShowMfaPw(v => !v)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                          {showMfaPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="pt-1">
+                      <button
+                        onClick={handleMfaInitiate}
+                        disabled={mfaLoading}
+                        className="flex items-center gap-2 px-5 py-2.5 rounded-xl disabled:opacity-60 text-white text-sm font-semibold shadow-lg transition-all"
+                        style={{
+                          background: `linear-gradient(to right, var(--theme-gradient-from), var(--theme-gradient-to))`,
+                          boxShadow: `0 10px 15px -3px rgba(var(--theme-accent-rgb), 0.2), 0 4px 6px -4px rgba(var(--theme-accent-rgb), 0.2)`
+                        }}
+                        onMouseEnter={(e) => { if (!e.currentTarget.disabled) e.currentTarget.style.filter = 'brightness(1.1)'; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.filter = 'none'; }}
+                      >
+                        {mfaLoading ? (
+                          <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                        ) : (
+                          <QrCode className="w-4 h-4" />
+                        )}
+                        Initiate MFA Reset
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {mfaStep === 2 && (
+                  <div className="space-y-5">
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      Scan the QR code with your authenticator app (such as Google Authenticator or Microsoft Authenticator), then enter the 6-digit verification code generated by the app.
+                    </p>
+
+                    <div className="bg-white p-4 mx-auto w-fit rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                      <img src={mfaQrCodeUrl} alt="New MFA QR Code" className="w-44 h-44" />
+                    </div>
+
+                    <div className="bg-slate-100 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/50 rounded-xl p-3">
+                      {!showMfaManual ? (
+                        <button
+                          type="button"
+                          onClick={() => setShowMfaManual(true)}
+                          className="text-xs text-slate-500 hover:text-cyan-600 dark:text-slate-400 dark:hover:text-cyan-400 font-medium flex items-center gap-2 transition-colors mx-auto"
+                        >
+                          Show key for manual entry?
+                        </button>
+                      ) : (
+                        <div className="space-y-1">
+                          <p className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">Manual Key</p>
+                          <div className="flex items-center justify-between gap-3">
+                            <p className="text-xs text-cyan-600 dark:text-cyan-400 font-mono break-all select-all flex-grow">{mfaSecret}</p>
+                            <button
+                              type="button"
+                              onClick={copyMfaSecretToClipboard}
+                              className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors text-slate-400 hover:text-cyan-600 dark:hover:text-cyan-400 shrink-0"
+                              title="Copy to clipboard"
+                            >
+                              {mfaCopied ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">
+                        Verification Code
+                      </label>
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        placeholder="000000"
+                        value={mfaCode}
+                        onChange={e => setMfaCode(e.target.value.replace(/\D/g, ''))}
+                        maxLength={6}
+                        className="w-full px-4 py-3 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 tracking-[0.3em] text-center font-mono text-lg focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500/50 outline-none transition-all"
+                      />
+                    </div>
+
+                    <div className="flex gap-3 pt-1">
+                      <button
+                        onClick={handleMfaCancel}
+                        disabled={mfaLoading}
+                        className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={handleMfaConfirm}
+                        disabled={mfaLoading || mfaCode.length < 6}
+                        className="flex-1 px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 text-white text-sm font-semibold transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20"
+                      >
+                        {mfaLoading ? (
+                          <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                        ) : (
+                          <Check className="w-4 h-4" />
+                        )}
+                        Verify & Save
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {mfaStep === 3 && (
+                  <div className="py-6 flex flex-col items-center justify-center text-center space-y-4 animate-in fade-in duration-300">
+                    <div className="w-16 h-16 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-500">
+                      <CheckCircle2 className="w-10 h-10" />
+                    </div>
+                    <div className="space-y-1">
+                      <h3 className="text-base font-bold text-slate-900 dark:text-white">New Authenticator Configured!</h3>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">
+                        Your MFA TOTP authenticator has been successfully reset. Use your new authenticator app codes for future logins.
+                      </p>
+                    </div>
+                    <button
+                      onClick={handleMfaCancel}
+                      className="px-5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 text-sm font-semibold transition-all"
+                    >
+                      Done
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           )}

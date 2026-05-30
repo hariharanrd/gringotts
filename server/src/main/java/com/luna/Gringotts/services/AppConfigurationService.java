@@ -13,9 +13,11 @@ public class AppConfigurationService {
 
     public String getValue(String category, String parameter, String defaultValue) {
         AppConfiguration config = appConfigurationRepository.findByCategoryAndParameter(category, parameter);
-        String value = config.getValue();
-        if(value != null){
-            return value;
+        if (config != null) {
+            String value = config.getValue();
+            if (value != null) {
+                return value;
+            }
         }
         return defaultValue;
     }

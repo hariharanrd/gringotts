@@ -6,6 +6,7 @@ import com.luna.Gringotts.services.AccountService;
 import com.luna.Gringotts.services.JwtService;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -67,6 +68,7 @@ public class AccountController {
     // ── PUT /api/v1/account/profile ───────────────────────────────────────────
 
     @PutMapping("/profile")
+    @CacheEvict(value = "users", allEntries = true)
     public ResponseEntity<Map<String, Object>> updateProfile(@RequestBody UpdateProfileRequest request, HttpServletResponse response) {
         Map<String, Object> result = accountService.updateProfile(
                 currentUsername(),
@@ -88,6 +90,7 @@ public class AccountController {
     // ── POST /api/v1/account/reset-password ───────────────────────────────────
 
     @PostMapping("/reset-password")
+    @CacheEvict(value = "users", allEntries = true)
     public ResponseEntity<Map<String, Object>> resetPassword(@RequestBody ResetPasswordRequest request) {
         Map<String, Object> result = accountService.resetPassword(
                 currentUsername(),
@@ -125,6 +128,35 @@ public class AccountController {
         return ResponseEntity.ok(result);
     }
 
+    // ── POST /api/v1/account/reset-mfa/initiate ───────────────────────────────
+
+    @PostMapping("/reset-mfa/initiate")
+    public ResponseEntity<Map<String, Object>> initiateResetMfa(@RequestBody InitiateMfaResetRequest request) {
+        Map<String, Object> result = accountService.initiateResetMfa(
+                currentUsername(),
+                request.getCurrentPassword()
+        );
+        if ("error".equals(result.get("status"))) {
+            return ResponseEntity.status((Integer) result.get("status_code")).body(result);
+        }
+        return ResponseEntity.ok(result);
+    }
+
+    // ── POST /api/v1/account/reset-mfa/confirm ────────────────────────────────
+
+    @PostMapping("/reset-mfa/confirm")
+    @CacheEvict(value = "users", allEntries = true)
+    public ResponseEntity<Map<String, Object>> confirmResetMfa(@RequestBody ConfirmMfaResetRequest request) {
+        Map<String, Object> result = accountService.confirmResetMfa(
+                currentUsername(),
+                request.getCode()
+        );
+        if ("error".equals(result.get("status"))) {
+            return ResponseEntity.status((Integer) result.get("status_code")).body(result);
+        }
+        return ResponseEntity.ok(result);
+    }
+
     // ── Request / Response records ────────────────────────────────────────────
 
     public static class UpdateProfileRequest {
@@ -158,5 +190,19 @@ public class AccountController {
 
         public String getCurrentPassword() { return currentPassword; }
         public void setCurrentPassword(String currentPassword) { this.currentPassword = currentPassword; }
+    }
+
+    public static class InitiateMfaResetRequest {
+        private String currentPassword;
+
+        public String getCurrentPassword() { return currentPassword; }
+        public void setCurrentPassword(String currentPassword) { this.currentPassword = currentPassword; }
+    }
+
+    public static class ConfirmMfaResetRequest {
+        private int code;
+
+        public int getCode() { return code; }
+        public void setCode(int code) { this.code = code; }
     }
 }

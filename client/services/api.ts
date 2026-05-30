@@ -545,6 +545,22 @@ export const api = {
     });
     await handleResponse(response);
   },
+
+  initiateResetMfa: async (currentPassword: string): Promise<{ secret: string; otpAuthTotpURL: string }> => {
+    const response = await fetchWithCredentials(`${BASE_URL}/account/reset-mfa/initiate`, {
+      method: 'POST',
+      body: JSON.stringify({ currentPassword }),
+    });
+    return handleResponse(response);
+  },
+
+  confirmResetMfa: async (code: number): Promise<void> => {
+    const response = await fetchWithCredentials(`${BASE_URL}/account/reset-mfa/confirm`, {
+      method: 'POST',
+      body: JSON.stringify({ code }),
+    });
+    await handleResponse(response);
+  },
   // Account API End
 
   // Credit Card API Start
