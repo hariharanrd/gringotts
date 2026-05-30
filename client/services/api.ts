@@ -98,7 +98,7 @@ export const api = {
   },
 
   initiateRecoveryEmailVerification: async (recoveryEmail: string): Promise<{ status: string; message: string }> => {
-    const response = await fetchWithCredentials(`${BASE_URL}/auth/verify-recovery-email/initiate`, {
+    const response = await fetchWithCredentials(`${BASE_URL}/auth/recovery-email/initiate-verification`, {
       method: 'POST',
       body: JSON.stringify({ recoveryEmail }),
     });
@@ -106,7 +106,7 @@ export const api = {
   },
 
   confirmRecoveryEmailVerification: async (otp: string): Promise<{ status: string; message: string }> => {
-    const response = await fetchWithCredentials(`${BASE_URL}/auth/verify-recovery-email/confirm`, {
+    const response = await fetchWithCredentials(`${BASE_URL}/auth/recovery-email/confirm`, {
       method: 'POST',
       body: JSON.stringify({ otp }),
     });
@@ -114,8 +114,8 @@ export const api = {
   },
 
   clearRecoveryEmail: async (): Promise<{ status: string; message: string }> => {
-    const response = await fetchWithCredentials(`${BASE_URL}/auth/verify-recovery-email/clear`, {
-      method: 'POST',
+    const response = await fetchWithCredentials(`${BASE_URL}/auth/recovery-email`, {
+      method: 'DELETE',
     });
     return handleResponse(response);
   },

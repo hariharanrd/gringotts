@@ -194,7 +194,7 @@ public class AuthenticationController {
         return ResponseEntity.ok(result);
     }
 
-    @PostMapping("/verify-recovery-email/initiate")
+    @PostMapping("/recovery-email/initiate-verification")
     public ResponseEntity<Map<String, Object>> initiateVerifyEmail(
             @RequestBody InitiateEmailVerificationRequest request) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -211,7 +211,7 @@ public class AuthenticationController {
         return ResponseEntity.ok(result);
     }
 
-    @PostMapping("/verify-recovery-email/confirm")
+    @PostMapping("/recovery-email/confirm")
     public ResponseEntity<Map<String, Object>> confirmVerifyEmail(
             @RequestBody ConfirmEmailVerificationRequest request) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -228,7 +228,7 @@ public class AuthenticationController {
         return ResponseEntity.ok(result);
     }
 
-    @PostMapping("/verify-recovery-email/clear")
+    @DeleteMapping("/recovery-email")
     public ResponseEntity<Map<String, Object>> clearVerifyEmail() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !authentication.isAuthenticated()
