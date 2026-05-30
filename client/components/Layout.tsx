@@ -18,7 +18,9 @@ import {
   UserCircle2,
   CreditCard,
   Clock,
-  Table2
+  Table2,
+  AlertTriangle,
+  ArrowRight
 } from 'lucide-react';
 
 import { useTheme } from './ThemeContext';
@@ -27,6 +29,7 @@ interface LayoutProps {
   userName: string;
   displayName?: string;
   profilePicture?: string;
+  hasRecoveryEmail?: boolean;
   children: React.ReactNode;
   onLogout: () => void;
   onImport?: () => void;
@@ -44,10 +47,11 @@ const navItems = [
 ];
 
 
-const Layout: React.FC<LayoutProps> = ({ userName, displayName, profilePicture, children, onImport }) => {
+const Layout: React.FC<LayoutProps> = ({ userName, displayName, profilePicture, hasRecoveryEmail, children, onImport }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isPinned, setIsPinned] = useState(true);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isWarningDismissed, setIsWarningDismissed] = useState(() => sessionStorage.getItem('dismissedRecoveryEmailWarning') === 'true');
   const location = useLocation();
   const { theme, toggleTheme, isDark } = useTheme();
 
@@ -305,10 +309,45 @@ const Layout: React.FC<LayoutProps> = ({ userName, displayName, profilePicture, 
           </div>
         </header>
 
+        {hasRecoveryEmail === false && !isWarningDismissed && (
+          <div className="mx-6 mt-4 p-4 rounded-2xl bg-amber-500/10 dark:bg-amber-500/5 border border-amber-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-4 animate-in slide-in-from-top duration-300">
+            <div className="flex items-start gap-3">
+              <div className="p-2 bg-amber-500/20 text-amber-600 dark:text-amber-400 rounded-xl shrink-0">
+                <AlertTriangle className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="text-sm font-semibold text-amber-800 dark:text-amber-300">Secure Your Vault</h4>
+                <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5 leading-relaxed">
+                  You haven't set a recovery email yet. If you forget your password, you won't be able to recover your account.
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 shrink-0 self-end sm:self-center">
+              <button
+                onClick={() => {
+                  sessionStorage.setItem('dismissedRecoveryEmailWarning', 'true');
+                  setIsWarningDismissed(true);
+                }}
+                className="px-3 py-1.5 text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition-colors"
+              >
+                Remind me Later
+              </button>
+              <Link
+                to="/account"
+                className="flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 rounded-xl transition-all shadow-md shadow-amber-500/15"
+              >
+                Configure Email
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+            </div>
+          </div>
+        )}
+
         <div className="p-4 md:p-8">
           {children}
         </div>
       </main>
+
     </div>
   );
 };

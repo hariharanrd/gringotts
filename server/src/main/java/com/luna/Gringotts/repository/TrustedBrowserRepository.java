@@ -18,5 +18,7 @@ public interface TrustedBrowserRepository extends JpaRepository<TrustedBrowser, 
     @Modifying
     void deleteByExpiresAtBefore(LocalDateTime now);
     
+    @Transactional
+    @Modifying
     void deleteByUsername(String username);
 }

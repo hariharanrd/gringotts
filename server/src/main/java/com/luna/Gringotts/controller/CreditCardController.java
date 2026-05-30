@@ -1,4 +1,4 @@
-package com.luna.Gringotts.controlller;
+package com.luna.Gringotts.controller;
 
 import com.luna.Gringotts.records.CreditCard;
 import com.luna.Gringotts.services.CreditCardService;
@@ -87,7 +87,8 @@ public class CreditCardController {
             @RequestBody Map<String, Double> payload) {
         try {
             Double amountPaid = payload.get("amount_paid");
-            if (amountPaid == null) return ResponseEntity.badRequest().body(Map.of("error", "amount_paid is required"));
+            if (amountPaid == null)
+                return ResponseEntity.badRequest().body(Map.of("error", "amount_paid is required"));
             creditCardService.updateBillPayment(billId, amountPaid);
             return ResponseEntity.ok(Map.of("status", "success"));
         } catch (NoSuchElementException e) {

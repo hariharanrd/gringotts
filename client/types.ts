@@ -221,6 +221,8 @@ export interface Profile {
   username: string;
   displayName: string;
   profilePicture: string;
+  recoveryEmail?: string;
+  hasRecoveryEmail?: boolean;
 }
 
 export interface Personalization {

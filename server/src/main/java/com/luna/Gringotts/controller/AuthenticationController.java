@@ -1,7 +1,9 @@
 package com.luna.Gringotts.controller;
 
 import com.luna.Gringotts.records.User;
+import com.luna.Gringotts.records.UserRecoveryInfo;
 import com.luna.Gringotts.repository.UserRepository;
+import com.luna.Gringotts.repository.UserRecoveryInfoRepository;
 import com.luna.Gringotts.services.AccountService;
 import com.luna.Gringotts.services.AppConfigurationService;
 import com.luna.Gringotts.services.AuthenticationService;
@@ -17,6 +19,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/v1/auth")
@@ -25,6 +28,7 @@ public class AuthenticationController {
     private final AuthenticationService service;
     private final UserRepository userRepository;
     private final AccountService accountService;
+    private final UserRecoveryInfoRepository userRecoveryInfoRepository;
 
     @Value("${production:false}")
     private String production;
@@ -35,10 +39,15 @@ public class AuthenticationController {
     @Value("${jwt.expiration:86400000}")
     private long jwtExpiration;
 
-    public AuthenticationController(AuthenticationService service, UserRepository userRepository, AccountService accountService) {
+    public AuthenticationController(
+            AuthenticationService service,
+            UserRepository userRepository,
+            AccountService accountService,
+            UserRecoveryInfoRepository userRecoveryInfoRepository) {
         this.service = service;
         this.userRepository = userRepository;
         this.accountService = accountService;
+        this.userRecoveryInfoRepository = userRecoveryInfoRepository;
     }
 
     @GetMapping("/check-username")
@@ -48,11 +57,12 @@ public class AuthenticationController {
 
     @PostMapping("/register")
     public ResponseEntity<Map<String, Object>> register(@RequestBody RegisterRequest request) {
-        boolean registrationAllowed = Boolean.parseBoolean(appConfigurationService.getValue("IAM", "USER_REGISTRATION", "false"));
-        if(registrationAllowed) {
+        boolean registrationAllowed = Boolean
+                .parseBoolean(appConfigurationService.getValue("IAM", "USER_REGISTRATION", "false"));
+        if (registrationAllowed) {
             Map<String, Object> result = service.register(request.getUsername(), request.getPassword());
             if ("error".equals(result.get("status"))) {
-                return ResponseEntity.status((Integer)result.get("status_code")).body(result);
+                return ResponseEntity.status((Integer) result.get("status_code")).body(result);
             }
             return ResponseEntity.ok(result);
         } else {
@@ -70,15 +80,15 @@ public class AuthenticationController {
                 request.getUsername(), request.getPassword(), trustToken, httpServletRequest);
 
         if ("error".equals(result.get("status"))) {
-            return ResponseEntity.status((Integer)result.get("status_code")).body(result);
+            return ResponseEntity.status((Integer) result.get("status_code")).body(result);
         }
 
         if (Boolean.FALSE.equals(result.get("requiresMfa"))) {
-            setSessionCookie((String)result.get("jwt"), response);
+            setSessionCookie((String) result.get("jwt"), response);
             return ResponseEntity.ok(new PreAuthenticateResponse(false, null));
         }
 
-        return ResponseEntity.ok(new PreAuthenticateResponse(true, (String)result.get("preAuthToken")));
+        return ResponseEntity.ok(new PreAuthenticateResponse(true, (String) result.get("preAuthToken")));
     }
 
     @PostMapping("/authenticate")
@@ -90,12 +100,12 @@ public class AuthenticationController {
                 request.getPreAuthToken(), request.getCode(), request.isTrustBrowser(), httpServletRequest);
 
         if ("error".equals(result.get("status"))) {
-            return ResponseEntity.status((Integer)result.get("status_code")).body(result);
+            return ResponseEntity.status((Integer) result.get("status_code")).body(result);
         }
 
-        setSessionCookie((String)result.get("jwt"), response);
+        setSessionCookie((String) result.get("jwt"), response);
 
-        return ResponseEntity.ok(new AuthenticateResponse((String)result.get("trustToken")));
+        return ResponseEntity.ok(new AuthenticateResponse((String) result.get("trustToken")));
     }
 
     private void setSessionCookie(String token, HttpServletResponse response) {
@@ -135,16 +145,101 @@ public class AuthenticationController {
                 && !"anonymousUser".equals(authentication.getPrincipal())) {
 
             User user = userRepository.findByUsername(authentication.getName()).orElse(null);
-            if (user == null) return ResponseEntity.status(403).build();
+            if (user == null)
+                return ResponseEntity.status(403).build();
+
+            Optional<UserRecoveryInfo> recoveryOpt = userRecoveryInfoRepository.findByUser(user);
+            String email = "";
+            boolean hasEmail = false;
+            if (recoveryOpt.isPresent() && "VERIFIED".equals(recoveryOpt.get().getVerificationStatus())
+                    && recoveryOpt.get().getRecoveryEmail() != null) {
+                email = recoveryOpt.get().getRecoveryEmail();
+                hasEmail = true;
+            }
 
             return ResponseEntity.ok(Map.of(
                     "username", user.getUsername(),
                     "displayName", user.getDisplayName() != null ? user.getDisplayName() : "",
-                    "profilePicture", user.getProfilePicture() != null ? user.getProfilePicture() : ""
-            ));
+                    "profilePicture", user.getProfilePicture() != null ? user.getProfilePicture() : "",
+                    "recoveryEmail", email,
+                    "hasRecoveryEmail", String.valueOf(hasEmail)));
         }
         return ResponseEntity.status(403).build();
     }
+
+    @PostMapping("/forgot-password/initiate")
+    public ResponseEntity<Map<String, Object>> initiateForgotPassword(@RequestBody InitiateForgotPasswordRequest request) {
+        Map<String, Object> result = service.initiateForgotPassword(request.getUsername());
+        if ("error".equals(result.get("status"))) {
+            return ResponseEntity.status((Integer) result.get("status_code")).body(result);
+        }
+        return ResponseEntity.ok(result);
+    }
+
+    @PostMapping("/forgot-password/confirm")
+    public ResponseEntity<Map<String, Object>> confirmForgotPassword(@RequestBody ConfirmForgotPasswordRequest request) {
+        Map<String, Object> result = service.confirmForgotPassword(request.getUsername(), request.getRecoveryEmail());
+        if ("error".equals(result.get("status"))) {
+            return ResponseEntity.status((Integer) result.get("status_code")).body(result);
+        }
+        return ResponseEntity.ok(result);
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<Map<String, Object>> resetPassword(@RequestBody ResetPasswordRequest request) {
+        Map<String, Object> result = service.resetPassword(request.getToken(), request.getNewPassword());
+        if ("error".equals(result.get("status"))) {
+            return ResponseEntity.status((Integer) result.get("status_code")).body(result);
+        }
+        return ResponseEntity.ok(result);
+    }
+
+    @PostMapping("/recovery-email/initiate-verification")
+    public ResponseEntity<Map<String, Object>> initiateVerifyEmail(
+            @RequestBody InitiateEmailVerificationRequest request) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()
+                || "anonymousUser".equals(authentication.getPrincipal())) {
+            return ResponseEntity.status(401).build();
+        }
+
+        Map<String, Object> result = service.initiateRecoveryEmailVerification(authentication.getName(),
+                request.getRecoveryEmail());
+        if ("error".equals(result.get("status"))) {
+            return ResponseEntity.status((Integer) result.get("status_code")).body(result);
+        }
+        return ResponseEntity.ok(result);
+    }
+
+    @PostMapping("/recovery-email/confirm")
+    public ResponseEntity<Map<String, Object>> confirmVerifyEmail(
+            @RequestBody ConfirmEmailVerificationRequest request) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()
+                || "anonymousUser".equals(authentication.getPrincipal())) {
+            return ResponseEntity.status(401).build();
+        }
+
+        Map<String, Object> result = service.confirmRecoveryEmailVerification(authentication.getName(),
+                request.getOtp());
+        if ("error".equals(result.get("status"))) {
+            return ResponseEntity.status((Integer) result.get("status_code")).body(result);
+        }
+        return ResponseEntity.ok(result);
+    }
+
+    @DeleteMapping("/recovery-email")
+    public ResponseEntity<Map<String, Object>> clearVerifyEmail() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()
+                || "anonymousUser".equals(authentication.getPrincipal())) {
+            return ResponseEntity.status(401).build();
+        }
+
+        Map<String, Object> result = service.clearRecoveryEmail(authentication.getName());
+        return ResponseEntity.ok(result);
+    }
+
 
     public static class RegisterRequest {
         private String username;
@@ -222,5 +317,83 @@ public class AuthenticationController {
     }
 
     public static record AuthenticateResponse(String trustToken) {
+    }
+
+    public static class InitiateForgotPasswordRequest {
+        private String username;
+
+        public String getUsername() {
+            return username;
+        }
+
+        public void setUsername(String username) {
+            this.username = username;
+        }
+    }
+
+    public static class ConfirmForgotPasswordRequest {
+        private String username;
+        private String recoveryEmail;
+
+        public String getUsername() {
+            return username;
+        }
+
+        public void setUsername(String username) {
+            this.username = username;
+        }
+
+        public String getRecoveryEmail() {
+            return recoveryEmail;
+        }
+
+        public void setRecoveryEmail(String recoveryEmail) {
+            this.recoveryEmail = recoveryEmail;
+        }
+    }
+
+    public static class ResetPasswordRequest {
+        private String token;
+        private String newPassword;
+
+        public String getToken() {
+            return token;
+        }
+
+        public void setToken(String token) {
+            this.token = token;
+        }
+
+        public String getNewPassword() {
+            return newPassword;
+        }
+
+        public void setNewPassword(String newPassword) {
+            this.newPassword = newPassword;
+        }
+    }
+
+    public static class InitiateEmailVerificationRequest {
+        private String recoveryEmail;
+
+        public String getRecoveryEmail() {
+            return recoveryEmail;
+        }
+
+        public void setRecoveryEmail(String recoveryEmail) {
+            this.recoveryEmail = recoveryEmail;
+        }
+    }
+
+    public static class ConfirmEmailVerificationRequest {
+        private String otp;
+
+        public String getOtp() {
+            return otp;
+        }
+
+        public void setOtp(String otp) {
+            this.otp = otp;
+        }
     }
 }

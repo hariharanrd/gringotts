@@ -1,4 +1,4 @@
-package com.luna.Gringotts.controlller;
+package com.luna.Gringotts.controller;
 
 import com.luna.Gringotts.records.InvestmentGoal;
 import com.luna.Gringotts.records.Transaction;
@@ -99,10 +99,9 @@ public class InvestmentGoalController {
             Pageable pageable = PageRequest.of(page - 1, 10, Sort.by(Sort.Direction.DESC, "transactionTime"));
             Page<Transaction> result = transactionRepository.findByFundingGoalAndUser(goal, goal.getUser(), pageable);
             return ResponseEntity.ok(Map.of(
-                "data", result.getContent(),
-                "total_count", result.getTotalElements(),
-                "has_more", result.hasNext()
-            ));
+                    "data", result.getContent(),
+                    "total_count", result.getTotalElements(),
+                    "has_more", result.hasNext()));
         } catch (java.util.NoSuchElementException e) {
             return ResponseEntity.status(404).body(Map.of("error", e.getMessage()));
         } catch (SecurityException e) {

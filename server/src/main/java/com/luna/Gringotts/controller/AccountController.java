@@ -1,4 +1,4 @@
-package com.luna.Gringotts.controlller;
+package com.luna.Gringotts.controller;
 
 import com.luna.Gringotts.records.User;
 import com.luna.Gringotts.repository.UserRepository;
@@ -6,6 +6,7 @@ import com.luna.Gringotts.services.AccountService;
 import com.luna.Gringotts.services.JwtService;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -67,13 +68,14 @@ public class AccountController {
     // ── PUT /api/v1/account/profile ───────────────────────────────────────────
 
     @PutMapping("/profile")
-    public ResponseEntity<Map<String, Object>> updateProfile(@RequestBody UpdateProfileRequest request, HttpServletResponse response) {
+    @CacheEvict(value = "users", allEntries = true)
+    public ResponseEntity<Map<String, Object>> updateProfile(@RequestBody UpdateProfileRequest request,
+            HttpServletResponse response) {
         Map<String, Object> result = accountService.updateProfile(
                 currentUsername(),
                 request.getUsername(),
                 request.getDisplayName(),
-                request.getProfilePicture()
-        );
+                request.getProfilePicture());
 
         if (Boolean.TRUE.equals(result.get("usernameChanged"))) {
             String newUsername = (String) result.get("username");
@@ -88,14 +90,14 @@ public class AccountController {
     // ── POST /api/v1/account/reset-password ───────────────────────────────────
 
     @PostMapping("/reset-password")
+    @CacheEvict(value = "users", allEntries = true)
     public ResponseEntity<Map<String, Object>> resetPassword(@RequestBody ResetPasswordRequest request) {
         Map<String, Object> result = accountService.resetPassword(
                 currentUsername(),
                 request.getCurrentPassword(),
-                request.getNewPassword()
-        );
+                request.getNewPassword());
         if ("error".equals(result.get("status"))) {
-            return ResponseEntity.status((Integer)result.get("status_code")).body(result);
+            return ResponseEntity.status((Integer) result.get("status_code")).body(result);
         }
         return ResponseEntity.ok(result);
     }
@@ -109,7 +111,7 @@ public class AccountController {
 
         Map<String, Object> result = accountService.deleteAccount(currentUsername(), request.getCurrentPassword());
         if ("error".equals(result.get("status"))) {
-            return ResponseEntity.status((Integer)result.get("status_code")).body(result);
+            return ResponseEntity.status((Integer) result.get("status_code")).body(result);
         }
 
         // Clear the session cookie so the browser is immediately logged out
@@ -125,6 +127,33 @@ public class AccountController {
         return ResponseEntity.ok(result);
     }
 
+    // ── POST /api/v1/account/reset-mfa/initiate ───────────────────────────────
+
+    @PostMapping("/reset-mfa/initiate")
+    public ResponseEntity<Map<String, Object>> initiateResetMfa(@RequestBody InitiateMfaResetRequest request) {
+        Map<String, Object> result = accountService.initiateResetMfa(
+                currentUsername(),
+                request.getCurrentPassword());
+        if ("error".equals(result.get("status"))) {
+            return ResponseEntity.status((Integer) result.get("status_code")).body(result);
+        }
+        return ResponseEntity.ok(result);
+    }
+
+    // ── POST /api/v1/account/reset-mfa/confirm ────────────────────────────────
+
+    @PostMapping("/reset-mfa/confirm")
+    @CacheEvict(value = "users", allEntries = true)
+    public ResponseEntity<Map<String, Object>> confirmResetMfa(@RequestBody ConfirmMfaResetRequest request) {
+        Map<String, Object> result = accountService.confirmResetMfa(
+                currentUsername(),
+                request.getCode());
+        if ("error".equals(result.get("status"))) {
+            return ResponseEntity.status((Integer) result.get("status_code")).body(result);
+        }
+        return ResponseEntity.ok(result);
+    }
+
     // ── Request / Response records ────────────────────────────────────────────
 
     public static class UpdateProfileRequest {
@@ -132,31 +161,85 @@ public class AccountController {
         private String displayName;
         private String profilePicture;
 
-        public String getUsername() { return username; }
-        public void setUsername(String username) { this.username = username; }
+        public String getUsername() {
+            return username;
+        }
 
-        public String getDisplayName() { return displayName; }
-        public void setDisplayName(String displayName) { this.displayName = displayName; }
+        public void setUsername(String username) {
+            this.username = username;
+        }
 
-        public String getProfilePicture() { return profilePicture; }
-        public void setProfilePicture(String profilePicture) { this.profilePicture = profilePicture; }
+        public String getDisplayName() {
+            return displayName;
+        }
+
+        public void setDisplayName(String displayName) {
+            this.displayName = displayName;
+        }
+
+        public String getProfilePicture() {
+            return profilePicture;
+        }
+
+        public void setProfilePicture(String profilePicture) {
+            this.profilePicture = profilePicture;
+        }
     }
 
     public static class ResetPasswordRequest {
         private String currentPassword;
         private String newPassword;
 
-        public String getCurrentPassword() { return currentPassword; }
-        public void setCurrentPassword(String currentPassword) { this.currentPassword = currentPassword; }
+        public String getCurrentPassword() {
+            return currentPassword;
+        }
 
-        public String getNewPassword() { return newPassword; }
-        public void setNewPassword(String newPassword) { this.newPassword = newPassword; }
+        public void setCurrentPassword(String currentPassword) {
+            this.currentPassword = currentPassword;
+        }
+
+        public String getNewPassword() {
+            return newPassword;
+        }
+
+        public void setNewPassword(String newPassword) {
+            this.newPassword = newPassword;
+        }
     }
 
     public static class DeleteAccountRequest {
         private String currentPassword;
 
-        public String getCurrentPassword() { return currentPassword; }
-        public void setCurrentPassword(String currentPassword) { this.currentPassword = currentPassword; }
+        public String getCurrentPassword() {
+            return currentPassword;
+        }
+
+        public void setCurrentPassword(String currentPassword) {
+            this.currentPassword = currentPassword;
+        }
+    }
+
+    public static class InitiateMfaResetRequest {
+        private String currentPassword;
+
+        public String getCurrentPassword() {
+            return currentPassword;
+        }
+
+        public void setCurrentPassword(String currentPassword) {
+            this.currentPassword = currentPassword;
+        }
+    }
+
+    public static class ConfirmMfaResetRequest {
+        private int code;
+
+        public int getCode() {
+            return code;
+        }
+
+        public void setCode(int code) {
+            this.code = code;
+        }
     }
 }

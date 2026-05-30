@@ -1,5 +1,29 @@
 # 🚀 Release Notes
 
+## [May 30, 2026] Account Recovery Mechanism & Secure Password Reset
+
+This release introduces a robust, secure **Account Recovery Mechanism** to Gringotts, letting users recover access to their account via a configured **Recovery Email**.
+
+### 📧 Secure Password Recovery Flow
+- **Forgot Password flow**: Visible directly on the login screen. Users can input their Username and Recovery Email to request a reset.
+- **Mailgun Integration**: Automatically sends secure recovery emails containing a cryptographically secure token valid for 15 minutes.
+- **Enter New Password Page**: An interactive interface to securely reset the password using the token link received via email.
+- **Robust Security**: Invalidates older recovery tokens automatically to prevent reuse attacks and validates token expiry.
+
+### ⚠️ Proactive Recovery Email Alerts
+- **Persistent Warning Banner**: Users who haven't set a recovery email will see a, non-blocking amber alert banner at the top of their dashboard layout.
+- **Remind me Later**: Allows users to dismiss the banner for their active session without blocking normal app usage.
+- **Seamless Configuration**: A dedicated Recovery Email setup field added directly to the Account Profile settings page.
+
+## [May 30, 2026] Self-Service MFA Reset & Limiter Support
+
+This release introduces a **MFA Reset** command center in the user's Account Settings under the Security tab. Users can now easily re-configure their TOTP authenticators by scanning a new QR code or entering custom keys manually.
+
+### 🛡️ Secure Self-Service MFA Reset
+- **Three-Step Verification Flow**: Verify your identity via password ➔ scan the new high-fidelity QR code (or enter the key manually) ➔ verify and activate the new 6-digit TOTP code.
+- **Trusted Session Purge**: Resetting your MFA automatically invalidates all existing trusted browsers across all devices to guarantee complete account isolation and absolute security.
+- **Seamless Frontend Experience**: Fully interactive status indications with amber alerts, automated Clipboard copy helpers, and loading/success transitions.
+
 ## [May 27, 2026] Dedicated Loan Management Module
 
 This release introduces the brand new **Loan Management Module** to Gringotts, giving users a complete command center to track, schedule, and optimize active loans and liabilities. 
