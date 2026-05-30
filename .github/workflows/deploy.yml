@@ -36,6 +36,8 @@ jobs:
 
       - name: Run Supabase DB Push
         run: supabase db push --db-url "${{ secrets.SUPABASE_DB_URL }}"
+        env:
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
 
   deploy-backend:
     name: Deploy Backend to Cloud Run
