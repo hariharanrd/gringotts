@@ -2,6 +2,7 @@ package com.luna.Gringotts.services;
 
 import com.luna.Gringotts.records.AppConfiguration;
 import com.luna.Gringotts.records.User;
+import com.luna.Gringotts.records.UserRecoveryInfo;
 import com.luna.Gringotts.repository.*;
 import com.warrenstrange.googleauth.GoogleAuthenticator;
 import com.warrenstrange.googleauth.GoogleAuthenticatorKey;
@@ -16,6 +17,7 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
@@ -33,6 +35,7 @@ public class AccountService {
     private final InvestmentGoalRepository investmentGoalRepository;
     private final TrustedBrowserRepository trustedBrowserRepository;
     private final AppConfigurationRepository appConfigurationRepository;
+    private final UserRecoveryInfoRepository userRecoveryInfoRepository;
     private final GoogleAuthenticator gAuth = new GoogleAuthenticator();
     private final ConcurrentHashMap<String, String> pendingMfaSecrets = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, List<LocalDateTime>> mfaResetTimestamps = new ConcurrentHashMap<>();
@@ -48,7 +51,8 @@ public class AccountService {
             CategoryRepository categoryRepository,
             InvestmentGoalRepository investmentGoalRepository,
             TrustedBrowserRepository trustedBrowserRepository,
-            AppConfigurationRepository appConfigurationRepository) {
+            AppConfigurationRepository appConfigurationRepository,
+            UserRecoveryInfoRepository userRecoveryInfoRepository) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.expenseRepository = expenseRepository;
@@ -60,16 +64,25 @@ public class AccountService {
         this.investmentGoalRepository = investmentGoalRepository;
         this.trustedBrowserRepository = trustedBrowserRepository;
         this.appConfigurationRepository = appConfigurationRepository;
+        this.userRecoveryInfoRepository = userRecoveryInfoRepository;
     }
 
     // ── Profile ───────────────────────────────────────────────────────────────
 
     public Map<String, String> getProfile(String username) {
         User user = userRepository.findByUsername(username).orElseThrow();
+        Optional<UserRecoveryInfo> recoveryOpt = userRecoveryInfoRepository.findByUser(user);
+        String email = "";
+        if (recoveryOpt.isPresent() && "VERIFIED".equals(recoveryOpt.get().getVerificationStatus())
+                && recoveryOpt.get().getRecoveryEmail() != null) {
+            email = recoveryOpt.get().getRecoveryEmail();
+        }
+
         return Map.of(
                 "username", user.getUsername(),
                 "displayName", user.getDisplayName() != null ? user.getDisplayName() : "",
-                "profilePicture", user.getProfilePicture() != null ? user.getProfilePicture() : "");
+                "profilePicture", user.getProfilePicture() != null ? user.getProfilePicture() : "",
+                "recoveryEmail", email);
     }
 
     public boolean isUsernameAvailable(String username) {

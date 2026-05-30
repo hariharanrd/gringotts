@@ -18,6 +18,8 @@ import Account from './pages/Account';
 import Loans from './pages/Loans';
 import { Login } from './pages/Login';
 import { Register } from './pages/Register';
+import { ForgotPassword } from './pages/ForgotPassword';
+import { ResetPassword } from './pages/ResetPassword';
 import { api } from './services/api';
 import { Transaction, TransactionType } from './types';
 import { ToastProvider, useToast } from './components/ToastContext';
@@ -84,6 +86,7 @@ const GringottsApp: React.FC = () => {
   const [username, setUsername] = useState<string>('');
   const [displayName, setDisplayName] = useState<string>('');
   const [profilePicture, setProfilePicture] = useState<string>('');
+  const [hasRecoveryEmail, setHasRecoveryEmail] = useState<boolean>(true);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
 
@@ -111,6 +114,7 @@ const GringottsApp: React.FC = () => {
         setUsername(data.username);
         setDisplayName(data.displayName || '');
         setProfilePicture(data.profilePicture || '');
+        setHasRecoveryEmail(data.hasRecoveryEmail === 'true');
         await personalizationSync.syncFromBackend();
         
         // Detect and save timezone if not already set
@@ -179,6 +183,8 @@ const GringottsApp: React.FC = () => {
       <Routes>
         <Route path="/login" element={<PublicRoute isAuthenticated={isAuthenticated}><Login onLoginSuccess={fetchUser} /></PublicRoute>} />
         <Route path="/register" element={<PublicRoute isAuthenticated={isAuthenticated}><Register /></PublicRoute>} />
+        <Route path="/forgot-password" element={<PublicRoute isAuthenticated={isAuthenticated}><ForgotPassword /></PublicRoute>} />
+        <Route path="/reset-password" element={<PublicRoute isAuthenticated={isAuthenticated}><ResetPassword /></PublicRoute>} />
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="/*" element={
           <PrivateRoute isAuthenticated={isAuthenticated}>
@@ -186,6 +192,7 @@ const GringottsApp: React.FC = () => {
               userName={username}
               displayName={displayName}
               profilePicture={profilePicture}
+              hasRecoveryEmail={hasRecoveryEmail}
               onLogout={handleLogout}
               onImport={() => setIsImportModalOpen(true)}
             >

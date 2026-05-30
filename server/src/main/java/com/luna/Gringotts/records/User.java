@@ -79,6 +79,8 @@ public class User implements UserDetails {
         this.profilePicture = profilePicture;
     }
 
+
+
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return Collections.emptyList();
