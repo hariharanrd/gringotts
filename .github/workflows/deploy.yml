@@ -11,6 +11,7 @@ jobs:
     outputs:
       server: ${{ steps.filter.outputs.server }}
       client: ${{ steps.filter.outputs.client }}
+      db: ${{ steps.filter.outputs.db }}
     steps:
       - uses: actions/checkout@v4
       - uses: dorny/paths-filter@v3
@@ -21,9 +22,13 @@ jobs:
               - 'server/**'
             client:
               - 'client/**'
+            db:
+              - 'supabase/migrations/**'
 
   db-push:
     name: Push Database Migrations
+    needs: changes
+    if: ${{ needs.changes.outputs.db == 'true' }}
     runs-on: ubuntu-latest
     env:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
@@ -47,7 +52,7 @@ jobs:
   deploy-backend:
     name: Deploy Backend to Cloud Run
     needs: [changes, db-push]
-    if: ${{ needs.changes.outputs.server == 'true' }}
+    if: ${{ always() && needs.changes.result == 'success' && (needs.db-push.result == 'success' || needs.db-push.result == 'skipped') && needs.changes.outputs.server == 'true' }}
     runs-on: ubuntu-latest
     permissions:
       contents: 'read'
@@ -92,7 +97,7 @@ jobs:
   deploy-frontend:
     name: Deploy Frontend to Firebase
     needs: [changes, db-push, deploy-backend]
-    if: ${{ always() && needs.changes.result == 'success' && needs.db-push.result == 'success' && needs.changes.outputs.client == 'true' && (needs.deploy-backend.result == 'success' || needs.deploy-backend.result == 'skipped') }}
+    if: ${{ always() && needs.changes.result == 'success' && (needs.db-push.result == 'success' || needs.db-push.result == 'skipped') && needs.changes.outputs.client == 'true' && (needs.deploy-backend.result == 'success' || needs.deploy-backend.result == 'skipped') }}
     runs-on: ubuntu-latest
     permissions:
       contents: 'read'

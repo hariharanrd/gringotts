@@ -56,7 +56,6 @@ const PublicRoute: React.FC<{ children: React.ReactNode; isAuthenticated: boolea
       </div>
     );
   }
-
   return !isAuthenticated ? <>{children}</> : <Navigate to="/dashboard" />;
 };
 
