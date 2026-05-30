@@ -18,6 +18,7 @@ public class AppConfiguration {
     private String value;
 
     public AppConfiguration() {
+        
     }
 
     public AppConfiguration(Long id, String category, String parameter, String value) {
