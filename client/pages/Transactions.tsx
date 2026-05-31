@@ -17,7 +17,8 @@ import {
   ChevronDown,
   ListChecks,
   ArrowUp,
-  ArrowDown
+  ArrowDown,
+  Download
 } from 'lucide-react';
 import { useToast } from '../components/ToastContext';
 import Pagination from '../components/Pagination';
@@ -25,6 +26,7 @@ import { TableSkeleton } from '../components/Skeleton';
 import { FilterMenu, FilterCriteria, FilterChips } from '../components/FilterMenu';
 import ConfirmationDialog from '../components/ConfirmationDialog';
 import CategoryIcon from '../components/CategoryIcon';
+import ExportModal from '../components/ExportModal';
 
 interface TransactionsProps {
   onEdit: (transaction: Transaction) => void;
@@ -91,6 +93,7 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
   });
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
 
   // Column visibility
   const [visibleColumns, setVisibleColumns] = useState<Set<ColumnKey>>(() => {
@@ -580,6 +583,17 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
             onApplyFilters={(f) => { setFilters(f); setCurrentPage(1); }}
           />
 
+          <button
+            onClick={() => setIsExportModalOpen(true)}
+            className="p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/60 rounded-xl shadow-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-slate-500 flex items-center gap-2 group"
+            title="Export Transactions"
+          >
+            <Download className="w-5 h-5 text-cyan-500 group-hover:scale-110 transition-transform" />
+            <span className="hidden sm:inline text-[10px] font-bold uppercase tracking-widest text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-200 transition-colors">
+              Export
+            </span>
+          </button>
+
 
 
           {currentTab !== 'all' && (
@@ -1045,6 +1059,13 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
         onConfirm={confirmBulkDelete}
         title="Delete Transactions"
         message={`Are you sure you want to delete the ${selectedIds.size} selected transaction(s)? This action cannot be undone.`}
+      />
+
+      <ExportModal
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        currentTab={currentTab}
+        activeFilters={filters}
       />
     </div>
   );
