@@ -132,7 +132,7 @@ const ExportModal: React.FC<ExportModalProps> = ({
                 }`}
               >
                 <FileSpreadsheet className="w-5 h-5 text-emerald-500" />
-                <span>Styled XLSX</span>
+                <span>XLSX</span>
               </button>
               <button
                 type="button"
@@ -144,7 +144,7 @@ const ExportModal: React.FC<ExportModalProps> = ({
                 }`}
               >
                 <FileText className="w-5 h-5 text-blue-500" />
-                <span>Standard CSV</span>
+                <span>CSV</span>
               </button>
             </div>
           </div>
