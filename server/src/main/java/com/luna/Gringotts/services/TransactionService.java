@@ -16,7 +16,9 @@ import jakarta.persistence.PersistenceContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Example;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.transaction.annotation.Transactional;
@@ -212,6 +214,45 @@ public class TransactionService {
         User user = iamService.getCurrentUser();
         Specification<Revolving> spec = TransactionSpecification.forUser(user, filters);
         return revolvingRepository.findAll(spec, pageable);
+    }
+
+    public List<Transaction> getTransactionsForExport(
+            String type,
+            java.time.LocalDate startDate,
+            java.time.LocalDate endDate,
+            List<SearchCriteria> filters) {
+        
+        User user = iamService.getCurrentUser();
+        List<SearchCriteria> criteriaList = new ArrayList<>();
+        if (filters != null) {
+            criteriaList.addAll(filters);
+        }
+
+        if (startDate != null) {
+            criteriaList.add(new SearchCriteria("transactionTime", "ge", startDate.toString()));
+        }
+        if (endDate != null) {
+            criteriaList.add(new SearchCriteria("transactionTime", "le", endDate.toString() + "T23:59:59"));
+        }
+
+        Pageable pageable = PageRequest.of(0, 3000, Sort.by(Sort.Direction.DESC, "transactionTime"));
+
+        if ("expense".equalsIgnoreCase(type)) {
+            Specification<Expense> spec = TransactionSpecification.forUser(user, criteriaList);
+            return expenseRepository.findAll(spec, pageable).getContent().stream().map(t -> (Transaction) t).collect(Collectors.toList());
+        } else if ("income".equalsIgnoreCase(type)) {
+            Specification<Income> spec = TransactionSpecification.forUser(user, criteriaList);
+            return incomeRepository.findAll(spec, pageable).getContent().stream().map(t -> (Transaction) t).collect(Collectors.toList());
+        } else if ("saving".equalsIgnoreCase(type)) {
+            Specification<Saving> spec = TransactionSpecification.forUser(user, criteriaList);
+            return savingRepository.findAll(spec, pageable).getContent().stream().map(t -> (Transaction) t).collect(Collectors.toList());
+        } else if ("revolving".equalsIgnoreCase(type)) {
+            Specification<Revolving> spec = TransactionSpecification.forUser(user, criteriaList);
+            return revolvingRepository.findAll(spec, pageable).getContent().stream().map(t -> (Transaction) t).collect(Collectors.toList());
+        } else {
+            Specification<Transaction> spec = TransactionSpecification.forUser(user, criteriaList);
+            return transactionRepository.findAll(spec, pageable).getContent();
+        }
     }
 
     public void deleteTransaction(Long id) {

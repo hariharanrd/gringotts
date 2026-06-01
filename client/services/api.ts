@@ -127,6 +127,37 @@ export const api = {
     return handleResponse(response);
   },
 
+  exportTransactions: async (params: {
+    format: 'csv' | 'xlsx';
+    type?: string;
+    startDate?: string;
+    endDate?: string;
+    filters?: { field: string; condition: string; value: string }[];
+  }): Promise<Blob> => {
+    let url = `${BASE_URL}/transactions/export?format=${params.format}`;
+    if (params.type) url += `&type=${encodeURIComponent(params.type)}`;
+    if (params.startDate) url += `&startDate=${encodeURIComponent(params.startDate)}`;
+    if (params.endDate) url += `&endDate=${encodeURIComponent(params.endDate)}`;
+    if (params.filters && params.filters.length > 0) {
+      url += `&filters=${encodeURIComponent(JSON.stringify(params.filters))}`;
+    }
+    const response = await fetchWithCredentials(url);
+    if (response.status === 403) {
+      window.location.href = '/login';
+      throw new Error('Session expired');
+    }
+    if (!response.ok) {
+      let errorMessage = `Export failed (Error ${response.status})`;
+      try {
+        const errorData = await response.json();
+        errorMessage = errorData.message || errorMessage;
+      } catch (e) {}
+      throw new Error(errorMessage);
+    }
+    return response.blob();
+  },
+
+
   getTransactions: async (currentPage: number, filters?: { field: string, condition: string, value: string }[], direction: 'ASC' | 'DESC' = 'DESC'): Promise<ResponseProps> => {
     let url = `${BASE_URL}/transactions?page=${currentPage}&direction=${direction}`;
     if (filters && filters.length > 0) url += `&filters=${encodeURIComponent(JSON.stringify(filters))}`;

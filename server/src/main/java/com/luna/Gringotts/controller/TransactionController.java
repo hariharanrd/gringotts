@@ -42,6 +42,9 @@ public class TransactionController {
     @Autowired
     private TransactionService transactionService;
 
+    @Autowired
+    private com.luna.Gringotts.services.ExportService exportService;
+
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     private List<com.luna.Gringotts.records.SearchCriteria> parseFilters(String filtersJson) {
@@ -76,6 +79,55 @@ public class TransactionController {
         map.put("page", pageable.getPageNumber() + 1);
         map.put("has_more", result.hasNext());
         return ResponseEntity.ok(map);
+    }
+
+    @GetMapping("/transactions/export")
+    public ResponseEntity<byte[]> exportTransactions(
+            @RequestParam("format") String format,
+            @RequestParam(value = "type", defaultValue = "all") String type,
+            @RequestParam(value = "startDate", required = false) String startDateStr,
+            @RequestParam(value = "endDate", required = false) String endDateStr,
+            @RequestParam(value = "filters", required = false) String filtersJson) {
+
+        if (!"csv".equalsIgnoreCase(format) && !"xlsx".equalsIgnoreCase(format)) {
+            return ResponseEntity.badRequest().body("Invalid format. Must be csv or xlsx".getBytes());
+        }
+
+        java.time.LocalDate startDate = null;
+        java.time.LocalDate endDate = null;
+        try {
+            if (startDateStr != null && !startDateStr.trim().isEmpty()) {
+                startDate = java.time.LocalDate.parse(startDateStr);
+            }
+            if (endDateStr != null && !endDateStr.trim().isEmpty()) {
+                endDate = java.time.LocalDate.parse(endDateStr);
+            }
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Invalid date format. Must be YYYY-MM-DD".getBytes());
+        }
+
+        List<com.luna.Gringotts.records.SearchCriteria> filters = parseFilters(filtersJson);
+        List<Transaction> transactions = transactionService.getTransactionsForExport(type, startDate, endDate, filters);
+
+        byte[] fileBytes;
+        String contentType;
+        String filename;
+
+        String dateStr = java.time.LocalDate.now().toString();
+        if ("csv".equalsIgnoreCase(format)) {
+            fileBytes = exportService.exportAsCsv(transactions);
+            contentType = "text/csv; charset=UTF-8";
+            filename = "transactions_" + dateStr + ".csv";
+        } else {
+            fileBytes = exportService.exportAsXlsx(transactions);
+            contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+            filename = "transactions_" + dateStr + ".xlsx";
+        }
+
+        return ResponseEntity.ok()
+                .header("Content-Disposition", "attachment; filename=\"" + filename + "\"")
+                .header("Content-Type", contentType)
+                .body(fileBytes);
     }
 
     @GetMapping("/expenses")
