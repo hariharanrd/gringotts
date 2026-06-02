@@ -162,8 +162,8 @@ const SetupPanel: React.FC<SetupPanelProps> = ({ isOpen, onClose, onImportSucces
 
   const tabs: { id: TabType; label: string; icon: React.ElementType }[] = [
     { id: 'categories', label: 'Categories & Items', icon: Tag },
-    { id: 'import', label: 'Import Statement', icon: Upload },
-    { id: 'export', label: 'Export Data', icon: Download },
+    { id: 'import', label: 'Import Statement', icon: Download },
+    { id: 'export', label: 'Export Data', icon: Upload },
     { id: 'appearance', label: 'Appearance', icon: Palette }
   ];
 
@@ -315,7 +315,7 @@ const SetupPanel: React.FC<SetupPanelProps> = ({ isOpen, onClose, onImportSucces
                         </>
                       ) : (
                         <>
-                          <Upload className="w-10 h-10 text-slate-400 dark:text-slate-600 group-hover:scale-105 transition-transform" />
+                          <Download className="w-10 h-10 text-slate-400 dark:text-slate-600 group-hover:scale-105 transition-transform" />
                           <div>
                             <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Click or drag file here</span>
                             <p className="text-xs text-slate-400 mt-1">Supports CSV, XLSX, XLS files up to 10MB</p>
@@ -335,7 +335,6 @@ const SetupPanel: React.FC<SetupPanelProps> = ({ isOpen, onClose, onImportSucces
                     <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                   ) : (
                     <>
-                      <Upload className="w-4 h-4" />
                       Import Statement
                     </>
                   )}
@@ -475,7 +474,6 @@ const SetupPanel: React.FC<SetupPanelProps> = ({ isOpen, onClose, onImportSucces
                     <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                   ) : (
                     <>
-                      <Download className="w-4 h-4" />
                       Export Transactions
                     </>
                   )}
