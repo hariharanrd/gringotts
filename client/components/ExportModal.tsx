@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Download, Calendar, Info, FileSpreadsheet, FileText } from 'lucide-react';
+import { X, Info, FileSpreadsheet, FileText } from 'lucide-react';
 import { useToast } from './ToastContext';
 import { api } from '../services/api';
 
@@ -103,7 +103,6 @@ const ExportModal: React.FC<ExportModalProps> = ({
         <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-700/50 flex items-center justify-between bg-slate-50/50 dark:bg-slate-800/30">
           <div className="flex items-center gap-2">
             <div className="p-1.5 rounded-lg bg-cyan-500/10 text-cyan-500">
-              <Download className="w-5 h-5" />
             </div>
             <div>
               <h3 className="text-lg font-bold text-slate-900 dark:text-white">Export Transactions</h3>
@@ -248,7 +247,6 @@ const ExportModal: React.FC<ExportModalProps> = ({
                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
               ) : (
                 <>
-                  <Download className="w-4 h-4" />
                   Export
                 </>
               )}
