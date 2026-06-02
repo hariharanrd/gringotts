@@ -16,7 +16,11 @@ import ConfirmationDialog from '../components/ConfirmationDialog';
 import { useToast } from '../components/ToastContext';
 import CategoryIcon from '../components/CategoryIcon';
 
-const Configuration: React.FC = () => {
+interface ConfigurationProps {
+  isPanel?: boolean;
+}
+
+const Configuration: React.FC<ConfigurationProps> = ({ isPanel = false }) => {
   const { showToast } = useToast();
   const [categories, setCategories] = useState<Category[]>([]);
   const [subCategories, setSubCategories] = useState<Record<number, SubCategory[]>>({});
@@ -172,176 +176,185 @@ const Configuration: React.FC = () => {
     }
   };
 
-  return (
-    <div className="space-y-6">
-      <div className="glass-card rounded-2xl p-6">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-bold text-slate-900 dark:text-white">Categories & Items</h2>
-        </div>
-
-        <div className="space-y-2">
-          {categories.map(category => (
-            <div key={category.id} className="border border-slate-200 dark:border-slate-700/40 rounded-xl overflow-hidden bg-slate-50 dark:bg-slate-800/30">
-              <div 
-                className="flex items-center justify-between p-4 hover:bg-slate-100 dark:hover:bg-slate-700/30 transition-colors cursor-pointer select-none"
-                onClick={() => toggleCategory(category.id)}
-              >
-                <div className="flex items-center gap-3">
-                  {expandedCategories.has(category.id) ? (
-                    <ChevronDown className="w-4 h-4 text-cyan-500 dark:text-cyan-400" />
-                  ) : (
-                    <ChevronRight className="w-4 h-4 text-slate-400 dark:text-slate-500" />
-                  )}
-                  <CategoryIcon category={category} />
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h3 className="font-medium text-slate-800 dark:text-slate-200">{category.name}</h3>
-                      {category.type && (
-                        <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full uppercase tracking-wider ${
-                          category.type === 'EXPENSE' ? 'bg-rose-500/15 text-rose-500 dark:text-rose-400' :
-                          category.type === 'INCOME' ? 'bg-emerald-500/15 text-emerald-500 dark:text-emerald-400' :
-                          category.type === 'SAVING' ? 'bg-violet-500/15 text-violet-500 dark:text-violet-400' :
-                          'bg-blue-500/15 text-blue-500 dark:text-blue-400'
-                        }`}>{category.type}</span>
-                      )}
-                    </div>
-                    {category.description && <p className="text-xs text-slate-400 dark:text-slate-500">{category.description}</p>}
-                  </div>
-                </div>
-                <div className="flex items-center gap-1">
-                  <button 
-                    onClick={(e) => { e.stopPropagation(); openEditModal('CATEGORY', { id: category.id, name: category.name, description: category.description, type: category.type, icon: category.icon, color: category.color }); }}
-                    className="p-2 text-slate-400 dark:text-slate-600 hover:text-cyan-500 dark:hover:text-cyan-400 hover:bg-cyan-500/10 rounded-lg transition-colors"
-                    title="Edit Category"
-                  >
-                    <Pencil className="w-4 h-4" />
-                  </button>
-                  <button 
-                    onClick={(e) => { e.stopPropagation(); handleDeleteCategory(category.id); }}
-                    className="p-2 text-slate-400 dark:text-slate-600 hover:text-rose-500 dark:hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors"
-                    title="Delete Category"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
+  const renderTree = () => (
+    <div className="space-y-2">
+      {categories.map(category => (
+        <div key={category.id} className="border border-slate-200 dark:border-slate-700/40 rounded-xl overflow-hidden bg-slate-50 dark:bg-slate-800/30">
+          <div 
+            className="flex items-center justify-between p-4 hover:bg-slate-100 dark:hover:bg-slate-700/30 transition-colors cursor-pointer select-none"
+            onClick={() => toggleCategory(category.id)}
+          >
+            <div className="flex items-center gap-3 min-w-0 flex-1 mr-2">
+              {expandedCategories.has(category.id) ? (
+                <ChevronDown className="w-4 h-4 text-cyan-500 dark:text-cyan-400 shrink-0" />
+              ) : (
+                <ChevronRight className="w-4 h-4 text-slate-400 dark:text-slate-500 shrink-0" />
+              )}
+              <div className="shrink-0">
+                <CategoryIcon category={category} />
               </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                  <h3 className="font-medium text-slate-800 dark:text-slate-200 break-words" title={category.name}>{category.name}</h3>
+                  {category.type && (
+                    <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full uppercase tracking-wider shrink-0 ${
+                      category.type === 'EXPENSE' ? 'bg-rose-500/15 text-rose-500 dark:text-rose-400' :
+                      category.type === 'INCOME' ? 'bg-emerald-500/15 text-emerald-500 dark:text-emerald-400' :
+                      category.type === 'SAVING' ? 'bg-violet-500/15 text-violet-500 dark:text-violet-400' :
+                      'bg-blue-500/15 text-blue-500 dark:text-blue-400'
+                    }`}>{category.type}</span>
+                  )}
+                </div>
+                {category.description && <p className="text-xs text-slate-400 dark:text-slate-500 break-words mt-0.5">{category.description}</p>}
+              </div>
+            </div>
+            <div className="flex items-center gap-1 shrink-0">
+              <button 
+                onClick={(e) => { e.stopPropagation(); openEditModal('CATEGORY', { id: category.id, name: category.name, description: category.description, type: category.type, icon: category.icon, color: category.color }); }}
+                className="p-2 text-slate-400 dark:text-slate-600 hover:text-cyan-500 dark:hover:text-cyan-400 hover:bg-cyan-500/10 rounded-lg transition-colors"
+                title="Edit Category"
+              >
+                <Pencil className="w-4 h-4" />
+              </button>
+              <button 
+                onClick={(e) => { e.stopPropagation(); handleDeleteCategory(category.id); }}
+                className="p-2 text-slate-400 dark:text-slate-600 hover:text-rose-500 dark:hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors"
+                title="Delete Category"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
 
-              {expandedCategories.has(category.id) && (
-                <div className="border-t border-slate-200 dark:border-slate-700/30">
-                  {loading[`cat-${category.id}`] ? (
-                    <div className="p-4 text-center text-slate-400 dark:text-slate-500 text-sm animate-pulse">Loading subcategories...</div>
-                  ) : (
-                    <div className="p-2 pl-8 space-y-2">
-                      {subCategories[category.id]?.map(sub => (
-                        <div key={sub.id} className="border border-slate-200 dark:border-slate-700/30 rounded-lg overflow-hidden bg-white/50 dark:bg-slate-800/20">
-                          <div 
-                            className="flex items-center justify-between p-3 hover:bg-slate-50 dark:hover:bg-slate-700/20 transition-colors cursor-pointer select-none"
-                            onClick={() => toggleSubCategory(sub.id)}
+          {expandedCategories.has(category.id) && (
+            <div className="border-t border-slate-200 dark:border-slate-700/30">
+              {loading[`cat-${category.id}`] ? (
+                <div className="p-4 text-center text-slate-400 dark:text-slate-500 text-sm animate-pulse">Loading subcategories...</div>
+              ) : (
+                <div className="p-2 pl-8 space-y-2">
+                  {subCategories[category.id]?.map(sub => (
+                    <div key={sub.id} className="border border-slate-200 dark:border-slate-700/30 rounded-lg overflow-hidden bg-white/50 dark:bg-slate-800/20">
+                      <div 
+                        className="flex items-center justify-between p-3 hover:bg-slate-50 dark:hover:bg-slate-700/20 transition-colors cursor-pointer select-none"
+                        onClick={() => toggleSubCategory(sub.id)}
+                      >
+                        <div className="flex items-center gap-3 min-w-0 flex-1 mr-2">
+                          {expandedSubCategories.has(sub.id) ? (
+                            <ChevronDown className="w-3.5 h-3.5 text-violet-500 dark:text-violet-400 shrink-0" />
+                          ) : (
+                            <ChevronRight className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500 shrink-0" />
+                          )}
+                          <Layers className="w-4 h-4 text-violet-500 dark:text-violet-400 shrink-0" />
+                          <span className="text-sm font-medium text-slate-700 dark:text-slate-300 break-words min-w-0 flex-1">{sub.name}</span>
+                        </div>
+                        <div className="flex items-center gap-1 shrink-0">
+                          <button 
+                            onClick={(e) => { e.stopPropagation(); openEditModal('SUBCATEGORY', { id: sub.id, name: sub.name, description: sub.description }, category.id); }}
+                            className="p-1.5 text-slate-400 dark:text-slate-600 hover:text-cyan-500 dark:hover:text-cyan-400 hover:bg-cyan-500/10 rounded-lg transition-colors"
+                            title="Edit Sub-Category"
                           >
-                            <div className="flex items-center gap-3">
-                              {expandedSubCategories.has(sub.id) ? (
-                                <ChevronDown className="w-3.5 h-3.5 text-violet-500 dark:text-violet-400" />
-                              ) : (
-                                <ChevronRight className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500" />
-                              )}
-                              <Layers className="w-4 h-4 text-violet-500 dark:text-violet-400" />
-                              <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{sub.name}</span>
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <button 
-                                onClick={(e) => { e.stopPropagation(); openEditModal('SUBCATEGORY', { id: sub.id, name: sub.name, description: sub.description }, category.id); }}
-                                className="p-1.5 text-slate-400 dark:text-slate-600 hover:text-cyan-500 dark:hover:text-cyan-400 hover:bg-cyan-500/10 rounded-lg transition-colors"
-                                title="Edit Sub-Category"
-                              >
-                                <Pencil className="w-3.5 h-3.5" />
-                              </button>
-                              <button 
-                                onClick={(e) => { e.stopPropagation(); handleDeleteSubCategory(sub.id, category.id); }}
-                                className="p-1.5 text-slate-400 dark:text-slate-600 hover:text-rose-500 dark:hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors"
-                                title="Delete Sub-Category"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
-                            </div>
-                          </div>
+                            <Pencil className="w-3.5 h-3.5" />
+                          </button>
+                          <button 
+                            onClick={(e) => { e.stopPropagation(); handleDeleteSubCategory(sub.id, category.id); }}
+                            className="p-1.5 text-slate-400 dark:text-slate-600 hover:text-rose-500 dark:hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors"
+                            title="Delete Sub-Category"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
 
-                          {expandedSubCategories.has(sub.id) && (
-                            <div className="border-t border-slate-100 dark:border-slate-700/20 p-2 pl-8">
-                              {loading[`sub-${sub.id}`] ? (
-                                <div className="py-2 text-slate-400 dark:text-slate-500 text-xs animate-pulse">Loading items...</div>
-                              ) : (
-                                <div className="space-y-1">
-                                  {items[sub.id]?.map(item => (
-                                    <div key={item.id} className="flex items-center justify-between p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700/20 transition-all group">
-                                      <div className="flex items-center gap-2">
-                                        <Package className="w-3.5 h-3.5 text-emerald-500 dark:text-emerald-400" />
-                                        <span className="text-sm text-slate-600 dark:text-slate-300">{item.name}</span>
-                                      </div>
-                                      <div className="flex items-center gap-1 opacity-100 md:opacity-0 group-hover:opacity-100 transition-all">
-                                        <button 
-                                          onClick={() => openEditModal('ITEM', { id: item.id, name: item.name, description: item.description }, sub.id)}
-                                          className="p-1 text-slate-400 dark:text-slate-600 hover:text-cyan-500 dark:hover:text-cyan-400 hover:bg-cyan-500/10 rounded transition-all"
-                                          title="Edit Item"
-                                        >
-                                          <Pencil className="w-3 h-3" />
-                                        </button>
-                                        <button 
-                                          onClick={() => handleDeleteItem(item.id, sub.id)}
-                                          className="p-1 text-slate-400 dark:text-slate-600 hover:text-rose-500 dark:hover:text-rose-400 hover:bg-rose-500/10 rounded transition-all"
-                                          title="Delete Item"
-                                        >
-                                          <Trash2 className="w-3 h-3" />
-                                        </button>
-                                      </div>
-                                    </div>
-                                  ))}
-                                  <button 
-                                    onClick={() => openModal('ITEM', sub.id)}
-                                    className="w-full mt-2 py-1.5 text-xs text-slate-400 dark:text-slate-500 hover:text-cyan-500 dark:hover:text-cyan-400 hover:bg-cyan-500/5 rounded-lg border border-dashed border-slate-300 dark:border-slate-700/50 hover:border-cyan-500/30 transition-all flex items-center justify-center gap-1"
-                                  >
-                                    <Plus className="w-3 h-3" />
-                                    Add Item
-                                  </button>
+                      {expandedSubCategories.has(sub.id) && (
+                        <div className="border-t border-slate-100 dark:border-slate-700/20 p-2 pl-8">
+                          {loading[`sub-${sub.id}`] ? (
+                            <div className="py-2 text-slate-400 dark:text-slate-500 text-xs animate-pulse">Loading items...</div>
+                          ) : (
+                            <div className="space-y-1">
+                              {items[sub.id]?.map(item => (
+                                <div key={item.id} className="flex items-center justify-between p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700/20 transition-all group gap-2">
+                                  <div className="flex items-center gap-2 min-w-0 flex-1">
+                                    <Package className="w-3.5 h-3.5 text-emerald-500 dark:text-emerald-400 shrink-0" />
+                                    <span className="text-sm text-slate-600 dark:text-slate-300 break-words min-w-0 flex-1">{item.name}</span>
+                                  </div>
+                                  <div className="flex items-center gap-1 opacity-100 md:opacity-0 group-hover:opacity-100 transition-all shrink-0">
+                                    <button 
+                                      onClick={() => openEditModal('ITEM', { id: item.id, name: item.name, description: item.description }, sub.id)}
+                                      className="p-1 text-slate-400 dark:text-slate-600 hover:text-cyan-500 dark:hover:text-cyan-400 hover:bg-cyan-500/10 rounded transition-all"
+                                      title="Edit Item"
+                                    >
+                                      <Pencil className="w-3 h-3" />
+                                    </button>
+                                    <button 
+                                      onClick={() => handleDeleteItem(item.id, sub.id)}
+                                      className="p-1 text-slate-400 dark:text-slate-600 hover:text-rose-500 dark:hover:text-rose-400 hover:bg-rose-500/10 rounded transition-all"
+                                      title="Delete Item"
+                                    >
+                                      <Trash2 className="w-3 h-3" />
+                                    </button>
+                                  </div>
                                 </div>
-                              )}
+                              ))}
+                              <button 
+                                onClick={() => openModal('ITEM', sub.id)}
+                                className="w-full mt-2 py-1.5 text-xs text-slate-400 dark:text-slate-500 hover:text-cyan-500 dark:hover:text-cyan-400 hover:bg-cyan-500/5 rounded-lg border border-dashed border-slate-300 dark:border-slate-700/50 hover:border-cyan-500/30 transition-all flex items-center justify-center gap-1"
+                              >
+                                <Plus className="w-3 h-3" />
+                                Add Item
+                              </button>
                             </div>
                           )}
                         </div>
-                      ))}
-                      <button 
-                        onClick={() => openModal('SUBCATEGORY', category.id)}
-                        className="w-full py-2 text-sm text-slate-400 dark:text-slate-500 hover:text-violet-500 dark:hover:text-violet-400 hover:bg-violet-500/5 rounded-lg border border-dashed border-slate-300 dark:border-slate-700/50 hover:border-violet-500/30 transition-all flex items-center justify-center gap-2"
-                      >
-                        <Plus className="w-4 h-4" />
-                        Add Sub-Category
-                      </button>
+                      )}
                     </div>
-                  )}
+                  ))}
+                  <button 
+                    onClick={() => openModal('SUBCATEGORY', category.id)}
+                    className="w-full py-2 text-sm text-slate-400 dark:text-slate-500 hover:text-violet-500 dark:hover:text-violet-400 hover:bg-violet-500/5 rounded-lg border border-dashed border-slate-300 dark:border-slate-700/50 hover:border-violet-500/30 transition-all flex items-center justify-center gap-2"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Add Sub-Category
+                  </button>
                 </div>
               )}
             </div>
-          ))}
-          
-          {categories.length === 0 && (
-            <div className="text-center py-12 text-slate-400 dark:text-slate-500">
-              No categories found. Click "Add Category" to start.
-            </div>
           )}
-          <button 
-            onClick={() => openModal('CATEGORY')}
-            className="w-full py-3 text-white font-bold rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 text-sm"
-            style={{
-              background: `linear-gradient(to right, var(--theme-gradient-from), var(--theme-gradient-to))`,
-              boxShadow: `0 10px 15px -3px rgba(var(--theme-accent-rgb), 0.2), 0 4px 6px -4px rgba(var(--theme-accent-rgb), 0.2)`
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.filter = 'brightness(1.1)'; }}
-            onMouseLeave={(e) => { e.currentTarget.style.filter = 'none'; }}
-          >
-            <Plus className="w-4 h-4" />
-            Add Category
-          </button>
         </div>
-      </div>
+      ))}
+      
+      {categories.length === 0 && (
+        <div className="text-center py-12 text-slate-400 dark:text-slate-500">
+          No categories found. Click "Add Category" to start.
+        </div>
+      )}
+      <button 
+        onClick={() => openModal('CATEGORY')}
+        className="w-full py-3 text-white font-bold rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 text-sm animate-in fade-in"
+        style={{
+          background: `linear-gradient(to right, var(--theme-gradient-from), var(--theme-gradient-to))`,
+          boxShadow: `0 10px 15px -3px rgba(var(--theme-accent-rgb), 0.2), 0 4px 6px -4px rgba(var(--theme-accent-rgb), 0.2)`
+        }}
+        onMouseEnter={(e) => { e.currentTarget.style.filter = 'brightness(1.1)'; }}
+        onMouseLeave={(e) => { e.currentTarget.style.filter = 'none'; }}
+      >
+        <Plus className="w-4 h-4" />
+        Add Category
+      </button>
+    </div>
+  );
+
+  return (
+    <div className={isPanel ? "space-y-4" : "space-y-6"}>
+      {isPanel ? (
+        renderTree()
+      ) : (
+        <div className="glass-card rounded-2xl p-6">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-bold text-slate-900 dark:text-white">Categories & Items</h2>
+          </div>
+          {renderTree()}
+        </div>
+      )}
 
       <ConfigurationModal 
         isOpen={modalOpen}

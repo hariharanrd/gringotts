@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import QRCode from 'qrcode';
 import { api } from '../services/api';
 import { useToast } from '../components/ToastContext';
@@ -15,11 +15,10 @@ interface AccountProps {
   onProfileUpdate: () => void;
 }
 
-type Section = 'profile' | 'appearance' | 'security' | 'sessions' | 'danger' | 'account' | 'preferences';
+type Section = 'profile' | 'security' | 'sessions' | 'danger' | 'account' | 'preferences';
 
 const SECTION_TABS: { id: Section; label: string; icon: React.ElementType }[] = [
   { id: 'profile', label: 'Profile', icon: User },
-  { id: 'appearance', label: 'Appearance', icon: Palette },
   { id: 'preferences', label: 'Regional', icon: Globe },
   { id: 'security', label: 'Security', icon: KeyRound },
   { id: 'sessions', label: 'Active Sessions', icon: Monitor },
@@ -157,8 +156,24 @@ const Account: React.FC<AccountProps> = ({ onProfileUpdate }) => {
   const navigate = useNavigate();
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const [section, setSection] = useState<Section>('profile');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [section, setSection] = useState<Section>(() => {
+    const tab = searchParams.get('tab') as Section;
+    return (tab && SECTION_TABS.some(t => t.id === tab)) ? tab : 'profile';
+  });
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const tab = searchParams.get('tab') as Section;
+    if (tab && SECTION_TABS.some(t => t.id === tab)) {
+      setSection(tab);
+    }
+  }, [searchParams]);
+
+  const handleSectionChange = (newSection: Section) => {
+    setSection(newSection);
+    setSearchParams({ tab: newSection });
+  };
 
   // Profile section
   const [username, setUsername] = useState('');
@@ -575,7 +590,7 @@ const Account: React.FC<AccountProps> = ({ onProfileUpdate }) => {
                 {SECTION_TABS.map(({ id, label, icon: Icon }) => (
                   <button
                     key={id}
-                    onClick={() => { setSection(id); setMenuOpen(false); }}
+                    onClick={() => { handleSectionChange(id); setMenuOpen(false); }}
                     className={`w-full flex items-center gap-3 px-4 py-3.5 text-sm font-medium transition-all
                       ${section === id
                         ? 'bg-cyan-500/10 text-cyan-600 dark:text-cyan-400'
@@ -594,7 +609,7 @@ const Account: React.FC<AccountProps> = ({ onProfileUpdate }) => {
             {SECTION_TABS.map(({ id, label, icon: Icon }) => (
               <button
                 key={id}
-                onClick={() => setSection(id)}
+                onClick={() => handleSectionChange(id)}
                 className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 w-full text-left
                   ${section === id
                     ? 'bg-gradient-to-r from-cyan-500/10 to-blue-500/10 text-cyan-600 dark:text-cyan-400'
@@ -868,86 +883,7 @@ const Account: React.FC<AccountProps> = ({ onProfileUpdate }) => {
             </div>
           )}
 
-          {/* ─ Appearance ─ */}
-          {section === 'appearance' && (
-            <div className="bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700/50 rounded-2xl p-6 space-y-6">
-              <div>
-                <h2 className="text-base font-semibold text-slate-900 dark:text-white">Theme Library</h2>
-                <p className="text-xs text-slate-400 mt-0.5">Choose a theme that suits your style. Your selection is saved automatically.</p>
-              </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {THEME_LIBRARY.map((t) => {
-                  const isSelected = theme === t.id;
-                  return (
-                    <button
-                      key={t.id}
-                      onClick={() => setTheme(t.id)}
-                      className={`group relative text-left rounded-2xl p-4 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl ${isSelected
-                        ? 'ring-2 shadow-lg scale-[1.02]'
-                        : 'hover:ring-1 border'
-                        }`}
-                      style={{
-                        background: t.colors.bg,
-                        borderColor: isSelected ? t.colors.accent : t.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
-                        ['--tw-ring-color' as any]: t.colors.accent,
-                        boxShadow: isSelected ? `0 4px 20px ${t.colors.accent}30` : undefined,
-                        ...(isSelected ? { outline: `2px solid ${t.colors.accent}`, outlineOffset: '1px' } : {}),
-                      }}
-                    >
-                      {/* Selected indicator */}
-                      {isSelected && (
-                        <div
-                          className="absolute top-3 right-3 w-6 h-6 rounded-full flex items-center justify-center shadow-md"
-                          style={{ background: t.colors.accent }}
-                        >
-                          <Check className="w-3.5 h-3.5" style={{ color: t.isDark && t.id !== 'neo-pop' ? '#fff' : t.colors.bg }} />
-                        </div>
-                      )}
-
-                      {/* Mini preview bar */}
-                      <div className="flex gap-1.5 mb-3">
-                        <div className="h-8 flex-1 rounded-lg" style={{ background: t.colors.surface, border: `1px solid ${t.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'}` }} />
-                        <div className="h-8 w-10 rounded-lg" style={{ background: `linear-gradient(135deg, ${t.colors.accent}, ${t.colors.accentSecondary})` }} />
-                      </div>
-
-                      {/* Color swatches */}
-                      <div className="flex gap-1.5 mb-3">
-                        {[t.colors.bg, t.colors.surface, t.colors.accent, t.colors.accentSecondary, t.colors.text].map((c, i) => (
-                          <div
-                            key={i}
-                            className="w-5 h-5 rounded-full shadow-sm"
-                            style={{ background: c, border: `1px solid ${t.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}` }}
-                          />
-                        ))}
-                      </div>
-
-                      {/* Name & description */}
-                      <h3 className="text-sm font-bold" style={{ color: t.colors.text }}>{t.name}</h3>
-                      <p className="text-[11px] mt-0.5 leading-relaxed" style={{ color: t.isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.45)' }}>
-                        {t.description}
-                      </p>
-
-                      {/* Vibe tag */}
-                      <span
-                        className="inline-block mt-2 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider"
-                        style={{
-                          background: `${t.colors.accent}18`,
-                          color: t.colors.accent,
-                        }}
-                      >
-                        {t.vibe}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-
-              <p className="text-[11px] text-slate-400 dark:text-slate-500">
-                Tip: Use the <Sun className="w-3 h-3 inline" /> / <Moon className="w-3 h-3 inline" /> toggle in the header for a quick switch between Light and Dark.
-              </p>
-            </div>
-          )}
 
           {/* ─ Security ─ */}
           {section === 'security' && (

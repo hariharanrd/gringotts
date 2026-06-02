@@ -784,7 +784,7 @@ const GoalDetailModal: React.FC<GoalDetailModalProps> = ({ goal, onClose }) => {
               <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-slate-700 dark:text-amber-300 space-y-2">
                 <p className="text-sm font-bold flex items-center gap-1.5">
                   <Sparkles className="w-4 h-4 text-amber-500" />
-                  Allocated towards spending: {fmt(totalFunded)}
+                  Allocated towards spending: {fmtCompact(totalFunded)}
                 </p>
                 <p className="text-xs leading-relaxed text-slate-500 dark:text-slate-300">
                   This goal is for one-time spending (e.g. buying a car, home). The spend is part of the achievement itself, and the goal progress remains at <span className="font-bold text-amber-600 dark:text-amber-400">{pct.toFixed(0)}%</span>.
@@ -794,8 +794,8 @@ const GoalDetailModal: React.FC<GoalDetailModalProps> = ({ goal, onClose }) => {
                   <div className="bg-amber-500 h-1.5 rounded-full" style={{ width: `${Math.min((totalFunded / goal.target_amount) * 100, 100)}%` }} />
                 </div>
                 <div className="flex justify-between text-[9px] uppercase tracking-wider font-bold text-slate-400">
-                  <span>Spent: {fmt(totalFunded)}</span>
-                  <span>Target: {fmt(goal.target_amount)}</span>
+                  <span>Spent: {fmtCompact(totalFunded)}</span>
+                  <span>Target: {fmtCompact(goal.target_amount)}</span>
                 </div>
               </div>
             ) : (
@@ -803,10 +803,10 @@ const GoalDetailModal: React.FC<GoalDetailModalProps> = ({ goal, onClose }) => {
                 <div className="p-4 rounded-2xl bg-violet-500/10 border border-violet-500/20 text-slate-700 dark:text-violet-300 space-y-2">
                   <p className="text-sm font-bold flex items-center gap-1.5 text-violet-600 dark:text-violet-400">
                     <RefreshCw className="w-4 h-4 text-violet-500 animate-spin-slow" />
-                    Refill needed: {fmt(refillNeeded)}
+                    Refill needed: {fmtCompact(refillNeeded)}
                   </p>
                   <p className="text-xs leading-relaxed text-slate-500 dark:text-slate-300">
-                    This is a persistent goal (e.g. Emergency Fund). Spending has reduced the available amount. You must contribute an additional <span className="font-bold text-violet-600 dark:text-violet-400">{fmt(refillNeeded)}</span> to restore it to the original target.
+                    This is a persistent goal (e.g. Emergency Fund). Spending has reduced the available amount. You must contribute an additional <span className="font-bold text-violet-600 dark:text-violet-400">{fmtCompact(refillNeeded)}</span> to restore it to the original target.
                   </p>
                 </div>
               )
@@ -825,17 +825,17 @@ const GoalDetailModal: React.FC<GoalDetailModalProps> = ({ goal, onClose }) => {
           <div className="grid grid-cols-3 gap-4">
             <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-2xl border border-slate-100 dark:border-slate-800/60">
               <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Target</p>
-              <p className="text-base font-black text-slate-800 dark:text-white tabular-nums mt-1">{fmt(goal.target_amount)}</p>
+              <p className="text-base font-black text-slate-800 dark:text-white tabular-nums mt-1">{fmtCompact(goal.target_amount)}</p>
             </div>
             <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-2xl border border-slate-100 dark:border-slate-800/60">
               <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
                 {goal.goal_type === 'ONE_TIME' ? 'Achieved Amount' : 'Available Balance'}
               </p>
-              <p className="text-base font-black text-slate-800 dark:text-white tabular-nums mt-1" style={{ color }}>{fmt(goal.current_amount)}</p>
+              <p className="text-base font-black text-slate-800 dark:text-white tabular-nums mt-1" style={{ color }}>{fmtCompact(goal.current_amount)}</p>
             </div>
             <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-2xl border border-slate-100 dark:border-slate-800/60">
               <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Total Spent</p>
-              <p className="text-base font-black text-slate-800 dark:text-white tabular-nums mt-1">{fmt(totalFunded)}</p>
+              <p className="text-base font-black text-slate-800 dark:text-white tabular-nums mt-1">{fmtCompact(totalFunded)}</p>
             </div>
           </div>
 
@@ -1029,9 +1029,9 @@ const InvestmentPlanner: React.FC = () => {
         {(activeGoals.length > 0 || activeTab === 'active') && (
           <div className="mt-6 grid grid-cols-2 sm:grid-cols-5 gap-4">
             {[
-              { label: 'Total Target', value: fmt(totalTarget), icon: '🎯', color: 'violet' },
-              { label: 'Total Achieved', value: fmt(totalSaved), icon: '💰', color: 'cyan' },
-              { label: 'Monthly Contribution', value: fmt(totalMonthly), icon: '📆', color: 'emerald' },
+              { label: 'Total Target', value: fmtCompact(totalTarget), icon: '🎯', color: 'violet' },
+              { label: 'Total Achieved', value: fmtCompact(totalSaved), icon: '💰', color: 'cyan' },
+              { label: 'Monthly Contribution', value: fmtCompact(totalMonthly), icon: '📆', color: 'emerald' },
               { label: 'Overall Progress', value: `${overallPct}%`, icon: '📈', color: 'emerald' },
               { label: 'Goals Achieved', value: `${achievedCount} / ${activeGoals.length}`, icon: '🏆', color: 'amber' },
             ].map(stat => (

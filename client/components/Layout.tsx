@@ -20,10 +20,14 @@ import {
   Clock,
   Table2,
   AlertTriangle,
-  ArrowRight
+  ArrowRight,
+  KeyRound,
+  Globe,
+  Monitor
 } from 'lucide-react';
 
 import { useTheme } from './ThemeContext';
+import SetupPanel from './SetupPanel';
 
 interface LayoutProps {
   userName: string;
@@ -32,7 +36,7 @@ interface LayoutProps {
   hasRecoveryEmail?: boolean;
   children: React.ReactNode;
   onLogout: () => void;
-  onImport?: () => void;
+  onImportSuccess?: () => void;
 }
 
 const navItems = [
@@ -43,14 +47,14 @@ const navItems = [
   { id: 'loans', label: 'Loans', icon: Landmark, path: '/loans' },
   { id: 'credit-cards', label: 'Cards', icon: CreditCard, path: '/credit-cards' },
   { id: 'schedules', label: 'Schedules', icon: Clock, path: '/schedules' },
-  { id: 'configuration', label: 'Configuration', icon: Settings, path: '/configuration' },
 ];
 
 
-const Layout: React.FC<LayoutProps> = ({ userName, displayName, profilePicture, hasRecoveryEmail, children, onImport }) => {
+const Layout: React.FC<LayoutProps> = ({ userName, displayName, profilePicture, hasRecoveryEmail, children, onImportSuccess }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isPinned, setIsPinned] = useState(true);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isSetupOpen, setIsSetupOpen] = useState(false);
   const [isWarningDismissed, setIsWarningDismissed] = useState(() => sessionStorage.getItem('dismissedRecoveryEmailWarning') === 'true');
   const location = useLocation();
   const { theme, toggleTheme, isDark } = useTheme();
@@ -235,20 +239,17 @@ const Layout: React.FC<LayoutProps> = ({ userName, displayName, profilePicture, 
               {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
             </button>
 
-            {onImport && (
-              <button
-                onClick={onImport}
-                className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-xl transition-all"
-                style={{
-                  color: 'var(--theme-text-secondary)',
-                  background: 'var(--theme-surface-hover)',
-                  border: '1px solid var(--theme-border-subtle)',
-                }}
-              >
-                <Upload className="w-4 h-4" />
-                <span className="hidden sm:inline">Import</span>
-              </button>
-            )}
+            {/* Setup Gear Toggle */}
+            <button
+              onClick={() => setIsSetupOpen(true)}
+              className="p-2 rounded-xl transition-all hover:scale-105"
+              title="Vault Setup"
+              style={{ color: 'var(--theme-text-muted)' }}
+              onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'var(--theme-surface-hover)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+            >
+              <Settings className="w-5 h-5" />
+            </button>
             <button
               onClick={() => setIsProfileOpen(!isProfileOpen)}
               className="flex items-center gap-3 p-2 pr-4 rounded-xl transition-all duration-200"
@@ -279,8 +280,8 @@ const Layout: React.FC<LayoutProps> = ({ userName, displayName, profilePicture, 
                 }}
               >
                 <Link
-                  to="/account"
-                  className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-colors w-full"
+                  to="/account?tab=profile"
+                  className="flex items-center gap-3 px-4 py-2 text-sm font-medium transition-colors w-full"
                   onClick={() => setIsProfileOpen(false)}
                   style={{ color: 'var(--theme-text-secondary)' }}
                   onMouseEnter={(e) => {
@@ -293,7 +294,58 @@ const Layout: React.FC<LayoutProps> = ({ userName, displayName, profilePicture, 
                   }}
                 >
                   <UserCircle2 className="w-4 h-4" />
-                  Account Settings
+                  Profile
+                </Link>
+                <Link
+                  to="/account?tab=security"
+                  className="flex items-center gap-3 px-4 py-2 text-sm font-medium transition-colors w-full"
+                  onClick={() => setIsProfileOpen(false)}
+                  style={{ color: 'var(--theme-text-secondary)' }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = 'var(--theme-surface-hover)';
+                    e.currentTarget.style.color = 'var(--theme-text)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                    e.currentTarget.style.color = 'var(--theme-text-secondary)';
+                  }}
+                >
+                  <KeyRound className="w-4 h-4" />
+                  Security
+                </Link>
+                <Link
+                  to="/account?tab=preferences"
+                  className="flex items-center gap-3 px-4 py-2 text-sm font-medium transition-colors w-full"
+                  onClick={() => setIsProfileOpen(false)}
+                  style={{ color: 'var(--theme-text-secondary)' }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = 'var(--theme-surface-hover)';
+                    e.currentTarget.style.color = 'var(--theme-text)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                    e.currentTarget.style.color = 'var(--theme-text-secondary)';
+                  }}
+                >
+                  <Globe className="w-4 h-4" />
+                  Regional
+                </Link>
+                <Link
+                  to="/account?tab=sessions"
+                  className="flex items-center gap-3 px-4 py-2 text-sm font-medium transition-colors w-full"
+                  onClick={() => setIsProfileOpen(false)}
+                  style={{ color: 'var(--theme-text-secondary)' }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = 'var(--theme-surface-hover)';
+                    e.currentTarget.style.color = 'var(--theme-text)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                    e.currentTarget.style.color = 'var(--theme-text-secondary)';
+                  }}
+                >
+                  <Monitor className="w-4 h-4" />
+                  Active Sessions
                 </Link>
                 <div style={{ borderTop: '1px solid var(--theme-border-subtle)', margin: '4px 0' }} />
                 <Link
@@ -348,6 +400,11 @@ const Layout: React.FC<LayoutProps> = ({ userName, displayName, profilePicture, 
         </div>
       </main>
 
+      <SetupPanel 
+        isOpen={isSetupOpen}
+        onClose={() => setIsSetupOpen(false)}
+        onImportSuccess={onImportSuccess || (() => {})}
+      />
     </div>
   );
 };

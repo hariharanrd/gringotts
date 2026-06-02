@@ -3,7 +3,6 @@ import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Layout from './components/Layout';
 import TransactionModal from './components/TransactionModal';
-import ImportModal from './components/ImportModal';
 import Dashboard from './pages/Dashboard';
 import Transactions from './pages/Transactions';
 import ScheduledTransactions from './pages/ScheduledTransactions';
@@ -77,7 +76,6 @@ const Logout: React.FC<{ onLogout: () => Promise<void> }> = ({ onLogout }) => {
 const GringottsApp: React.FC = () => {
   const { showToast } = useToast();
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [modalDefaultType, setModalDefaultType] = useState<TransactionType | undefined>(undefined);
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -193,7 +191,7 @@ const GringottsApp: React.FC = () => {
               profilePicture={profilePicture}
               hasRecoveryEmail={hasRecoveryEmail}
               onLogout={handleLogout}
-              onImport={() => setIsImportModalOpen(true)}
+              onImportSuccess={handleImportSuccess}
             >
               {isLoading ? (
                 <DashboardSkeleton />
@@ -204,12 +202,12 @@ const GringottsApp: React.FC = () => {
                   <Route path="/transaction/:id" element={<TransactionDetails />} />
                   <Route path="/schedules" element={<ScheduledTransactions />} />
                   <Route path="/schedules/:id" element={<ScheduleDetails />} />
-                  <Route path="/configuration" element={<Configuration />} />
                   <Route path="/budget" element={<Budget />} />
                   <Route path="/investment-planner" element={<InvestmentPlanner />} />
                   <Route path="/loans" element={<Loans />} />
                   <Route path="/credit-cards" element={<CreditCards />} />
                   <Route path="/credit-cards/:id" element={<CreditCardDetails />} />
+
                   <Route path="/account" element={<Account onProfileUpdate={fetchUser} />} />
                   <Route path="/logout" element={<Logout onLogout={handleLogout} />} />
                   <Route path="*" element={
@@ -227,11 +225,6 @@ const GringottsApp: React.FC = () => {
               onSuccess={handleTransactionSuccess}
               transaction={selectedTransaction}
               defaultType={modalDefaultType}
-            />
-            <ImportModal
-              isOpen={isImportModalOpen}
-              onClose={() => setIsImportModalOpen(false)}
-              onSuccess={handleImportSuccess}
             />
           </PrivateRoute>
         } />

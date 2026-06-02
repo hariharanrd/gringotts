@@ -18,7 +18,7 @@ import {
   ListChecks,
   ArrowUp,
   ArrowDown,
-  Upload
+  Download
 } from 'lucide-react';
 import { useToast } from '../components/ToastContext';
 import Pagination from '../components/Pagination';
@@ -559,6 +559,14 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
             )}
           </div>
 
+          
+
+          <FilterMenu
+            activeFilters={filters}
+            availableFields={getAvailableFields()}
+            onApplyFilters={(f) => { setFilters(f); setCurrentPage(1); }}
+          />
+
           <button
             onClick={() => {
               setSortDirection(prev => prev === 'ASC' ? 'DESC' : 'ASC');
@@ -572,26 +580,14 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
             ) : (
               <ArrowUp className="w-5 h-5 text-cyan-500 group-hover:scale-110 transition-transform" />
             )}
-            <span className="hidden sm:inline text-[10px] font-bold uppercase tracking-widest text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-200 transition-colors">
-              {sortDirection === 'DESC' ? 'Newest' : 'Oldest'}
-            </span>
           </button>
-
-          <FilterMenu
-            activeFilters={filters}
-            availableFields={getAvailableFields()}
-            onApplyFilters={(f) => { setFilters(f); setCurrentPage(1); }}
-          />
 
           <button
             onClick={() => setIsExportModalOpen(true)}
             className="p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/60 rounded-xl shadow-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-slate-500 flex items-center gap-2 group"
             title="Export Transactions"
           >
-            <Upload className="w-5 h-5 text-cyan-500 group-hover:scale-110 transition-transform" />
-            <span className="hidden sm:inline text-[10px] font-bold uppercase tracking-widest text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-200 transition-colors">
-              Export
-            </span>
+            <Download className="w-5 h-5 text-cyan-500 group-hover:scale-110 transition-transform" />
           </button>
 
 
