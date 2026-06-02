@@ -102,8 +102,6 @@ const ExportModal: React.FC<ExportModalProps> = ({
         {/* Header */}
         <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-700/50 flex items-center justify-between bg-slate-50/50 dark:bg-slate-800/30">
           <div className="flex items-center gap-2">
-            <div className="p-1.5 rounded-lg bg-cyan-500/10 text-cyan-500">
-            </div>
             <div>
               <h3 className="text-lg font-bold text-slate-900 dark:text-white">Export Transactions</h3>
               <p className="text-xs text-slate-400 capitalize">Exporting: {currentTab} transactions</p>
