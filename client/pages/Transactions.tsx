@@ -559,6 +559,14 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
             )}
           </div>
 
+          
+
+          <FilterMenu
+            activeFilters={filters}
+            availableFields={getAvailableFields()}
+            onApplyFilters={(f) => { setFilters(f); setCurrentPage(1); }}
+          />
+
           <button
             onClick={() => {
               setSortDirection(prev => prev === 'ASC' ? 'DESC' : 'ASC');
@@ -572,16 +580,7 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
             ) : (
               <ArrowUp className="w-5 h-5 text-cyan-500 group-hover:scale-110 transition-transform" />
             )}
-            <span className="hidden sm:inline text-[10px] font-bold uppercase tracking-widest text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-200 transition-colors">
-              {sortDirection === 'DESC' ? 'Newest' : 'Oldest'}
-            </span>
           </button>
-
-          <FilterMenu
-            activeFilters={filters}
-            availableFields={getAvailableFields()}
-            onApplyFilters={(f) => { setFilters(f); setCurrentPage(1); }}
-          />
 
           <button
             onClick={() => setIsExportModalOpen(true)}
