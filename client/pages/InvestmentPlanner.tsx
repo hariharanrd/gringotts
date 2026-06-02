@@ -1029,9 +1029,9 @@ const InvestmentPlanner: React.FC = () => {
         {(activeGoals.length > 0 || activeTab === 'active') && (
           <div className="mt-6 grid grid-cols-2 sm:grid-cols-5 gap-4">
             {[
-              { label: 'Total Target', value: fmt(totalTarget), icon: '🎯', color: 'violet' },
-              { label: 'Total Achieved', value: fmt(totalSaved), icon: '💰', color: 'cyan' },
-              { label: 'Monthly Contribution', value: fmt(totalMonthly), icon: '📆', color: 'emerald' },
+              { label: 'Total Target', value: fmtCompact(totalTarget), icon: '🎯', color: 'violet' },
+              { label: 'Total Achieved', value: fmtCompact(totalSaved), icon: '💰', color: 'cyan' },
+              { label: 'Monthly Contribution', value: fmtCompact(totalMonthly), icon: '📆', color: 'emerald' },
               { label: 'Overall Progress', value: `${overallPct}%`, icon: '📈', color: 'emerald' },
               { label: 'Goals Achieved', value: `${achievedCount} / ${activeGoals.length}`, icon: '🏆', color: 'amber' },
             ].map(stat => (
