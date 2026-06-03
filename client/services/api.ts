@@ -139,7 +139,8 @@ export const api = {
     if (params.startDate) url += `&startDate=${encodeURIComponent(params.startDate)}`;
     if (params.endDate) url += `&endDate=${encodeURIComponent(params.endDate)}`;
     if (params.filters && params.filters.length > 0) {
-      url += `&filters=${encodeURIComponent(JSON.stringify(params.filters))}`;
+      const cleanedFilters = params.filters.map(({ field, condition, value }) => ({ field, condition, value }));
+      url += `&filters=${encodeURIComponent(JSON.stringify(cleanedFilters))}`;
     }
     const response = await fetchWithCredentials(url);
     if (response.status === 403) {

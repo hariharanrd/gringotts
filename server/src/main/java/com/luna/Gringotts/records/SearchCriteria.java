@@ -1,5 +1,8 @@
 package com.luna.Gringotts.records;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class SearchCriteria {
     private String field;
     private String value;
