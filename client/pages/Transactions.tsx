@@ -18,7 +18,8 @@ import {
   ListChecks,
   ArrowUp,
   ArrowDown,
-  Download
+  Download,
+  Upload
 } from 'lucide-react';
 import { useToast } from '../components/ToastContext';
 import Pagination from '../components/Pagination';
@@ -585,9 +586,9 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
           <button
             onClick={() => setIsExportModalOpen(true)}
             className="p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/60 rounded-xl shadow-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-slate-500 flex items-center gap-2 group"
-            title="Export Transactions"
+            title="Export View"
           >
-            <Download className="w-5 h-5 text-cyan-500 group-hover:scale-110 transition-transform" />
+            <Upload className="w-5 h-5 text-cyan-500 group-hover:scale-110 transition-transform" />
           </button>
 
 
