@@ -1,5 +1,24 @@
 # 🚀 Release Notes
 
+## [June 01, 2026] Export Transactions Support & Setup Layout Redesign
+
+This release introduces **Export Transactions Support** and a **Vault Setup Layout Redesign** to Gringotts, making it easier to export your financial data and manage configurations.
+
+### 📥 Export Transactions Support
+- **Multi-Format Exports**: Export your transaction logs in either `XLSX` (Excel) or `CSV` format.
+- **Flexible Scope & Ranges**: Filter by specific transaction types (All, Expense, Income, Saving) and choose between "All Data" or a custom date range.
+- **Context-Aware Page Exports**: The transaction table export option automatically applies any active filters currently set in the UI.
+- **Smart Limits & Guidance**: Includes a 3,000-row export threshold warning to optimize performance and prevent timeouts.
+
+### ⚙️ Vault Setup Layout Redesign
+- **Unified Navigation Drawer**: Replaces scattered setup screens with a slide-over `Vault Setup` navigation panel, preserving the user's background page state.
+- **Consolidated Tabs Layout**: Contains dedicated sub-views for:
+  - **Categories & Items**: Managing categories, subcategories, and individual items.
+  - **Import Statement**: Bulk uploading CSV/Excel bank statements (HDFC, Amazon Pay ICICI, etc.).
+  - **Export Data**: Downloading custom chunks of financial transaction history.
+  - **Appearance & Themes**: Changing app color palettes with full visual previews and toggling dark/light modes.
+- **Responsive Segmented Tabs**: Adapts seamlessly from a segmented tab bar on desktop to an intuitive select dropdown on mobile.
+
 ## [May 30, 2026] Account Recovery Mechanism & Secure Password Reset
 
 This release introduces a robust, secure **Account Recovery Mechanism** to Gringotts, letting users recover access to their account via a configured **Recovery Email**.
