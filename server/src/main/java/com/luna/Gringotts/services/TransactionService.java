@@ -11,6 +11,7 @@ import com.luna.Gringotts.repository.SubCategoryRepository;
 import com.luna.Gringotts.repository.ItemRepository;
 import com.luna.Gringotts.repository.TransactionRepository;
 import com.luna.Gringotts.repository.UserRepository;
+import com.luna.Gringotts.repository.LoanRepository;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -81,6 +82,9 @@ public class TransactionService {
 
     @Autowired
     private LoanLinkingService loanLinkingService;
+
+    @Autowired
+    private LoanRepository loanRepository;
 
     public Transaction getTransactionById(Long id) {
         return transactionRepository.findById(id).orElse(null);
@@ -346,18 +350,74 @@ public class TransactionService {
         target.setDescription(source.getDescription());
         target.setNotes(source.getNotes());
         target.setTransactionTime(source.getTransactionTime());
-        target.setCategory(source.getCategory());
-        target.setSubCategory(source.getSubCategory());
-        target.setItem(source.getItem());
+
+        User currentUser = iamService.getCurrentUser();
+
+        if (source.getCategory() != null && source.getCategory().getId() != null) {
+            Category category = categoryRepository.findById(source.getCategory().getId()).orElse(null);
+            if (category != null && category.getUser() != null && category.getUser().getId().equals(currentUser.getId())) {
+                target.setCategory(category);
+            } else {
+                target.setCategory(null);
+            }
+        } else {
+            target.setCategory(null);
+        }
+
+        if (source.getSubCategory() != null && source.getSubCategory().getId() != null) {
+            SubCategory subCategory = subCategoryRepository.findById(source.getSubCategory().getId()).orElse(null);
+            if (subCategory != null && subCategory.getCategory() != null && subCategory.getCategory().getUser() != null 
+                    && subCategory.getCategory().getUser().getId().equals(currentUser.getId())) {
+                target.setSubCategory(subCategory);
+            } else {
+                target.setSubCategory(null);
+            }
+        } else {
+            target.setSubCategory(null);
+        }
+
+        if (source.getItem() != null && source.getItem().getId() != null) {
+            Item item = itemRepository.findById(source.getItem().getId()).orElse(null);
+            if (item != null && item.getSubCategory() != null && item.getSubCategory().getCategory() != null 
+                    && item.getSubCategory().getCategory().getUser() != null 
+                    && item.getSubCategory().getCategory().getUser().getId().equals(currentUser.getId())) {
+                target.setItem(item);
+            } else {
+                target.setItem(null);
+            }
+        } else {
+            target.setItem(null);
+        }
+
         target.setPaymentMode(source.getPaymentMode());
-        target.setCreditCard(source.getCreditCard());
+
+        if (source.getCreditCard() != null && source.getCreditCard().getId() != null) {
+            CreditCard creditCard = creditCardRepository.findById(source.getCreditCard().getId()).orElse(null);
+            if (creditCard != null && creditCard.getUser() != null && creditCard.getUser().getId().equals(currentUser.getId())) {
+                target.setCreditCard(creditCard);
+            } else {
+                target.setCreditCard(null);
+            }
+        } else {
+            target.setCreditCard(null);
+        }
+
         target.setIncludeInBudget(source.getIncludeInBudget());
         if (source.getFundingGoal() != null) {
             target.setFundingGoal(investmentGoalService.requireGoal(source.getFundingGoal().getId()));
         } else {
             target.setFundingGoal(null);
         }
-        target.setLoan(source.getLoan());
+        if (source.getLoan() != null && source.getLoan().getId() != null) {
+            Loan loan = loanRepository.findById(source.getLoan().getId()).orElse(null);
+            if (loan != null && loan.getUser() != null && loan.getUser().getId().equals(currentUser.getId())) {
+                target.setLoan(loan);
+            } else {
+                target.setLoan(null);
+            }
+        } else {
+            target.setLoan(null);
+        }
         target.setLoanPaymentType(source.getLoanPaymentType());
     }
 
