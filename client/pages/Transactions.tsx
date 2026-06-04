@@ -78,6 +78,7 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
   const [sortDirection, setSortDirection] = useState<'ASC' | 'DESC'>('DESC');
   const [totalPages, setTotalPages] = useState(1);
   const [hasMore, setHasMore] = useState(false);
+  const [pageSize, setPageSize] = useState(() => Number(localStorage.getItem('gringotts_transaction_pagesize')) || 10);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [filters, setFilters] = useState<FilterCriteria[]>(() => {
@@ -179,14 +180,14 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
     try {
       let response;
       switch (currentTab) {
-        case 'expense': response = await api.getExpenses(page, cleanedFilters, sortDirection); break;
-        case 'income': response = await api.getIncomes(page, cleanedFilters, sortDirection); break;
-        case 'saving': response = await api.getSavings(page, cleanedFilters, sortDirection); break;
-        case 'revolving': response = await api.getRevolvings(page, cleanedFilters, sortDirection); break;
-        default: response = await api.getTransactions(page, cleanedFilters, sortDirection); break;
+        case 'expense': response = await api.getExpenses(page, cleanedFilters, sortDirection, pageSize); break;
+        case 'income': response = await api.getIncomes(page, cleanedFilters, sortDirection, pageSize); break;
+        case 'saving': response = await api.getSavings(page, cleanedFilters, sortDirection, pageSize); break;
+        case 'revolving': response = await api.getRevolvings(page, cleanedFilters, sortDirection, pageSize); break;
+        default: response = await api.getTransactions(page, cleanedFilters, sortDirection, pageSize); break;
       }
       setTransactions(response.data);
-      setTotalPages(Math.ceil(response.total_count / 10));
+      setTotalPages(Math.ceil(response.total_count / pageSize));
       setHasMore(response.has_more);
     } catch (error: any) {
       console.error("Failed to fetch transactions:", error);
@@ -196,10 +197,16 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
     }
   };
 
+  const handlePageSizeChange = (newSize: number) => {
+    setPageSize(newSize);
+    localStorage.setItem('gringotts_transaction_pagesize', String(newSize));
+    setCurrentPage(1);
+  };
+
   useEffect(() => {
     fetchTransactions(currentPage, filters);
     setSelectedIds(new Set());
-  }, [currentPage, filters, refreshTrigger, currentTab, sortDirection]);
+  }, [currentPage, filters, refreshTrigger, currentTab, sortDirection, pageSize]);
 
   // Persist filters to localStorage
   useEffect(() => {
@@ -872,7 +879,14 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
         )}
       </div>
 
-      <Pagination currentPage={currentPage} totalPages={totalPages} hasMore={hasMore} onPageChange={setCurrentPage} />
+      <Pagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        hasMore={hasMore}
+        onPageChange={setCurrentPage}
+        pageSize={pageSize}
+        onPageSizeChange={handlePageSizeChange}
+      />
 
       <ConfirmationDialog
         isOpen={isDeleteDialogOpen}
