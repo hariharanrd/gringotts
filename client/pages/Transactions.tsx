@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import { useToast } from '../components/ToastContext';
 import Pagination from '../components/Pagination';
+import { CustomSelect } from '../components/CustomSelect';
 import { TableSkeleton } from '../components/Skeleton';
 import { FilterMenu, FilterCriteria, FilterChips } from '../components/FilterMenu';
 import ConfirmationDialog from '../components/ConfirmationDialog';
@@ -82,6 +83,11 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
   const [hasMore, setHasMore] = useState(false);
   const [pageSize, setPageSize] = useState(() => Number(localStorage.getItem('gringotts_transaction_pagesize')) || 10);
   const [viewMode, setViewMode] = useState<'relaxed' | 'compact'>(() => (localStorage.getItem('gringotts_transaction_viewmode') as 'relaxed' | 'compact') || 'relaxed');
+  const [editingCell, setEditingCell] = useState<{ id: number; field: string } | null>(null);
+  const [editValue, setEditValue] = useState<any>(null);
+  const [allCategories, setAllCategories] = useState<Category[]>([]);
+  const [activeSubcategories, setActiveSubcategories] = useState<SubCategory[]>([]);
+  const [activeItems, setActiveItems] = useState<Item[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [filters, setFilters] = useState<FilterCriteria[]>(() => {
@@ -209,6 +215,101 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
   const handleViewModeChange = (newMode: 'relaxed' | 'compact') => {
     setViewMode(newMode);
     localStorage.setItem('gringotts_transaction_viewmode', newMode);
+  };
+
+  const startEditingCell = async (t: Transaction, field: string) => {
+    setEditingCell({ id: t.id, field });
+    let val: any = (t as any)[field];
+    if (field === 'category') {
+      val = t.category?.id || '';
+      if (allCategories.length === 0) {
+        api.getCategories().then(setAllCategories).catch(() => {});
+      }
+    } else if (field === 'subcategory') {
+      val = t.subcategory?.id || '';
+      if (t.category?.id) {
+        api.getSubCategories(t.category.id).then(setActiveSubcategories).catch(() => {});
+      } else {
+        setActiveSubcategories([]);
+      }
+    } else if (field === 'item') {
+      val = (t as any).item?.id || '';
+      if (t.subcategory?.id) {
+        api.getItems(t.subcategory.id).then(setActiveItems).catch(() => {});
+      } else {
+        setActiveItems([]);
+      }
+    } else if (field === 'transaction_time') {
+      val = t.transaction_time.substring(0, 10);
+    }
+    setEditValue(val);
+  };
+
+  const saveEditingCell = async (t: Transaction, field: string, valueToSave: any) => {
+    let isChanged = false;
+    let payloadValue = valueToSave;
+
+    if (field === 'category') {
+      const currentId = t.category?.id;
+      const nextId = valueToSave ? Number(valueToSave) : null;
+      isChanged = currentId !== nextId;
+      payloadValue = nextId ? { id: nextId } : null;
+    } else if (field === 'subcategory') {
+      const currentId = t.subcategory?.id;
+      const nextId = valueToSave ? Number(valueToSave) : null;
+      isChanged = currentId !== nextId;
+      payloadValue = nextId ? { id: nextId } : null;
+    } else if (field === 'item') {
+      const currentId = (t as any).item?.id;
+      const nextId = valueToSave ? Number(valueToSave) : null;
+      isChanged = currentId !== nextId;
+      payloadValue = nextId ? { id: nextId } : null;
+    } else if (field === 'transaction_time') {
+      const currentDateStr = t.transaction_time.substring(0, 10);
+      isChanged = currentDateStr !== valueToSave;
+      const timePart = t.transaction_time.includes('T') ? t.transaction_time.split('T')[1] : '00:00:00';
+      payloadValue = `${valueToSave}T${timePart}`;
+    } else {
+      isChanged = (t as any)[field] !== valueToSave;
+      payloadValue = valueToSave;
+    }
+
+    setEditingCell(null);
+
+    if (!isChanged) return;
+
+    try {
+      const updatedData = { ...t, [field]: payloadValue };
+      let response;
+      switch (t.type) {
+        case TransactionType.EXPENSE:
+          response = await api.updateExpense(updatedData);
+          break;
+        case TransactionType.INCOME:
+          response = await api.updateIncome(updatedData);
+          break;
+        case TransactionType.SAVING:
+          response = await api.updateSaving(updatedData);
+          break;
+        case TransactionType.REVOLVING:
+          response = await api.updateRevolving(updatedData);
+          break;
+      }
+      showToast('Transaction updated successfully!', 'success');
+      setTransactions(prev => prev.map(item => item.id === t.id ? { ...item, ...response } : item));
+    } catch (error: any) {
+      showToast(error.message || 'Failed to update transaction', 'error');
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent, t: Transaction, field: string) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      saveEditingCell(t, field, editValue);
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      setEditingCell(null);
+    }
   };
 
   useEffect(() => {
@@ -449,7 +550,7 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
   };
 
   const handleRowClick = (e: React.MouseEvent, transaction: Transaction) => {
-    if ((e.target as HTMLElement).closest('button') || (e.target as HTMLElement).closest('input')) return;
+    if ((e.target as HTMLElement).closest('button') || (e.target as HTMLElement).closest('input') || (e.target as HTMLElement).closest('select') || (e.target as HTMLElement).closest('[data-spot-edit="true"]')) return;
 
     if (isSelectionMode || selectedIds.size > 0) {
       const next = new Set(selectedIds);
@@ -692,125 +793,370 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800/20">
-              {transactions.map(t => (
-                <tr
-                  key={t.id}
-                  onClick={(e) => handleRowClick(e, t)}
-                  className={`group hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors cursor-pointer ${selectedIds.has(t.id) ? 'bg-cyan-500/5' : ''}`}
-                >
-                  <td className={`transition-all duration-300 overflow-hidden ${currentTab !== 'all' && (isSelectionMode || selectedIds.size > 0) ? 'w-14' : (currentTab !== 'all' ? 'w-0 group-hover:w-14' : 'w-0')}`}>
-                    {currentTab !== 'all' && (
-                      <div className={`flex justify-center items-center w-14 ${viewMode === 'compact' ? 'py-1.5' : 'p-4'} transition-opacity duration-300 ${isSelectionMode || selectedIds.size > 0 ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
-                        <input type="checkbox" checked={selectedIds.has(t.id)} onChange={() => {
-                          const next = new Set(selectedIds);
-                          if (next.has(t.id)) next.delete(t.id); else next.add(t.id);
-                          setSelectedIds(next);
-                        }} className="w-4 h-4 rounded accent-cyan-500 cursor-pointer" />
-                      </div>
-                    )}
-                  </td>
-                  {visibleColumns.has('date') && (
-                    <td className={`${cellPadding} whitespace-nowrap`}>
-                      <div className={viewMode === 'compact' ? 'flex items-baseline gap-1.5' : ''}>
-                        <p className="text-xs font-bold text-slate-700 dark:text-slate-300">{new Date(t.transaction_time).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}</p>
-                        <p className={`text-[10px] text-slate-400 font-medium ${viewMode === 'compact' ? 'opacity-80' : 'block'}`}>#{t.id}</p>
-                      </div>
-                    </td>
-                  )}
-                  {visibleColumns.has('description') && (
-                    <td className={`${cellPadding} min-w-[200px]`}>
-                      <div className={`flex items-center ${viewMode === 'compact' ? 'gap-2' : 'gap-3'}`}>
-                        <CategoryIcon category={t.category} className={viewMode === 'compact' ? 'w-3.5 h-3.5' : 'w-4 h-4'} />
-                        <div className="flex flex-col min-w-0">
-                          <span className={`font-semibold text-slate-800 dark:text-slate-200 line-clamp-1 ${viewMode === 'compact' ? 'text-xs' : 'text-sm'}`}>{t.description}</span>
-                          {t.funding_goal && (
-                            <div className={`flex items-center gap-1.5 ${viewMode === 'compact' ? 'mt-0' : 'mt-0.5'}`}>
-                              <span className={`px-2 py-0.5 bg-violet-500/10 text-violet-500 dark:bg-violet-500/20 dark:text-violet-400 rounded-md flex items-center gap-1 border border-violet-500/20 ${viewMode === 'compact' ? 'text-[8px] font-black' : 'text-[9px] font-black'}`}>
-                                <span>{t.funding_goal.icon || '🎯'}</span>
-                                <span>{t.funding_goal.name}</span>
-                              </span>
-                            </div>
-                          )}
+              {transactions.map(t => {
+                const isDateEditing = editingCell?.id === t.id && editingCell?.field === 'transaction_time';
+                const isDescEditing = editingCell?.id === t.id && editingCell?.field === 'description';
+                const isCategoryEditing = editingCell?.id === t.id && editingCell?.field === 'category';
+                const isSubcategoryEditing = editingCell?.id === t.id && editingCell?.field === 'subcategory';
+                const isItemEditing = editingCell?.id === t.id && editingCell?.field === 'item';
+                const isPaymentModeEditing = editingCell?.id === t.id && editingCell?.field === 'payment_mode';
+                const isNotesEditing = editingCell?.id === t.id && editingCell?.field === 'notes';
+                const isAmountEditing = editingCell?.id === t.id && editingCell?.field === 'value';
+                const isInEditing = editingCell?.id === t.id && editingCell?.field === 'is_in';
+                const isGiveEditing = editingCell?.id === t.id && editingCell?.field === 'is_give';
+                const isClosedEditing = editingCell?.id === t.id && editingCell?.field === 'closed';
+
+                return (
+                  <tr
+                    key={t.id}
+                    onClick={(e) => handleRowClick(e, t)}
+                    className={`group hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors cursor-pointer ${selectedIds.has(t.id) ? 'bg-cyan-500/5' : ''}`}
+                  >
+                    <td className={`transition-all duration-300 overflow-hidden ${currentTab !== 'all' && (isSelectionMode || selectedIds.size > 0) ? 'w-14' : (currentTab !== 'all' ? 'w-0 group-hover:w-14' : 'w-0')}`}>
+                      {currentTab !== 'all' && (
+                        <div className={`flex justify-center items-center w-14 ${viewMode === 'compact' ? 'py-1.5' : 'p-4'} transition-opacity duration-300 ${isSelectionMode || selectedIds.size > 0 ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
+                          <input type="checkbox" checked={selectedIds.has(t.id)} onChange={() => {
+                            const next = new Set(selectedIds);
+                            if (next.has(t.id)) next.delete(t.id); else next.add(t.id);
+                            setSelectedIds(next);
+                          }} className="w-4 h-4 rounded accent-cyan-500 cursor-pointer" />
                         </div>
+                      )}
+                    </td>
+                    {visibleColumns.has('date') && (
+                      <td className={`${cellPadding} whitespace-nowrap`} data-spot-edit="true">
+                        {isDateEditing ? (
+                          <input
+                            type="date"
+                            value={editValue || ''}
+                            onChange={e => setEditValue(e.target.value)}
+                            onBlur={() => saveEditingCell(t, 'transaction_time', editValue)}
+                            onKeyDown={e => handleKeyDown(e, t, 'transaction_time')}
+                            className="px-2 py-0.5 border border-cyan-500/50 rounded bg-white dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-cyan-500 max-w-[120px]"
+                            autoFocus
+                          />
+                        ) : (
+                          <div
+                            onClick={(e) => { e.stopPropagation(); startEditingCell(t, 'transaction_time'); }}
+                            className="group/cell flex items-center justify-between min-w-0 w-full"
+                          >
+                            <div className={viewMode === 'compact' ? 'flex items-baseline gap-1.5' : ''}>
+                              <p className="text-xs font-bold text-slate-700 dark:text-slate-300">{new Date(t.transaction_time).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}</p>
+                              <p className={`text-[10px] text-slate-400 font-medium ${viewMode === 'compact' ? 'opacity-80' : 'block'}`}>#{t.id}</p>
+                            </div>
+                            <Pencil className="w-3 h-3 text-slate-400 opacity-0 group-hover/cell:opacity-100 hover:text-cyan-500 transition-opacity ml-1.5 shrink-0 cursor-pointer" />
+                          </div>
+                        )}
+                      </td>
+                    )}
+                    {visibleColumns.has('description') && (
+                      <td className={`${cellPadding} min-w-[200px]`} data-spot-edit="true">
+                        {isDescEditing ? (
+                          <input
+                            type="text"
+                            value={editValue || ''}
+                            onChange={e => setEditValue(e.target.value)}
+                            onBlur={() => saveEditingCell(t, 'description', editValue)}
+                            onKeyDown={e => handleKeyDown(e, t, 'description')}
+                            className="px-2 py-0.5 border border-cyan-500/50 rounded bg-white dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-cyan-500 w-full"
+                            autoFocus
+                          />
+                        ) : (
+                          <div
+                            onClick={(e) => { e.stopPropagation(); startEditingCell(t, 'description'); }}
+                            className="group/cell flex items-center justify-between min-w-0 w-full"
+                          >
+                            <div className={`flex items-center ${viewMode === 'compact' ? 'gap-2' : 'gap-3'} min-w-0 flex-1`}>
+                              <CategoryIcon category={t.category} className={viewMode === 'compact' ? 'w-3.5 h-3.5' : 'w-4 h-4'} />
+                              <div className="flex flex-col min-w-0 flex-1">
+                                <span className={`font-semibold text-slate-800 dark:text-slate-200 line-clamp-1 ${viewMode === 'compact' ? 'text-xs' : 'text-sm'}`}>{t.description}</span>
+                                {t.funding_goal && (
+                                  <div className={`flex items-center gap-1.5 ${viewMode === 'compact' ? 'mt-0' : 'mt-0.5'}`}>
+                                    <span className={`px-2 py-0.5 bg-violet-500/10 text-violet-500 dark:bg-violet-500/20 dark:text-violet-400 rounded-md flex items-center gap-1 border border-violet-500/20 ${viewMode === 'compact' ? 'text-[8px] font-black' : 'text-[9px] font-black'}`}>
+                                      <span>{t.funding_goal.icon || '🎯'}</span>
+                                      <span>{t.funding_goal.name}</span>
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                            <Pencil className="w-3 h-3 text-slate-400 opacity-0 group-hover/cell:opacity-100 hover:text-cyan-500 transition-opacity ml-1.5 shrink-0 cursor-pointer" />
+                          </div>
+                        )}
+                      </td>
+                    )}
+                    {visibleColumns.has('type') && (
+                      <td className={cellPadding}>
+                        <span className={`text-[10px] font-bold px-2 py-1 rounded-lg uppercase tracking-wider ${t.type === 'EXPENSE' ? 'bg-rose-500/10 text-rose-500' :
+                          t.type === 'INCOME' ? 'bg-emerald-500/10 text-emerald-500' :
+                            t.type === 'SAVING' ? 'bg-violet-500/10 text-violet-500' :
+                              'bg-blue-500/10 text-blue-500'
+                          }`}>
+                          {t.type}
+                        </span>
+                      </td>
+                    )}
+                    {visibleColumns.has('category') && (
+                      <td className={`${cellPadding} whitespace-nowrap`} data-spot-edit="true">
+                        {isCategoryEditing ? (
+                          <CustomSelect
+                            value={editValue}
+                            onChange={val => {
+                              setEditValue(val);
+                              saveEditingCell(t, 'category', val);
+                            }}
+                            options={allCategories
+                              .filter(c => c.type === t.type)
+                              .map(c => ({ value: c.id, label: c.name }))}
+                            placeholder="Select Category…"
+                            onBlur={() => saveEditingCell(t, 'category', editValue)}
+                            autoFocus
+                          />
+                        ) : (
+                          <div
+                            onClick={(e) => { e.stopPropagation(); startEditingCell(t, 'category'); }}
+                            className="group/cell flex items-center justify-between min-w-0 w-full gap-2"
+                          >
+                            {t.category ? (
+                              <span className="text-xs font-medium text-slate-500 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-md truncate">{t.category.name}</span>
+                            ) : (
+                              <span className="text-xs text-slate-400 italic">None</span>
+                            )}
+                            <Pencil className="w-3 h-3 text-slate-400 opacity-0 group-hover/cell:opacity-100 hover:text-cyan-500 transition-opacity shrink-0 cursor-pointer" />
+                          </div>
+                        )}
+                      </td>
+                    )}
+                    {visibleColumns.has('subcategory') && (
+                      <td className={`${cellPadding} whitespace-nowrap`} data-spot-edit="true">
+                        {isSubcategoryEditing ? (
+                          <CustomSelect
+                            value={editValue}
+                            onChange={val => {
+                              setEditValue(val);
+                              saveEditingCell(t, 'subcategory', val);
+                            }}
+                            options={activeSubcategories.map(s => ({ value: s.id, label: s.name }))}
+                            placeholder="Select Subcategory…"
+                            onBlur={() => saveEditingCell(t, 'subcategory', editValue)}
+                            autoFocus
+                          />
+                        ) : (
+                          <div
+                            onClick={(e) => { e.stopPropagation(); startEditingCell(t, 'subcategory'); }}
+                            className="group/cell flex items-center justify-between min-w-0 w-full gap-2"
+                          >
+                            {t.subcategory ? (
+                              <span className="text-[10px] font-medium text-slate-400 truncate">{t.subcategory.name}</span>
+                            ) : (
+                              <span className="text-[10px] text-slate-400 italic">None</span>
+                            )}
+                            <Pencil className="w-3 h-3 text-slate-400 opacity-0 group-hover/cell:opacity-100 hover:text-cyan-500 transition-opacity shrink-0 cursor-pointer" />
+                          </div>
+                        )}
+                      </td>
+                    )}
+                    {visibleColumns.has('item') && (
+                      <td className={`${cellPadding} whitespace-nowrap`} data-spot-edit="true">
+                        {isItemEditing ? (
+                          <CustomSelect
+                            value={editValue}
+                            onChange={val => {
+                              setEditValue(val);
+                              saveEditingCell(t, 'item', val);
+                            }}
+                            options={activeItems.map(i => ({ value: i.id, label: i.name }))}
+                            placeholder="Select Item…"
+                            onBlur={() => saveEditingCell(t, 'item', editValue)}
+                            autoFocus
+                          />
+                        ) : (
+                          <div
+                            onClick={(e) => { e.stopPropagation(); startEditingCell(t, 'item'); }}
+                            className="group/cell flex items-center justify-between min-w-0 w-full gap-2"
+                          >
+                            {(t as any).item ? (
+                              <span className="text-[10px] font-medium text-slate-400 truncate">{(t as any).item.name}</span>
+                            ) : (
+                              <span className="text-[10px] text-slate-400 italic">None</span>
+                            )}
+                            <Pencil className="w-3 h-3 text-slate-400 opacity-0 group-hover/cell:opacity-100 hover:text-cyan-500 transition-opacity shrink-0 cursor-pointer" />
+                          </div>
+                        )}
+                      </td>
+                    )}
+                    {visibleColumns.has('payment_mode') && (
+                      <td className={`${cellPadding} whitespace-nowrap`} data-spot-edit="true">
+                        {isPaymentModeEditing ? (
+                          <CustomSelect
+                            value={editValue}
+                            onChange={val => {
+                              setEditValue(val);
+                              saveEditingCell(t, 'payment_mode', val);
+                            }}
+                            options={PAYMENT_MODES.map(pm => ({ value: pm.value, label: pm.label }))}
+                            placeholder="Select Payment…"
+                            onBlur={() => saveEditingCell(t, 'payment_mode', editValue)}
+                            autoFocus
+                          />
+                        ) : (
+                          <div
+                            onClick={(e) => { e.stopPropagation(); startEditingCell(t, 'payment_mode'); }}
+                            className="group/cell flex items-center justify-between min-w-0 w-full gap-2"
+                          >
+                            {(t as any).payment_mode ? (
+                              <span className="text-[10px] font-bold text-slate-400 uppercase truncate">{(t as any).payment_mode.replace('_', ' ')}</span>
+                            ) : (
+                              <span className="text-[10px] text-slate-400 italic">None</span>
+                            )}
+                            <Pencil className="w-3 h-3 text-slate-400 opacity-0 group-hover/cell:opacity-100 hover:text-cyan-500 transition-opacity shrink-0 cursor-pointer" />
+                          </div>
+                        )}
+                      </td>
+                    )}
+                    {visibleColumns.has('is_in') && (
+                      <td className={`${cellPadding} whitespace-nowrap`} data-spot-edit="true">
+                        {typeof (t as any).is_in !== 'undefined' && (
+                          isInEditing ? (
+                            <CustomSelect
+                              value={editValue === true ? 'true' : 'false'}
+                              onChange={val => {
+                                const boolVal = val === 'true';
+                                setEditValue(boolVal);
+                                saveEditingCell(t, 'is_in', boolVal);
+                              }}
+                              options={SAVING_DIRECTIONS}
+                              onBlur={() => saveEditingCell(t, 'is_in', editValue)}
+                              autoFocus
+                            />
+                          ) : (
+                            <div
+                              onClick={(e) => { e.stopPropagation(); startEditingCell(t, 'is_in'); }}
+                              className="group/cell flex items-center justify-between min-w-0 w-full gap-2"
+                            >
+                              <span className={`text-[10px] font-bold px-2 py-1 rounded-md uppercase ${(t as any).is_in ? 'text-emerald-500 bg-emerald-500/10' : 'text-rose-500 bg-rose-500/10'}`}>
+                                {(t as any).is_in ? 'In' : 'Out'}
+                              </span>
+                              <Pencil className="w-3 h-3 text-slate-400 opacity-0 group-hover/cell:opacity-100 hover:text-cyan-500 transition-opacity shrink-0 cursor-pointer" />
+                            </div>
+                          )
+                        )}
+                      </td>
+                    )}
+                    {visibleColumns.has('is_give') && (
+                      <td className={`${cellPadding} whitespace-nowrap`} data-spot-edit="true">
+                        {typeof (t as any).is_give !== 'undefined' && (
+                          isGiveEditing ? (
+                            <CustomSelect
+                              value={editValue === true ? 'true' : 'false'}
+                              onChange={val => {
+                                const boolVal = val === 'true';
+                                setEditValue(boolVal);
+                                saveEditingCell(t, 'is_give', boolVal);
+                              }}
+                              options={REVOLVING_DIRECTIONS}
+                              onBlur={() => saveEditingCell(t, 'is_give', editValue)}
+                              autoFocus
+                            />
+                          ) : (
+                            <div
+                              onClick={(e) => { e.stopPropagation(); startEditingCell(t, 'is_give'); }}
+                              className="group/cell flex items-center justify-between min-w-0 w-full gap-2"
+                            >
+                              <span className={`text-[10px] font-bold px-2 py-1 rounded-md uppercase ${(t as any).is_give ? 'text-blue-500 bg-blue-500/10' : 'text-violet-500 bg-violet-500/10'}`}>
+                                {(t as any).is_give ? 'Given' : 'Received'}
+                              </span>
+                              <Pencil className="w-3 h-3 text-slate-400 opacity-0 group-hover/cell:opacity-100 hover:text-cyan-500 transition-opacity shrink-0 cursor-pointer" />
+                            </div>
+                          )
+                        )}
+                      </td>
+                    )}
+                    {visibleColumns.has('closed') && (
+                      <td className={`${cellPadding} whitespace-nowrap`} data-spot-edit="true">
+                        {typeof (t as any).closed !== 'undefined' && (
+                          isClosedEditing ? (
+                            <CustomSelect
+                              value={editValue === true ? 'true' : 'false'}
+                              onChange={val => {
+                                const boolVal = val === 'true';
+                                setEditValue(boolVal);
+                                saveEditingCell(t, 'closed', boolVal);
+                              }}
+                              options={REVOLVING_STATUSES}
+                              onBlur={() => saveEditingCell(t, 'closed', editValue)}
+                              autoFocus
+                            />
+                          ) : (
+                            <div
+                              onClick={(e) => { e.stopPropagation(); startEditingCell(t, 'closed'); }}
+                              className="group/cell flex items-center justify-between min-w-0 w-full gap-2"
+                            >
+                              <span className={`text-[10px] font-bold px-2 py-1 rounded-md uppercase ${(t as any).closed ? 'text-slate-500 bg-slate-500/10' : 'text-amber-500 bg-amber-500/10'}`}>
+                                {(t as any).closed ? 'Closed' : 'Active'}
+                              </span>
+                              <Pencil className="w-3 h-3 text-slate-400 opacity-0 group-hover/cell:opacity-100 hover:text-cyan-500 transition-opacity shrink-0 cursor-pointer" />
+                            </div>
+                          )
+                        )}
+                      </td>
+                    )}
+                    {visibleColumns.has('notes') && (
+                      <td className={`${cellPadding} min-w-[150px]`} data-spot-edit="true">
+                        {isNotesEditing ? (
+                          <input
+                            type="text"
+                            value={editValue || ''}
+                            onChange={e => setEditValue(e.target.value)}
+                            onBlur={() => saveEditingCell(t, 'notes', editValue)}
+                            onKeyDown={e => handleKeyDown(e, t, 'notes')}
+                            className="px-2 py-0.5 border border-cyan-500/50 rounded bg-white dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-cyan-500 w-full"
+                            placeholder="Notes…"
+                            autoFocus
+                          />
+                        ) : (
+                          <div
+                            onClick={(e) => { e.stopPropagation(); startEditingCell(t, 'notes'); }}
+                            className="group/cell flex items-center justify-between min-w-0 w-full gap-2"
+                          >
+                            <span className="text-[10px] text-slate-400 line-clamp-1 flex-1" title={t.notes || ''}>{t.notes || <span className="italic opacity-50">None</span>}</span>
+                            <Pencil className="w-3 h-3 text-slate-400 opacity-0 group-hover/cell:opacity-100 hover:text-cyan-500 transition-opacity shrink-0 cursor-pointer" />
+                          </div>
+                        )}
+                      </td>
+                    )}
+                    {visibleColumns.has('amount') && (
+                      <td className={`${cellPadding} text-right font-bold tabular-nums whitespace-nowrap ${viewMode === 'compact' ? 'text-xs' : 'text-sm'} ${getAmountColor(t)}`} data-spot-edit="true">
+                        {isAmountEditing ? (
+                          <input
+                            type="number"
+                            value={editValue === null ? '' : editValue}
+                            onChange={e => setEditValue(e.target.value === '' ? null : parseFloat(e.target.value))}
+                            onBlur={() => saveEditingCell(t, 'value', editValue)}
+                            onKeyDown={e => handleKeyDown(e, t, 'value')}
+                            className="px-2 py-0.5 border border-cyan-500/50 rounded bg-white dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-cyan-500 max-w-[100px] text-right"
+                            autoFocus
+                          />
+                        ) : (
+                          <div
+                            onClick={(e) => { e.stopPropagation(); startEditingCell(t, 'value'); }}
+                            className="group/cell flex items-center justify-end min-w-0 w-full"
+                          >
+                            <span>{getAmountSign(t)}₹{t.value.toLocaleString('en-IN')}</span>
+                            <Pencil className="w-3 h-3 text-slate-400 opacity-0 group-hover/cell:opacity-100 hover:text-cyan-500 transition-opacity ml-1.5 shrink-0 cursor-pointer" />
+                          </div>
+                        )}
+                      </td>
+                    )}
+                    <td className={`${cellPadding} text-right`}>
+                      <div className={`flex items-center justify-end ${viewMode === 'compact' ? 'gap-0.5' : 'gap-1'} opacity-0 group-hover:opacity-100 transition-all`}>
+                        <button onClick={() => onEdit(t)} className={`text-slate-400 hover:text-cyan-500 hover:bg-cyan-500/10 rounded-lg transition-all ${viewMode === 'compact' ? 'p-1' : 'p-2'}`}><Pencil className="w-4 h-4" /></button>
+                        <button onClick={() => { setDeletingId(t.id); setIsDeleteDialogOpen(true); }} className={`text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 rounded-lg transition-all ${viewMode === 'compact' ? 'p-1' : 'p-2'}`}><Trash2 className="w-4 h-4" /></button>
                       </div>
                     </td>
-                  )}
-                  {visibleColumns.has('type') && (
-                    <td className={cellPadding}>
-                      <span className={`text-[10px] font-bold px-2 py-1 rounded-lg uppercase tracking-wider ${t.type === 'EXPENSE' ? 'bg-rose-500/10 text-rose-500' :
-                        t.type === 'INCOME' ? 'bg-emerald-500/10 text-emerald-500' :
-                          t.type === 'SAVING' ? 'bg-violet-500/10 text-violet-500' :
-                            'bg-blue-500/10 text-blue-500'
-                        }`}>
-                        {t.type}
-                      </span>
-                    </td>
-                  )}
-                  {visibleColumns.has('category') && (
-                    <td className={`${cellPadding} whitespace-nowrap`}>
-                      {t.category && <span className="text-xs font-medium text-slate-500 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-md">{t.category.name}</span>}
-                    </td>
-                  )}
-                  {visibleColumns.has('subcategory') && (
-                    <td className={`${cellPadding} whitespace-nowrap`}>
-                      {t.subcategory && <span className="text-[10px] font-medium text-slate-400">{t.subcategory.name}</span>}
-                    </td>
-                  )}
-                  {visibleColumns.has('item') && (
-                    <td className={`${cellPadding} whitespace-nowrap`}>
-                      {(t as any).item && <span className="text-[10px] font-medium text-slate-400">{(t as any).item.name}</span>}
-                    </td>
-                  )}
-                  {visibleColumns.has('payment_mode') && (
-                    <td className={`${cellPadding} whitespace-nowrap`}>
-                      {(t as any).payment_mode && <span className="text-[10px] font-bold text-slate-400 uppercase">{(t as any).payment_mode.replace('_', ' ')}</span>}
-                    </td>
-                  )}
-                  {visibleColumns.has('is_in') && (
-                    <td className={`${cellPadding} whitespace-nowrap`}>
-                      {typeof (t as any).is_in !== 'undefined' && (
-                        <span className={`text-[10px] font-bold px-2 py-1 rounded-md uppercase ${(t as any).is_in ? 'text-emerald-500 bg-emerald-500/10' : 'text-rose-500 bg-rose-500/10'}`}>
-                          {(t as any).is_in ? 'In' : 'Out'}
-                        </span>
-                      )}
-                    </td>
-                  )}
-                  {visibleColumns.has('is_give') && (
-                    <td className={`${cellPadding} whitespace-nowrap`}>
-                      {typeof (t as any).is_give !== 'undefined' && (
-                        <span className={`text-[10px] font-bold px-2 py-1 rounded-md uppercase ${(t as any).is_give ? 'text-blue-500 bg-blue-500/10' : 'text-violet-500 bg-violet-500/10'}`}>
-                          {(t as any).is_give ? 'Given' : 'Received'}
-                        </span>
-                      )}
-                    </td>
-                  )}
-                  {visibleColumns.has('closed') && (
-                    <td className={`${cellPadding} whitespace-nowrap`}>
-                      {typeof (t as any).closed !== 'undefined' && (
-                        <span className={`text-[10px] font-bold px-2 py-1 rounded-md uppercase ${(t as any).closed ? 'text-slate-500 bg-slate-500/10' : 'text-amber-500 bg-amber-500/10'}`}>
-                          {(t as any).closed ? 'Closed' : 'Active'}
-                        </span>
-                      )}
-                    </td>
-                  )}
-                  {visibleColumns.has('notes') && (
-                    <td className={`${cellPadding} min-w-[150px]`}>
-                      {t.notes && <span className="text-[10px] text-slate-400 line-clamp-1" title={t.notes}>{t.notes}</span>}
-                    </td>
-                  )}
-                  {visibleColumns.has('amount') && (
-                    <td className={`${cellPadding} text-right font-bold tabular-nums whitespace-nowrap ${viewMode === 'compact' ? 'text-xs' : 'text-sm'} ${getAmountColor(t)}`}>
-                      {getAmountSign(t)}₹{t.value.toLocaleString('en-IN')}
-                    </td>
-                  )}
-                  <td className={`${cellPadding} text-right`}>
-                    <div className={`flex items-center justify-end ${viewMode === 'compact' ? 'gap-0.5' : 'gap-1'} opacity-0 group-hover:opacity-100 transition-all`}>
-                      <button onClick={() => onEdit(t)} className={`text-slate-400 hover:text-cyan-500 hover:bg-cyan-500/10 rounded-lg transition-all ${viewMode === 'compact' ? 'p-1' : 'p-2'}`}><Pencil className="w-4 h-4" /></button>
-                      <button onClick={() => { setDeletingId(t.id); setIsDeleteDialogOpen(true); }} className={`text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 rounded-lg transition-all ${viewMode === 'compact' ? 'p-1' : 'p-2'}`}><Trash2 className="w-4 h-4" /></button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
