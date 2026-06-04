@@ -1,5 +1,24 @@
 # 🚀 Release Notes
 
+## [June 04, 2026] Compact View, Spot Editing & Page Size Customization
+
+This release introduces a space-saving **Compact View** toggle, **Spot Editing** (inline cell edits), and customizable **Page Size** controls to the transaction log, allowing users to quickly view, update, and manage financial records in-place without context switching.
+
+### ✏️ Inline Spot Editing
+- **Click-to-Edit Cells**: Edit transaction dates, descriptions, categories, subcategories, items, notes, payment modes, saving/revolving directions, closed status, and amounts directly within the table view.
+- **Fully Populated Responses**: Seamlessly fetches and updates related entities in the background, keeping the UI instantly updated without manual reloads.
+- **Strict Multi-User Isolation**: Automatically filters and verifies all edited transaction relationships (e.g. Category, SubCategory, Item, Credit Card, Loan) against the logged-in user to prevent unauthorized cross-user data access.
+- **Cancelable Actions**: Cancel editing at any time by pressing `Escape` or clicking outside, or apply changes instantly by pressing `Enter` or blurring the field.
+
+### 📱 Compact & Relaxed View Toggle
+- **View Density Switcher**: Toggle between the spacious "Relaxed" layout and a high-density "Compact" table layout for power users who want to see more data on a single screen.
+- **Micro-Animations & Clean Design**: Features smooth visual transitions, tailored margins, and refined padding that adapts beautifully based on density.
+- **Persistent Preference**: Automatically saves your layout density preference to local storage and syncs it across your sessions.
+
+### 🔢 Page Size Customization
+- **Adjustable Row Counts**: Choose how many transactions to display per page (10, 20, 50, or 100 rows) directly from the pagination footer.
+- **Persistent Selection**: Your chosen page size is saved locally and applied automatically on subsequent visits, preventing layout shift.
+
 ## [June 01, 2026] Export Transactions Support & Setup Layout Redesign
 
 This release introduces **Export Transactions Support** and a **Vault Setup Layout Redesign** to Gringotts, making it easier to export your financial data and manage configurations.
