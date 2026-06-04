@@ -19,7 +19,9 @@ import {
   ArrowUp,
   ArrowDown,
   Download,
-  Upload
+  Upload,
+  Rows2,
+  Rows4
 } from 'lucide-react';
 import { useToast } from '../components/ToastContext';
 import Pagination from '../components/Pagination';
@@ -79,6 +81,7 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
   const [totalPages, setTotalPages] = useState(1);
   const [hasMore, setHasMore] = useState(false);
   const [pageSize, setPageSize] = useState(() => Number(localStorage.getItem('gringotts_transaction_pagesize')) || 10);
+  const [viewMode, setViewMode] = useState<'relaxed' | 'compact'>(() => (localStorage.getItem('gringotts_transaction_viewmode') as 'relaxed' | 'compact') || 'relaxed');
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [filters, setFilters] = useState<FilterCriteria[]>(() => {
@@ -201,6 +204,11 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
     setPageSize(newSize);
     localStorage.setItem('gringotts_transaction_pagesize', String(newSize));
     setCurrentPage(1);
+  };
+
+  const handleViewModeChange = (newMode: 'relaxed' | 'compact') => {
+    setViewMode(newMode);
+    localStorage.setItem('gringotts_transaction_viewmode', newMode);
   };
 
   useEffect(() => {
@@ -356,6 +364,7 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
   };
 
   const activeTabInfo = TABS.find(t => t.id === currentTab) || TABS[0];
+  const cellPadding = viewMode === 'compact' ? 'py-1.5 px-3' : 'p-4';
 
   const pageTotal = transactions.reduce((acc, t) => {
     const val = t.value;
@@ -540,6 +549,24 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
         </div>
         {/* Right Section Tools */}
         <div className="flex items-center gap-2 sm:gap-3">
+          {/* View Mode Toggle (Wide Screen Only) */}
+          <div className="hidden lg:flex items-center bg-slate-100 dark:bg-slate-800/85 p-1 rounded-xl border border-slate-200 dark:border-slate-700/60 shadow-sm">
+            <button
+              onClick={() => handleViewModeChange('relaxed')}
+              className={`p-2 rounded-lg transition-all ${viewMode === 'relaxed' ? 'bg-white dark:bg-slate-700 text-cyan-600 dark:text-cyan-400 shadow-sm' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'}`}
+              title="Relaxed View"
+            >
+              <Rows2 className="w-4.5 h-4.5" />
+            </button>
+            <button
+              onClick={() => handleViewModeChange('compact')}
+              className={`p-2 rounded-lg transition-all ${viewMode === 'compact' ? 'bg-white dark:bg-slate-700 text-cyan-600 dark:text-cyan-400 shadow-sm' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'}`}
+              title="Compact View"
+            >
+              <Rows4 className="w-4.5 h-4.5" />
+            </button>
+          </div>
+
           <div className="relative hidden lg:block" ref={columnDropdownRef}>
             <button
               onClick={() => setIsColumnChooserOpen(!isColumnChooserOpen)}
@@ -644,24 +671,24 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
               <tr className="group border-b border-slate-100 dark:border-slate-800/50 bg-slate-50/50 dark:bg-slate-900/50">
                 <th className={`transition-all duration-300 overflow-hidden ${currentTab !== 'all' && (isSelectionMode || selectedIds.size > 0) ? 'w-14 opacity-100' : 'w-0 opacity-0'}`}>
                   {currentTab !== 'all' && (
-                    <div className="flex justify-center items-center w-14 p-4">
+                    <div className={`flex justify-center items-center w-14 ${viewMode === 'compact' ? 'py-1.5' : 'p-4'}`}>
                       <input type="checkbox" checked={selectedIds.size === transactions.length && transactions.length > 0} onChange={toggleSelectAll} className="w-4 h-4 rounded accent-cyan-500 cursor-pointer" />
                     </div>
                   )}
                 </th>
-                {visibleColumns.has('date') && <th className="p-4 text-[11px] font-bold text-slate-400 uppercase tracking-widest">Date</th>}
-                {visibleColumns.has('description') && <th className="p-4 text-[11px] font-bold text-slate-400 uppercase tracking-widest">Description</th>}
-                {visibleColumns.has('type') && <th className="p-4 text-[11px] font-bold text-slate-400 uppercase tracking-widest">Type</th>}
-                {visibleColumns.has('category') && <th className="p-4 text-[11px] font-bold text-slate-400 uppercase tracking-widest">Category</th>}
-                {visibleColumns.has('subcategory') && <th className="p-4 text-[11px] font-bold text-slate-400 uppercase tracking-widest">Sub-Cat</th>}
-                {visibleColumns.has('item') && <th className="p-4 text-[11px] font-bold text-slate-400 uppercase tracking-widest">Item</th>}
-                {visibleColumns.has('payment_mode') && <th className="p-4 text-[11px] font-bold text-slate-400 uppercase tracking-widest">Payment</th>}
-                {visibleColumns.has('is_in') && <th className="p-4 text-[11px] font-bold text-slate-400 uppercase tracking-widest">In/Out</th>}
-                {visibleColumns.has('is_give') && <th className="p-4 text-[11px] font-bold text-slate-400 uppercase tracking-widest">Give/Recv</th>}
-                {visibleColumns.has('closed') && <th className="p-4 text-[11px] font-bold text-slate-400 uppercase tracking-widest">Status</th>}
-                {visibleColumns.has('notes') && <th className="p-4 text-[11px] font-bold text-slate-400 uppercase tracking-widest">Notes</th>}
-                {visibleColumns.has('amount') && <th className="p-4 text-right text-[11px] font-bold text-slate-400 uppercase tracking-widest">Amount</th>}
-                <th className="p-4 text-right text-[11px] font-bold text-slate-400 uppercase tracking-widest">Actions</th>
+                {visibleColumns.has('date') && <th className={`${cellPadding} text-[11px] font-bold text-slate-400 uppercase tracking-widest`}>Date</th>}
+                {visibleColumns.has('description') && <th className={`${cellPadding} text-[11px] font-bold text-slate-400 uppercase tracking-widest`}>Description</th>}
+                {visibleColumns.has('type') && <th className={`${cellPadding} text-[11px] font-bold text-slate-400 uppercase tracking-widest`}>Type</th>}
+                {visibleColumns.has('category') && <th className={`${cellPadding} text-[11px] font-bold text-slate-400 uppercase tracking-widest`}>Category</th>}
+                {visibleColumns.has('subcategory') && <th className={`${cellPadding} text-[11px] font-bold text-slate-400 uppercase tracking-widest`}>Sub-Cat</th>}
+                {visibleColumns.has('item') && <th className={`${cellPadding} text-[11px] font-bold text-slate-400 uppercase tracking-widest`}>Item</th>}
+                {visibleColumns.has('payment_mode') && <th className={`${cellPadding} text-[11px] font-bold text-slate-400 uppercase tracking-widest`}>Payment</th>}
+                {visibleColumns.has('is_in') && <th className={`${cellPadding} text-[11px] font-bold text-slate-400 uppercase tracking-widest`}>In/Out</th>}
+                {visibleColumns.has('is_give') && <th className={`${cellPadding} text-[11px] font-bold text-slate-400 uppercase tracking-widest`}>Give/Recv</th>}
+                {visibleColumns.has('closed') && <th className={`${cellPadding} text-[11px] font-bold text-slate-400 uppercase tracking-widest`}>Status</th>}
+                {visibleColumns.has('notes') && <th className={`${cellPadding} text-[11px] font-bold text-slate-400 uppercase tracking-widest`}>Notes</th>}
+                {visibleColumns.has('amount') && <th className={`${cellPadding} text-right text-[11px] font-bold text-slate-400 uppercase tracking-widest`}>Amount</th>}
+                <th className={`${cellPadding} text-right text-[11px] font-bold text-slate-400 uppercase tracking-widest`}>Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800/20">
@@ -673,7 +700,7 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
                 >
                   <td className={`transition-all duration-300 overflow-hidden ${currentTab !== 'all' && (isSelectionMode || selectedIds.size > 0) ? 'w-14' : (currentTab !== 'all' ? 'w-0 group-hover:w-14' : 'w-0')}`}>
                     {currentTab !== 'all' && (
-                      <div className={`flex justify-center items-center w-14 p-4 transition-opacity duration-300 ${isSelectionMode || selectedIds.size > 0 ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
+                      <div className={`flex justify-center items-center w-14 ${viewMode === 'compact' ? 'py-1.5' : 'p-4'} transition-opacity duration-300 ${isSelectionMode || selectedIds.size > 0 ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
                         <input type="checkbox" checked={selectedIds.has(t.id)} onChange={() => {
                           const next = new Set(selectedIds);
                           if (next.has(t.id)) next.delete(t.id); else next.add(t.id);
@@ -683,20 +710,22 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
                     )}
                   </td>
                   {visibleColumns.has('date') && (
-                    <td className="p-4 whitespace-nowrap">
-                      <p className="text-xs font-bold text-slate-700 dark:text-slate-300">{new Date(t.transaction_time).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}</p>
-                      <p className="text-[10px] text-slate-400 font-medium">#{t.id}</p>
+                    <td className={`${cellPadding} whitespace-nowrap`}>
+                      <div className={viewMode === 'compact' ? 'flex items-baseline gap-1.5' : ''}>
+                        <p className="text-xs font-bold text-slate-700 dark:text-slate-300">{new Date(t.transaction_time).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}</p>
+                        <p className={`text-[10px] text-slate-400 font-medium ${viewMode === 'compact' ? 'opacity-80' : 'block'}`}>#{t.id}</p>
+                      </div>
                     </td>
                   )}
                   {visibleColumns.has('description') && (
-                    <td className="p-4 min-w-[200px]">
-                      <div className="flex items-center gap-3">
-                        <CategoryIcon category={t.category} />
-                        <div className="flex flex-col">
-                          <span className="text-sm font-semibold text-slate-800 dark:text-slate-200 line-clamp-1">{t.description}</span>
+                    <td className={`${cellPadding} min-w-[200px]`}>
+                      <div className={`flex items-center ${viewMode === 'compact' ? 'gap-2' : 'gap-3'}`}>
+                        <CategoryIcon category={t.category} className={viewMode === 'compact' ? 'w-3.5 h-3.5' : 'w-4 h-4'} />
+                        <div className="flex flex-col min-w-0">
+                          <span className={`font-semibold text-slate-800 dark:text-slate-200 line-clamp-1 ${viewMode === 'compact' ? 'text-xs' : 'text-sm'}`}>{t.description}</span>
                           {t.funding_goal && (
-                            <div className="flex items-center gap-1.5 mt-0.5">
-                              <span className="px-2 py-0.5 bg-violet-500/10 text-violet-500 dark:bg-violet-500/20 dark:text-violet-400 text-[9px] font-black rounded-md flex items-center gap-1 border border-violet-500/20">
+                            <div className={`flex items-center gap-1.5 ${viewMode === 'compact' ? 'mt-0' : 'mt-0.5'}`}>
+                              <span className={`px-2 py-0.5 bg-violet-500/10 text-violet-500 dark:bg-violet-500/20 dark:text-violet-400 rounded-md flex items-center gap-1 border border-violet-500/20 ${viewMode === 'compact' ? 'text-[8px] font-black' : 'text-[9px] font-black'}`}>
                                 <span>{t.funding_goal.icon || '🎯'}</span>
                                 <span>{t.funding_goal.name}</span>
                               </span>
@@ -707,7 +736,7 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
                     </td>
                   )}
                   {visibleColumns.has('type') && (
-                    <td className="p-4">
+                    <td className={cellPadding}>
                       <span className={`text-[10px] font-bold px-2 py-1 rounded-lg uppercase tracking-wider ${t.type === 'EXPENSE' ? 'bg-rose-500/10 text-rose-500' :
                         t.type === 'INCOME' ? 'bg-emerald-500/10 text-emerald-500' :
                           t.type === 'SAVING' ? 'bg-violet-500/10 text-violet-500' :
@@ -718,27 +747,27 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
                     </td>
                   )}
                   {visibleColumns.has('category') && (
-                    <td className="p-4 whitespace-nowrap">
+                    <td className={`${cellPadding} whitespace-nowrap`}>
                       {t.category && <span className="text-xs font-medium text-slate-500 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-md">{t.category.name}</span>}
                     </td>
                   )}
                   {visibleColumns.has('subcategory') && (
-                    <td className="p-4 whitespace-nowrap">
+                    <td className={`${cellPadding} whitespace-nowrap`}>
                       {t.subcategory && <span className="text-[10px] font-medium text-slate-400">{t.subcategory.name}</span>}
                     </td>
                   )}
                   {visibleColumns.has('item') && (
-                    <td className="p-4 whitespace-nowrap">
+                    <td className={`${cellPadding} whitespace-nowrap`}>
                       {(t as any).item && <span className="text-[10px] font-medium text-slate-400">{(t as any).item.name}</span>}
                     </td>
                   )}
                   {visibleColumns.has('payment_mode') && (
-                    <td className="p-4 whitespace-nowrap">
+                    <td className={`${cellPadding} whitespace-nowrap`}>
                       {(t as any).payment_mode && <span className="text-[10px] font-bold text-slate-400 uppercase">{(t as any).payment_mode.replace('_', ' ')}</span>}
                     </td>
                   )}
                   {visibleColumns.has('is_in') && (
-                    <td className="p-4 whitespace-nowrap">
+                    <td className={`${cellPadding} whitespace-nowrap`}>
                       {typeof (t as any).is_in !== 'undefined' && (
                         <span className={`text-[10px] font-bold px-2 py-1 rounded-md uppercase ${(t as any).is_in ? 'text-emerald-500 bg-emerald-500/10' : 'text-rose-500 bg-rose-500/10'}`}>
                           {(t as any).is_in ? 'In' : 'Out'}
@@ -747,7 +776,7 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
                     </td>
                   )}
                   {visibleColumns.has('is_give') && (
-                    <td className="p-4 whitespace-nowrap">
+                    <td className={`${cellPadding} whitespace-nowrap`}>
                       {typeof (t as any).is_give !== 'undefined' && (
                         <span className={`text-[10px] font-bold px-2 py-1 rounded-md uppercase ${(t as any).is_give ? 'text-blue-500 bg-blue-500/10' : 'text-violet-500 bg-violet-500/10'}`}>
                           {(t as any).is_give ? 'Given' : 'Received'}
@@ -756,7 +785,7 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
                     </td>
                   )}
                   {visibleColumns.has('closed') && (
-                    <td className="p-4 whitespace-nowrap">
+                    <td className={`${cellPadding} whitespace-nowrap`}>
                       {typeof (t as any).closed !== 'undefined' && (
                         <span className={`text-[10px] font-bold px-2 py-1 rounded-md uppercase ${(t as any).closed ? 'text-slate-500 bg-slate-500/10' : 'text-amber-500 bg-amber-500/10'}`}>
                           {(t as any).closed ? 'Closed' : 'Active'}
@@ -765,19 +794,19 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
                     </td>
                   )}
                   {visibleColumns.has('notes') && (
-                    <td className="p-4 min-w-[150px]">
+                    <td className={`${cellPadding} min-w-[150px]`}>
                       {t.notes && <span className="text-[10px] text-slate-400 line-clamp-1" title={t.notes}>{t.notes}</span>}
                     </td>
                   )}
                   {visibleColumns.has('amount') && (
-                    <td className={`p-4 text-right font-bold tabular-nums whitespace-nowrap ${getAmountColor(t)}`}>
+                    <td className={`${cellPadding} text-right font-bold tabular-nums whitespace-nowrap ${viewMode === 'compact' ? 'text-xs' : 'text-sm'} ${getAmountColor(t)}`}>
                       {getAmountSign(t)}₹{t.value.toLocaleString('en-IN')}
                     </td>
                   )}
-                  <td className="p-4 text-right">
-                    <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-all">
-                      <button onClick={() => onEdit(t)} className="p-2 text-slate-400 hover:text-cyan-500 hover:bg-cyan-500/10 rounded-lg transition-all"><Pencil className="w-4 h-4" /></button>
-                      <button onClick={() => { setDeletingId(t.id); setIsDeleteDialogOpen(true); }} className="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 rounded-lg transition-all"><Trash2 className="w-4 h-4" /></button>
+                  <td className={`${cellPadding} text-right`}>
+                    <div className={`flex items-center justify-end ${viewMode === 'compact' ? 'gap-0.5' : 'gap-1'} opacity-0 group-hover:opacity-100 transition-all`}>
+                      <button onClick={() => onEdit(t)} className={`text-slate-400 hover:text-cyan-500 hover:bg-cyan-500/10 rounded-lg transition-all ${viewMode === 'compact' ? 'p-1' : 'p-2'}`}><Pencil className="w-4 h-4" /></button>
+                      <button onClick={() => { setDeletingId(t.id); setIsDeleteDialogOpen(true); }} className={`text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 rounded-lg transition-all ${viewMode === 'compact' ? 'p-1' : 'p-2'}`}><Trash2 className="w-4 h-4" /></button>
                     </div>
                   </td>
                 </tr>
