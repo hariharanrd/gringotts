@@ -139,7 +139,8 @@ export const api = {
     if (params.startDate) url += `&startDate=${encodeURIComponent(params.startDate)}`;
     if (params.endDate) url += `&endDate=${encodeURIComponent(params.endDate)}`;
     if (params.filters && params.filters.length > 0) {
-      url += `&filters=${encodeURIComponent(JSON.stringify(params.filters))}`;
+      const cleanedFilters = params.filters.map(({ field, condition, value }) => ({ field, condition, value }));
+      url += `&filters=${encodeURIComponent(JSON.stringify(cleanedFilters))}`;
     }
     const response = await fetchWithCredentials(url);
     if (response.status === 403) {
@@ -158,8 +159,8 @@ export const api = {
   },
 
 
-  getTransactions: async (currentPage: number, filters?: { field: string, condition: string, value: string }[], direction: 'ASC' | 'DESC' = 'DESC'): Promise<ResponseProps> => {
-    let url = `${BASE_URL}/transactions?page=${currentPage}&direction=${direction}`;
+  getTransactions: async (currentPage: number, filters?: { field: string, condition: string, value: string }[], direction: 'ASC' | 'DESC' = 'DESC', size: number = 10): Promise<ResponseProps> => {
+    let url = `${BASE_URL}/transactions?page=${currentPage}&direction=${direction}&size=${size}`;
     if (filters && filters.length > 0) url += `&filters=${encodeURIComponent(JSON.stringify(filters))}`;
     const response = await fetchWithCredentials(url);
     const data = await handleResponse(response);
@@ -168,8 +169,8 @@ export const api = {
     return data;
   },
 
-  getExpenses: async (currentPage: number, filters?: { field: string, condition: string, value: string }[], direction: 'ASC' | 'DESC' = 'DESC'): Promise<ResponseProps> => {
-    let url = `${BASE_URL}/expenses?page=${currentPage}&direction=${direction}`;
+  getExpenses: async (currentPage: number, filters?: { field: string, condition: string, value: string }[], direction: 'ASC' | 'DESC' = 'DESC', size: number = 10): Promise<ResponseProps> => {
+    let url = `${BASE_URL}/expenses?page=${currentPage}&direction=${direction}&size=${size}`;
     if (filters && filters.length > 0) url += `&filters=${encodeURIComponent(JSON.stringify(filters))}`;
     const response = await fetchWithCredentials(url);
     const data = await handleResponse(response);
@@ -177,8 +178,8 @@ export const api = {
     return data;
   },
 
-  getIncomes: async (currentPage: number, filters?: { field: string, condition: string, value: string }[], direction: 'ASC' | 'DESC' = 'DESC'): Promise<ResponseProps> => {
-    let url = `${BASE_URL}/incomes?page=${currentPage}&direction=${direction}`;
+  getIncomes: async (currentPage: number, filters?: { field: string, condition: string, value: string }[], direction: 'ASC' | 'DESC' = 'DESC', size: number = 10): Promise<ResponseProps> => {
+    let url = `${BASE_URL}/incomes?page=${currentPage}&direction=${direction}&size=${size}`;
     if (filters && filters.length > 0) url += `&filters=${encodeURIComponent(JSON.stringify(filters))}`;
     const response = await fetchWithCredentials(url);
     const data = await handleResponse(response);
@@ -186,8 +187,8 @@ export const api = {
     return data;
   },
 
-  getSavings: async (currentPage: number, filters?: { field: string, condition: string, value: string }[], direction: 'ASC' | 'DESC' = 'DESC'): Promise<ResponseProps> => {
-    let url = `${BASE_URL}/savings?page=${currentPage}&direction=${direction}`;
+  getSavings: async (currentPage: number, filters?: { field: string, condition: string, value: string }[], direction: 'ASC' | 'DESC' = 'DESC', size: number = 10): Promise<ResponseProps> => {
+    let url = `${BASE_URL}/savings?page=${currentPage}&direction=${direction}&size=${size}`;
     if (filters && filters.length > 0) url += `&filters=${encodeURIComponent(JSON.stringify(filters))}`;
     const response = await fetchWithCredentials(url);
     const data = await handleResponse(response);
@@ -195,8 +196,8 @@ export const api = {
     return data;
   },
 
-  getRevolvings: async (currentPage: number, filters?: { field: string, condition: string, value: string }[], direction: 'ASC' | 'DESC' = 'DESC'): Promise<ResponseProps> => {
-    let url = `${BASE_URL}/revolvings?page=${currentPage}&direction=${direction}`;
+  getRevolvings: async (currentPage: number, filters?: { field: string, condition: string, value: string }[], direction: 'ASC' | 'DESC' = 'DESC', size: number = 10): Promise<ResponseProps> => {
+    let url = `${BASE_URL}/revolvings?page=${currentPage}&direction=${direction}&size=${size}`;
     if (filters && filters.length > 0) url += `&filters=${encodeURIComponent(JSON.stringify(filters))}`;
     const response = await fetchWithCredentials(url);
     const data = await handleResponse(response);

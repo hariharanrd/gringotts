@@ -92,11 +92,12 @@ public class InvestmentGoalController {
     @GetMapping("/{id}/transactions")
     public ResponseEntity<Map<String, Object>> getGoalTransactions(
             @PathVariable Long id,
-            @RequestParam(value = "page", defaultValue = "1") int page) {
+            @RequestParam(value = "page", defaultValue = "1") int page,
+            @RequestParam(value = "size", defaultValue = "10") int size) {
         try {
             // Retrieve goal to check ownership and existence
             InvestmentGoal goal = investmentGoalService.requireGoal(id);
-            Pageable pageable = PageRequest.of(page - 1, 10, Sort.by(Sort.Direction.DESC, "transactionTime"));
+            Pageable pageable = PageRequest.of(page - 1, size, Sort.by(Sort.Direction.DESC, "transactionTime"));
             Page<Transaction> result = transactionRepository.findByFundingGoalAndUser(goal, goal.getUser(), pageable);
             return ResponseEntity.ok(Map.of(
                     "data", result.getContent(),
