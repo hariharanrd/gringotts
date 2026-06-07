@@ -151,6 +151,7 @@ export interface InvestmentGoal {
 export enum ScheduleFrequency {
   ONE_TIME = 'ONE_TIME',
   DAILY = 'DAILY',
+  WEEKLY = 'WEEKLY',
   MONTHLY = 'MONTHLY',
   YEARLY = 'YEARLY'
 }
