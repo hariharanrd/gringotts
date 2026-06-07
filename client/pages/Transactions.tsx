@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { personalizationSync } from '../services/personalizationSync';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
-import { Transaction, TransactionType, Category, SubCategory, Item, CreditCard, Saving, Revolving, InvestmentGoal } from '../types';
+import { Transaction, TransactionType, Category, SubCategory, Item, CreditCard, Saving, Revolving, InvestmentGoal, Expense, Income } from '../types';
 import { PAYMENT_MODES, SAVING_DIRECTIONS, REVOLVING_DIRECTIONS, REVOLVING_STATUSES } from '../constants';
 import {
   Landmark,
@@ -21,7 +21,9 @@ import {
   Download,
   Upload,
   Rows2,
-  Rows4
+  Rows4,
+  Calendar as CalendarIcon,
+  List
 } from 'lucide-react';
 import { useToast } from '../components/ToastContext';
 import Pagination from '../components/Pagination';
@@ -31,6 +33,7 @@ import { FilterMenu, FilterCriteria, FilterChips } from '../components/FilterMen
 import ConfirmationDialog from '../components/ConfirmationDialog';
 import CategoryIcon from '../components/CategoryIcon';
 import ExportModal from '../components/ExportModal';
+import { TransactionsCalendar } from '../components/TransactionsCalendar';
 
 interface TransactionsProps {
   onEdit: (transaction: Transaction) => void;
@@ -82,6 +85,7 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
   const [totalPages, setTotalPages] = useState(1);
   const [hasMore, setHasMore] = useState(false);
   const [pageSize, setPageSize] = useState(() => Number(localStorage.getItem('gringotts_transaction_pagesize')) || 10);
+  const [displayMode, setDisplayMode] = useState<'list' | 'calendar'>('list');
   const [viewMode, setViewMode] = useState<'relaxed' | 'compact'>(() => (localStorage.getItem('gringotts_transaction_viewmode') as 'relaxed' | 'compact') || 'relaxed');
   const [editingCell, setEditingCell] = useState<{ id: number; field: string } | null>(null);
   const [editValue, setEditValue] = useState<any>(null);
@@ -283,16 +287,16 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
       let response;
       switch (t.type) {
         case TransactionType.EXPENSE:
-          response = await api.updateExpense(updatedData);
+          response = await api.updateExpense(updatedData as Expense);
           break;
         case TransactionType.INCOME:
-          response = await api.updateIncome(updatedData);
+          response = await api.updateIncome(updatedData as Income);
           break;
         case TransactionType.SAVING:
-          response = await api.updateSaving(updatedData);
+          response = await api.updateSaving(updatedData as Saving);
           break;
         case TransactionType.REVOLVING:
-          response = await api.updateRevolving(updatedData);
+          response = await api.updateRevolving(updatedData as Revolving);
           break;
       }
       showToast('Transaction updated successfully!', 'success');
@@ -566,19 +570,19 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
       <div className="flex flex-wrap items-center gap-3 sm:gap-4 w-full justify-between">
         <div className="flex items-center gap-3 w-full sm:w-auto">
           {/* Dropdown Tab Selector */}
-          <div className={`relative grow sm:grow-0 sm:min-w-[240px] ${selectedIds.size > 0 ? 'hidden sm:block' : ''}`} ref={tabMenuRef}>
+          <div className={`relative grow sm:grow-0 sm:min-w-[200px] ${selectedIds.size > 0 ? 'hidden sm:block' : ''}`} ref={tabMenuRef}>
             <button
               onClick={() => setIsTabMenuOpen(!isTabMenuOpen)}
-              className={`w-full flex items-center gap-3 px-5 py-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/60 shadow-sm hover:shadow-md transition-all ${isTabMenuOpen ? 'ring-2 ring-cyan-500/20 border-cyan-500/50' : ''}`}
+              className={`w-full flex items-center gap-2.5 px-3.5 py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/60 shadow-sm hover:shadow-md transition-all ${isTabMenuOpen ? 'ring-2 ring-cyan-500/20 border-cyan-500/50' : ''}`}
             >
-              <div className={`p-2 rounded-xl bg-gradient-to-br ${activeTabInfo.color} shadow-lg shadow-slate-500/10`}>
-                <activeTabInfo.icon className="w-5 h-5 text-white" />
+              <div className={`p-1.5 rounded-lg bg-gradient-to-br ${activeTabInfo.color} shadow-lg shadow-slate-500/10`}>
+                <activeTabInfo.icon className="w-4 h-4 text-white" />
               </div>
-              <div className="text-left pr-8">
-                <p className="text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-widest font-bold">Viewing</p>
-                <p className="text-sm font-bold text-slate-900 dark:text-white">{activeTabInfo.label}</p>
+              <div className="text-left pr-6">
+                <p className="text-[9px] text-slate-400 dark:text-slate-500 uppercase tracking-widest font-bold">Viewing</p>
+                <p className="text-xs font-bold text-slate-900 dark:text-white">{activeTabInfo.label}</p>
               </div>
-              <ChevronDown className={`absolute right-4 w-4 h-4 text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-200 transition-transform ${isTabMenuOpen ? 'rotate-180' : ''}`} />
+              <ChevronDown className={`absolute right-3 w-3.5 h-3.5 text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-200 transition-transform ${isTabMenuOpen ? 'rotate-180' : ''}`} />
             </button>
 
             {isTabMenuOpen && (
@@ -587,7 +591,7 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
                   <button
                     key={tab.id}
                     onClick={() => handleTabChange(tab.id)}
-                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors ${currentTab === tab.id ? 'bg-slate-100 dark:bg-slate-800 text-cyan-600 dark:text-cyan-400' : 'text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-slate-200'}`}
+                    className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${currentTab === tab.id ? 'bg-slate-100 dark:bg-slate-800 text-cyan-600 dark:text-cyan-400' : 'text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-slate-200'}`}
                   >
                     <tab.icon className={`w-4 h-4 ${currentTab === tab.id ? 'text-cyan-500' : 'text-slate-400'}`} />
                     {tab.label}
@@ -599,10 +603,10 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
 
           <button
             onClick={() => onAdd(currentTab === 'all' ? undefined : (currentTab.toUpperCase() as any))}
-            className={`flex items-center justify-center gap-2 text-white py-3 px-5 rounded-2xl transition-all font-bold text-sm shrink-0 shadow-lg ${selectedIds.size > 0 ? 'hidden sm:flex' : ''}`}
+            className={`flex items-center justify-center gap-1.5 text-white py-2 px-3.5 rounded-xl transition-all font-bold text-xs shrink-0 shadow-lg ${selectedIds.size > 0 ? 'hidden sm:flex' : ''}`}
             style={{
               background: `linear-gradient(to right, var(--theme-gradient-from), var(--theme-gradient-to))`,
-              boxShadow: `0 10px 15px -3px rgba(var(--theme-accent-rgb), 0.2), 0 4px 6px -4px rgba(var(--theme-accent-rgb), 0.2)`
+              boxShadow: `0 8px 12px -3px rgba(var(--theme-accent-rgb), 0.15), 0 3px 4px -4px rgba(var(--theme-accent-rgb), 0.15)`
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.filter = 'brightness(1.1)';
@@ -611,8 +615,8 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
               e.currentTarget.style.filter = 'none';
             }}
           >
-            <PlusCircle className="w-4 h-4" />
-            <span className="hidden sm:inline">Add</span>
+            <PlusCircle className="w-3.5 h-3.5" />
+            <span>Add</span>
           </button>
 
           {/* Bulk Actions */}
@@ -645,97 +649,124 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
           )}
         </div>
         {/* Right Section Tools */}
-        <div className="flex items-center gap-2 sm:gap-3">
+        <div className="flex items-center justify-start sm:justify-start w-full sm:w-auto gap-2 sm:gap-3">
+          {/* Display Mode Toggle */}
+          <div className="flex items-center bg-slate-100 dark:bg-slate-800/85 p-1 rounded-xl border border-slate-200 dark:border-slate-700/60 shadow-sm">
+            <button
+              onClick={() => setDisplayMode('list')}
+              className={`p-1.5 rounded-lg transition-all ${displayMode === 'list' ? 'bg-white dark:bg-slate-700 text-cyan-600 dark:text-cyan-400 shadow-sm' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'}`}
+              title="List View"
+            >
+              <List className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => setDisplayMode('calendar')}
+              className={`p-1.5 rounded-lg transition-all ${displayMode === 'calendar' ? 'bg-white dark:bg-slate-700 text-cyan-600 dark:text-cyan-400 shadow-sm' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'}`}
+              title="Calendar View"
+            >
+              <CalendarIcon className="w-4 h-4" />
+            </button>
+          </div>
+
           {/* View Mode Toggle (Wide Screen Only) */}
-          <div className="hidden lg:flex items-center bg-slate-100 dark:bg-slate-800/85 p-1 rounded-xl border border-slate-200 dark:border-slate-700/60 shadow-sm">
-            <button
-              onClick={() => handleViewModeChange('relaxed')}
-              className={`p-2 rounded-lg transition-all ${viewMode === 'relaxed' ? 'bg-white dark:bg-slate-700 text-cyan-600 dark:text-cyan-400 shadow-sm' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'}`}
-              title="Relaxed View"
-            >
-              <Rows2 className="w-4.5 h-4.5" />
-            </button>
-            <button
-              onClick={() => handleViewModeChange('compact')}
-              className={`p-2 rounded-lg transition-all ${viewMode === 'compact' ? 'bg-white dark:bg-slate-700 text-cyan-600 dark:text-cyan-400 shadow-sm' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'}`}
-              title="Compact View"
-            >
-              <Rows4 className="w-4.5 h-4.5" />
-            </button>
-          </div>
+          {displayMode === 'list' && (
+            <div className="hidden lg:flex items-center bg-slate-100 dark:bg-slate-800/85 p-1 rounded-xl border border-slate-200 dark:border-slate-700/60 shadow-sm">
+              <button
+                onClick={() => handleViewModeChange('relaxed')}
+                className={`p-1.5 rounded-lg transition-all ${viewMode === 'relaxed' ? 'bg-white dark:bg-slate-700 text-cyan-600 dark:text-cyan-400 shadow-sm' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'}`}
+                title="Relaxed View"
+              >
+                <Rows2 className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => handleViewModeChange('compact')}
+                className={`p-1.5 rounded-lg transition-all ${viewMode === 'compact' ? 'bg-white dark:bg-slate-700 text-cyan-600 dark:text-cyan-400 shadow-sm' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'}`}
+                title="Compact View"
+              >
+                <Rows4 className="w-4 h-4" />
+              </button>
+            </div>
+          )}
 
-          <div className="relative hidden lg:block" ref={columnDropdownRef}>
-            <button
-              onClick={() => setIsColumnChooserOpen(!isColumnChooserOpen)}
-              className="p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/60 rounded-xl shadow-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-slate-500"
-            >
-              <Columns className="w-5 h-5" />
-            </button>
-            {isColumnChooserOpen && (
-              <div className="absolute right-0 mt-2 w-56 glass rounded-2xl shadow-2xl py-3 z-50 border border-slate-200 dark:border-slate-800">
-                <p className="px-4 pb-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Toggle Columns</p>
-                <div className="max-h-64 overflow-y-auto px-1">
-                  {ALL_COLUMNS.map(col => (
-                    <label key={col.key} className="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer transition-colors">
-                      <input
-                        type="checkbox"
-                        checked={visibleColumns.has(col.key)}
-                        onChange={() => toggleColumn(col.key)}
-                        className="w-4 h-4 rounded accent-cyan-500"
-                      />
-                      <span className="text-xs font-medium text-slate-600 dark:text-slate-400">{col.label}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-
-          
-
+          {/* Filter button */}
           <FilterMenu
             activeFilters={filters}
             availableFields={getAvailableFields()}
             onApplyFilters={(f) => { updateFilters(f); setCurrentPage(1); }}
           />
 
-          <button
-            onClick={() => {
-              setSortDirection(prev => prev === 'ASC' ? 'DESC' : 'ASC');
-              setCurrentPage(1);
-            }}
-            className="p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/60 rounded-xl shadow-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-slate-500 flex items-center gap-2 group"
-            title={`Sort by Date: ${sortDirection === 'DESC' ? 'Newest First' : 'Oldest First'}`}
-          >
-            {sortDirection === 'DESC' ? (
-              <ArrowDown className="w-5 h-5 text-cyan-500 group-hover:scale-110 transition-transform" />
-            ) : (
-              <ArrowUp className="w-5 h-5 text-cyan-500 group-hover:scale-110 transition-transform" />
-            )}
-          </button>
+          {/* Action Utilities Group */}
+          {displayMode === 'list' && (
+            <div className="flex items-center bg-slate-100 dark:bg-slate-800/85 p-1 rounded-xl border border-slate-200 dark:border-slate-700/60 shadow-sm">
+              {/* Sort Button */}
+              <button
+                onClick={() => {
+                  setSortDirection(prev => prev === 'ASC' ? 'DESC' : 'ASC');
+                  setCurrentPage(1);
+                }}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-white dark:hover:bg-slate-700 transition-all group"
+                title={`Sort by Date: ${sortDirection === 'DESC' ? 'Newest First' : 'Oldest First'}`}
+              >
+                {sortDirection === 'DESC' ? (
+                  <ArrowDown className="w-4 h-4 text-cyan-500 group-hover:scale-110 transition-transform" />
+                ) : (
+                  <ArrowUp className="w-4 h-4 text-cyan-500 group-hover:scale-110 transition-transform" />
+                )}
+              </button>
 
-          <button
-            onClick={() => setIsExportModalOpen(true)}
-            className="p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/60 rounded-xl shadow-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-slate-500 flex items-center gap-2 group"
-            title="Export View"
-          >
-            <Upload className="w-5 h-5 text-cyan-500 group-hover:scale-110 transition-transform" />
-          </button>
+              {/* Column Chooser Dropdown */}
+              <div className="relative hidden lg:block" ref={columnDropdownRef}>
+                <button
+                  onClick={() => setIsColumnChooserOpen(!isColumnChooserOpen)}
+                  className={`p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-all ${isColumnChooserOpen ? 'bg-white dark:bg-slate-700' : 'hover:bg-white dark:hover:bg-slate-700'}`}
+                  title="Toggle Columns"
+                >
+                  <Columns className="w-4 h-4 text-cyan-500" />
+                </button>
+                {isColumnChooserOpen && (
+                  <div className="absolute right-0 mt-2 w-56 glass rounded-2xl shadow-2xl py-3 z-50 border border-slate-200 dark:border-slate-800">
+                    <p className="px-4 pb-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Toggle Columns</p>
+                    <div className="max-h-64 overflow-y-auto px-1">
+                      {ALL_COLUMNS.map(col => (
+                        <label key={col.key} className="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer transition-colors">
+                          <input
+                            type="checkbox"
+                            checked={visibleColumns.has(col.key)}
+                            onChange={() => toggleColumn(col.key)}
+                            className="w-4 h-4 rounded accent-cyan-500"
+                          />
+                          <span className="text-xs font-medium text-slate-600 dark:text-slate-400">{col.label}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
 
+              {/* Export View Button */}
+              <button
+                onClick={() => setIsExportModalOpen(true)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-white dark:hover:bg-slate-700 transition-all group"
+                title="Export View"
+              >
+                <Upload className="w-4 h-4 text-cyan-500 group-hover:scale-110 transition-transform" />
+              </button>
 
-
-          {currentTab !== 'all' && (
-            <button
-              onClick={() => {
-                const newMode = !isSelectionMode;
-                setIsSelectionMode(newMode);
-                if (!newMode) setSelectedIds(new Set());
-              }}
-              className={`lg:hidden flex items-center justify-center p-3 rounded-2xl border transition-all ${isSelectionMode ? 'bg-cyan-500 text-white border-cyan-500 shadow-lg shadow-cyan-500/20' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-500'}`}
-              title="Select Mode"
-            >
-              <ListChecks className="w-5 h-5" />
-            </button>
+              {/* Selection Mode Button (Mobile Only) */}
+              {currentTab !== 'all' && (
+                <button
+                  onClick={() => {
+                    const newMode = !isSelectionMode;
+                    setIsSelectionMode(newMode);
+                    if (!newMode) setSelectedIds(new Set());
+                  }}
+                  className={`lg:hidden p-1.5 rounded-lg transition-all ${isSelectionMode ? 'bg-cyan-500 text-white shadow-sm' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-white dark:hover:bg-slate-700'}`}
+                  title="Select Mode"
+                >
+                  <ListChecks className={`w-4 h-4 ${isSelectionMode ? 'text-white' : 'text-cyan-500'}`} />
+                </button>
+              )}
+            </div>
           )}
         </div>
       </div>
@@ -760,6 +791,14 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
         </div>
       )}
 
+      {displayMode === 'calendar' ? (
+        <TransactionsCalendar 
+          onTransactionClick={(t) => handleRowClick({ target: document.createElement('div') } as any, t)} 
+          filters={filters}
+          currentTab={currentTab}
+        />
+      ) : (
+      <>
       <div className="glass overflow-hidden rounded-3xl border border-slate-200 dark:border-slate-800/50">
         {/* Desktop View: Table */}
         <div className="hidden lg:block overflow-x-auto">
@@ -820,7 +859,7 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
                       )}
                     </td>
                     {visibleColumns.has('date') && (
-                      <td className={`${cellPadding} whitespace-nowrap`} data-spot-edit="true">
+                      <td className={`${cellPadding} whitespace-nowrap`}>
                         {isDateEditing ? (
                           <input
                             type="date"
@@ -833,20 +872,19 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
                           />
                         ) : (
                           <div
-                            onClick={(e) => { e.stopPropagation(); startEditingCell(t, 'transaction_time'); }}
                             className="group/cell flex items-center justify-between min-w-0 w-full"
                           >
                             <div className={viewMode === 'compact' ? 'flex items-baseline gap-1.5' : ''}>
                               <p className="text-xs font-bold text-slate-700 dark:text-slate-300">{new Date(t.transaction_time).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}</p>
                               <p className={`text-[10px] text-slate-400 font-medium ${viewMode === 'compact' ? 'opacity-80' : 'block'}`}>#{t.id}</p>
                             </div>
-                            <Pencil className="w-3 h-3 text-slate-400 opacity-0 group-hover/cell:opacity-100 hover:text-cyan-500 transition-opacity ml-1.5 shrink-0 cursor-pointer" />
+                            <Pencil onClick={(e) => { e.stopPropagation(); startEditingCell(t, 'transaction_time'); }} className="w-3 h-3 text-slate-400 opacity-0 group-hover/cell:opacity-100 hover:text-cyan-500 transition-opacity ml-1.5 shrink-0 cursor-pointer" />
                           </div>
                         )}
                       </td>
                     )}
                     {visibleColumns.has('description') && (
-                      <td className={`${cellPadding} min-w-[200px]`} data-spot-edit="true">
+                      <td className={`${cellPadding} min-w-[200px]`}>
                         {isDescEditing ? (
                           <input
                             type="text"
@@ -859,7 +897,6 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
                           />
                         ) : (
                           <div
-                            onClick={(e) => { e.stopPropagation(); startEditingCell(t, 'description'); }}
                             className="group/cell flex items-center justify-between min-w-0 w-full"
                           >
                             <div className={`flex items-center ${viewMode === 'compact' ? 'gap-2' : 'gap-3'} min-w-0 flex-1`}>
@@ -876,7 +913,7 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
                                 )}
                               </div>
                             </div>
-                            <Pencil className="w-3 h-3 text-slate-400 opacity-0 group-hover/cell:opacity-100 hover:text-cyan-500 transition-opacity ml-1.5 shrink-0 cursor-pointer" />
+                            <Pencil onClick={(e) => { e.stopPropagation(); startEditingCell(t, 'description'); }} className="w-3 h-3 text-slate-400 opacity-0 group-hover/cell:opacity-100 hover:text-cyan-500 transition-opacity ml-1.5 shrink-0 cursor-pointer" />
                           </div>
                         )}
                       </td>
@@ -893,7 +930,7 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
                       </td>
                     )}
                     {visibleColumns.has('category') && (
-                      <td className={`${cellPadding} whitespace-nowrap`} data-spot-edit="true">
+                      <td className={`${cellPadding} whitespace-nowrap`}>
                         {isCategoryEditing ? (
                           <CustomSelect
                             value={editValue}
@@ -910,7 +947,6 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
                           />
                         ) : (
                           <div
-                            onClick={(e) => { e.stopPropagation(); startEditingCell(t, 'category'); }}
                             className="group/cell flex items-center justify-between min-w-0 w-full gap-2"
                           >
                             {t.category ? (
@@ -918,13 +954,13 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
                             ) : (
                               <span className="text-xs text-slate-400 italic">None</span>
                             )}
-                            <Pencil className="w-3 h-3 text-slate-400 opacity-0 group-hover/cell:opacity-100 hover:text-cyan-500 transition-opacity shrink-0 cursor-pointer" />
+                            <Pencil onClick={(e) => { e.stopPropagation(); startEditingCell(t, 'category'); }} className="w-3 h-3 text-slate-400 opacity-0 group-hover/cell:opacity-100 hover:text-cyan-500 transition-opacity shrink-0 cursor-pointer" />
                           </div>
                         )}
                       </td>
                     )}
                     {visibleColumns.has('subcategory') && (
-                      <td className={`${cellPadding} whitespace-nowrap`} data-spot-edit="true">
+                      <td className={`${cellPadding} whitespace-nowrap`}>
                         {isSubcategoryEditing ? (
                           <CustomSelect
                             value={editValue}
@@ -939,7 +975,6 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
                           />
                         ) : (
                           <div
-                            onClick={(e) => { e.stopPropagation(); startEditingCell(t, 'subcategory'); }}
                             className="group/cell flex items-center justify-between min-w-0 w-full gap-2"
                           >
                             {t.subcategory ? (
@@ -947,13 +982,13 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
                             ) : (
                               <span className="text-[10px] text-slate-400 italic">None</span>
                             )}
-                            <Pencil className="w-3 h-3 text-slate-400 opacity-0 group-hover/cell:opacity-100 hover:text-cyan-500 transition-opacity shrink-0 cursor-pointer" />
+                            <Pencil onClick={(e) => { e.stopPropagation(); startEditingCell(t, 'subcategory'); }} className="w-3 h-3 text-slate-400 opacity-0 group-hover/cell:opacity-100 hover:text-cyan-500 transition-opacity shrink-0 cursor-pointer" />
                           </div>
                         )}
                       </td>
                     )}
                     {visibleColumns.has('item') && (
-                      <td className={`${cellPadding} whitespace-nowrap`} data-spot-edit="true">
+                      <td className={`${cellPadding} whitespace-nowrap`}>
                         {isItemEditing ? (
                           <CustomSelect
                             value={editValue}
@@ -968,7 +1003,6 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
                           />
                         ) : (
                           <div
-                            onClick={(e) => { e.stopPropagation(); startEditingCell(t, 'item'); }}
                             className="group/cell flex items-center justify-between min-w-0 w-full gap-2"
                           >
                             {(t as any).item ? (
@@ -976,13 +1010,13 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
                             ) : (
                               <span className="text-[10px] text-slate-400 italic">None</span>
                             )}
-                            <Pencil className="w-3 h-3 text-slate-400 opacity-0 group-hover/cell:opacity-100 hover:text-cyan-500 transition-opacity shrink-0 cursor-pointer" />
+                            <Pencil onClick={(e) => { e.stopPropagation(); startEditingCell(t, 'item'); }} className="w-3 h-3 text-slate-400 opacity-0 group-hover/cell:opacity-100 hover:text-cyan-500 transition-opacity shrink-0 cursor-pointer" />
                           </div>
                         )}
                       </td>
                     )}
                     {visibleColumns.has('payment_mode') && (
-                      <td className={`${cellPadding} whitespace-nowrap`} data-spot-edit="true">
+                      <td className={`${cellPadding} whitespace-nowrap`}>
                         {isPaymentModeEditing ? (
                           <CustomSelect
                             value={editValue}
@@ -997,7 +1031,6 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
                           />
                         ) : (
                           <div
-                            onClick={(e) => { e.stopPropagation(); startEditingCell(t, 'payment_mode'); }}
                             className="group/cell flex items-center justify-between min-w-0 w-full gap-2"
                           >
                             {(t as any).payment_mode ? (
@@ -1005,13 +1038,13 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
                             ) : (
                               <span className="text-[10px] text-slate-400 italic">None</span>
                             )}
-                            <Pencil className="w-3 h-3 text-slate-400 opacity-0 group-hover/cell:opacity-100 hover:text-cyan-500 transition-opacity shrink-0 cursor-pointer" />
+                            <Pencil onClick={(e) => { e.stopPropagation(); startEditingCell(t, 'payment_mode'); }} className="w-3 h-3 text-slate-400 opacity-0 group-hover/cell:opacity-100 hover:text-cyan-500 transition-opacity shrink-0 cursor-pointer" />
                           </div>
                         )}
                       </td>
                     )}
                     {visibleColumns.has('is_in') && (
-                      <td className={`${cellPadding} whitespace-nowrap`} data-spot-edit="true">
+                      <td className={`${cellPadding} whitespace-nowrap`}>
                         {typeof (t as any).is_in !== 'undefined' && (
                           isInEditing ? (
                             <CustomSelect
@@ -1027,20 +1060,19 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
                             />
                           ) : (
                             <div
-                              onClick={(e) => { e.stopPropagation(); startEditingCell(t, 'is_in'); }}
                               className="group/cell flex items-center justify-between min-w-0 w-full gap-2"
                             >
                               <span className={`text-[10px] font-bold px-2 py-1 rounded-md uppercase ${(t as any).is_in ? 'text-emerald-500 bg-emerald-500/10' : 'text-rose-500 bg-rose-500/10'}`}>
                                 {(t as any).is_in ? 'In' : 'Out'}
                               </span>
-                              <Pencil className="w-3 h-3 text-slate-400 opacity-0 group-hover/cell:opacity-100 hover:text-cyan-500 transition-opacity shrink-0 cursor-pointer" />
+                              <Pencil onClick={(e) => { e.stopPropagation(); startEditingCell(t, 'is_in'); }} className="w-3 h-3 text-slate-400 opacity-0 group-hover/cell:opacity-100 hover:text-cyan-500 transition-opacity shrink-0 cursor-pointer" />
                             </div>
                           )
                         )}
                       </td>
                     )}
                     {visibleColumns.has('is_give') && (
-                      <td className={`${cellPadding} whitespace-nowrap`} data-spot-edit="true">
+                      <td className={`${cellPadding} whitespace-nowrap`}>
                         {typeof (t as any).is_give !== 'undefined' && (
                           isGiveEditing ? (
                             <CustomSelect
@@ -1056,20 +1088,19 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
                             />
                           ) : (
                             <div
-                              onClick={(e) => { e.stopPropagation(); startEditingCell(t, 'is_give'); }}
                               className="group/cell flex items-center justify-between min-w-0 w-full gap-2"
                             >
                               <span className={`text-[10px] font-bold px-2 py-1 rounded-md uppercase ${(t as any).is_give ? 'text-blue-500 bg-blue-500/10' : 'text-violet-500 bg-violet-500/10'}`}>
                                 {(t as any).is_give ? 'Given' : 'Received'}
                               </span>
-                              <Pencil className="w-3 h-3 text-slate-400 opacity-0 group-hover/cell:opacity-100 hover:text-cyan-500 transition-opacity shrink-0 cursor-pointer" />
+                              <Pencil onClick={(e) => { e.stopPropagation(); startEditingCell(t, 'is_give'); }} className="w-3 h-3 text-slate-400 opacity-0 group-hover/cell:opacity-100 hover:text-cyan-500 transition-opacity shrink-0 cursor-pointer" />
                             </div>
                           )
                         )}
                       </td>
                     )}
                     {visibleColumns.has('closed') && (
-                      <td className={`${cellPadding} whitespace-nowrap`} data-spot-edit="true">
+                      <td className={`${cellPadding} whitespace-nowrap`}>
                         {typeof (t as any).closed !== 'undefined' && (
                           isClosedEditing ? (
                             <CustomSelect
@@ -1085,20 +1116,19 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
                             />
                           ) : (
                             <div
-                              onClick={(e) => { e.stopPropagation(); startEditingCell(t, 'closed'); }}
                               className="group/cell flex items-center justify-between min-w-0 w-full gap-2"
                             >
                               <span className={`text-[10px] font-bold px-2 py-1 rounded-md uppercase ${(t as any).closed ? 'text-slate-500 bg-slate-500/10' : 'text-amber-500 bg-amber-500/10'}`}>
                                 {(t as any).closed ? 'Closed' : 'Active'}
                               </span>
-                              <Pencil className="w-3 h-3 text-slate-400 opacity-0 group-hover/cell:opacity-100 hover:text-cyan-500 transition-opacity shrink-0 cursor-pointer" />
+                              <Pencil onClick={(e) => { e.stopPropagation(); startEditingCell(t, 'closed'); }} className="w-3 h-3 text-slate-400 opacity-0 group-hover/cell:opacity-100 hover:text-cyan-500 transition-opacity shrink-0 cursor-pointer" />
                             </div>
                           )
                         )}
                       </td>
                     )}
                     {visibleColumns.has('notes') && (
-                      <td className={`${cellPadding} min-w-[150px]`} data-spot-edit="true">
+                      <td className={`${cellPadding} min-w-[150px]`}>
                         {isNotesEditing ? (
                           <input
                             type="text"
@@ -1112,17 +1142,16 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
                           />
                         ) : (
                           <div
-                            onClick={(e) => { e.stopPropagation(); startEditingCell(t, 'notes'); }}
                             className="group/cell flex items-center justify-between min-w-0 w-full gap-2"
                           >
                             <span className="text-[10px] text-slate-400 line-clamp-1 flex-1" title={t.notes || ''}>{t.notes || <span className="italic opacity-50">None</span>}</span>
-                            <Pencil className="w-3 h-3 text-slate-400 opacity-0 group-hover/cell:opacity-100 hover:text-cyan-500 transition-opacity shrink-0 cursor-pointer" />
+                            <Pencil onClick={(e) => { e.stopPropagation(); startEditingCell(t, 'notes'); }} className="w-3 h-3 text-slate-400 opacity-0 group-hover/cell:opacity-100 hover:text-cyan-500 transition-opacity shrink-0 cursor-pointer" />
                           </div>
                         )}
                       </td>
                     )}
                     {visibleColumns.has('amount') && (
-                      <td className={`${cellPadding} text-right font-bold tabular-nums whitespace-nowrap ${viewMode === 'compact' ? 'text-xs' : 'text-sm'} ${getAmountColor(t)}`} data-spot-edit="true">
+                      <td className={`${cellPadding} text-right font-bold tabular-nums whitespace-nowrap ${viewMode === 'compact' ? 'text-xs' : 'text-sm'} ${getAmountColor(t)}`}>
                         {isAmountEditing ? (
                           <input
                             type="number"
@@ -1135,11 +1164,10 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
                           />
                         ) : (
                           <div
-                            onClick={(e) => { e.stopPropagation(); startEditingCell(t, 'value'); }}
                             className="group/cell flex items-center justify-end min-w-0 w-full"
                           >
                             <span>{getAmountSign(t)}₹{t.value.toLocaleString('en-IN')}</span>
-                            <Pencil className="w-3 h-3 text-slate-400 opacity-0 group-hover/cell:opacity-100 hover:text-cyan-500 transition-opacity ml-1.5 shrink-0 cursor-pointer" />
+                            <Pencil onClick={(e) => { e.stopPropagation(); startEditingCell(t, 'value'); }} className="w-3 h-3 text-slate-400 opacity-0 group-hover/cell:opacity-100 hover:text-cyan-500 transition-opacity ml-1.5 shrink-0 cursor-pointer" />
                           </div>
                         )}
                       </td>
@@ -1258,6 +1286,8 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
         pageSize={pageSize}
         onPageSizeChange={handlePageSizeChange}
       />
+      </>
+      )}
 
       <ConfirmationDialog
         isOpen={isDeleteDialogOpen}
@@ -1448,6 +1478,9 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
         onClose={() => setIsExportModalOpen(false)}
         currentTab={currentTab}
         activeFilters={filters}
+        currentPage={currentPage}
+        pageSize={pageSize}
+        sortDirection={sortDirection}
       />
     </div>
   );

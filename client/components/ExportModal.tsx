@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { X, Info, FileSpreadsheet, FileText } from 'lucide-react';
 import { useToast } from './ToastContext';
 import { api } from '../services/api';
@@ -8,6 +8,9 @@ interface ExportModalProps {
   onClose: () => void;
   currentTab: string; // 'all' | 'expense' | 'income' | 'saving' | 'revolving'
   activeFilters: { field: string; condition: string; value: string }[];
+  currentPage: number;
+  pageSize: number;
+  sortDirection: 'ASC' | 'DESC';
 }
 
 const ExportModal: React.FC<ExportModalProps> = ({
@@ -15,47 +18,18 @@ const ExportModal: React.FC<ExportModalProps> = ({
   onClose,
   currentTab,
   activeFilters,
+  currentPage,
+  pageSize,
+  sortDirection,
 }) => {
   const { showToast } = useToast();
   const [format, setFormat] = useState<'csv' | 'xlsx'>('xlsx');
-  const [rangeType, setRangeType] = useState<'all' | 'custom'>('all');
-  
-  // Set default dates: custom starts at 30 days ago, ends today
-  const [startDate, setStartDate] = useState<string>('');
-  const [endDate, setEndDate] = useState<string>('');
   const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    if (isOpen) {
-      const today = new Date();
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(today.getDate() - 30);
-      
-      const formatDate = (date: Date) => {
-        return date.toISOString().split('T')[0];
-      };
-      
-      setStartDate(formatDate(thirtyDaysAgo));
-      setEndDate(formatDate(today));
-    }
-  }, [isOpen]);
 
   if (!isOpen) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (rangeType === 'custom') {
-      if (!startDate || !endDate) {
-        showToast('Please select start and end dates', 'error');
-        return;
-      }
-      if (new Date(startDate) > new Date(endDate)) {
-        showToast('Start date cannot be after end date', 'error');
-        return;
-      }
-    }
-
     setLoading(true);
 
     try {
@@ -64,9 +38,10 @@ const ExportModal: React.FC<ExportModalProps> = ({
       const blob = await api.exportTransactions({
         format,
         type: typeParam,
-        startDate: rangeType === 'custom' ? startDate : undefined,
-        endDate: rangeType === 'custom' ? endDate : undefined,
         filters: activeFilters,
+        page: currentPage,
+        size: pageSize,
+        direction: sortDirection,
       });
 
       // Trigger file download in browser
@@ -103,7 +78,7 @@ const ExportModal: React.FC<ExportModalProps> = ({
         <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-700/50 flex items-center justify-between bg-slate-50/50 dark:bg-slate-800/30">
           <div className="flex items-center gap-2">
             <div>
-              <h3 className="text-lg font-bold text-slate-900 dark:text-white">Export Transactions</h3>
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white">Export Current View</h3>
               <p className="text-xs text-slate-400 capitalize">Exporting: {currentTab} transactions</p>
             </div>
           </div>
@@ -146,65 +121,6 @@ const ExportModal: React.FC<ExportModalProps> = ({
             </div>
           </div>
 
-          {/* Date Range Selection */}
-          <div className="space-y-2">
-            <label className="text-sm font-semibold text-slate-600 dark:text-slate-300">Date Range</label>
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                type="button"
-                onClick={() => setRangeType('all')}
-                className={`px-4 py-2.5 rounded-xl border text-xs font-bold uppercase tracking-wider transition-all ${
-                  rangeType === 'all'
-                    ? 'border-cyan-500/30 bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 ring-1 ring-cyan-500/20'
-                    : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800/40 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/80'
-                }`}
-              >
-                All Data
-              </button>
-              <button
-                type="button"
-                onClick={() => setRangeType('custom')}
-                className={`px-4 py-2.5 rounded-xl border text-xs font-bold uppercase tracking-wider transition-all ${
-                  rangeType === 'custom'
-                    ? 'border-cyan-500/30 bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 ring-1 ring-cyan-500/20'
-                    : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800/40 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/80'
-                }`}
-              >
-                Custom Range
-              </button>
-            </div>
-          </div>
-
-          {/* Date Inputs */}
-          {rangeType === 'custom' && (
-            <div className="grid grid-cols-2 gap-4 p-4 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 animate-in slide-in-from-top-3 duration-200">
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-500 dark:text-slate-400">Start Date</label>
-                <div className="relative">
-                  <input
-                    type="date"
-                    required
-                    className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/60 rounded-lg text-sm text-slate-900 dark:text-white outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/30"
-                    value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
-                  />
-                </div>
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-500 dark:text-slate-400">End Date</label>
-                <div className="relative">
-                  <input
-                    type="date"
-                    required
-                    className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/60 rounded-lg text-sm text-slate-900 dark:text-white outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/30"
-                    value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
-                  />
-                </div>
-              </div>
-            </div>
-          )}
-
           {/* Active Filters Summary */}
           {activeFilters.length > 0 && (
             <div className="flex items-start gap-2 p-3 rounded-xl bg-cyan-500/5 border border-cyan-500/10 text-cyan-700 dark:text-cyan-400">
@@ -215,17 +131,6 @@ const ExportModal: React.FC<ExportModalProps> = ({
               </div>
             </div>
           )}
-
-          {/* Cap Limit Notice */}
-          <div className="flex items-start gap-2.5 p-3.5 rounded-xl bg-amber-500/5 dark:bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-400">
-            <Info className="w-4.5 h-4.5 mt-0.5 shrink-0 text-amber-500" />
-            <div className="text-xs leading-relaxed">
-              <p className="font-semibold text-amber-800 dark:text-amber-300">Important Limit Note</p>
-              <p className="text-slate-500 dark:text-slate-400 mt-0.5">
-                Maximum 3,000 rows will be exported. If your selected data exceeds this, only the latest 3,000 transactions will be included. Use date filters to export larger history in chunks.
-              </p>
-            </div>
-          </div>
 
           {/* Action Buttons */}
           <div className="pt-2 flex gap-3">

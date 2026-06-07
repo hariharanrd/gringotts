@@ -133,11 +133,17 @@ export const api = {
     startDate?: string;
     endDate?: string;
     filters?: { field: string; condition: string; value: string }[];
+    page?: number;
+    size?: number;
+    direction?: 'ASC' | 'DESC';
   }): Promise<Blob> => {
     let url = `${BASE_URL}/transactions/export?format=${params.format}`;
     if (params.type) url += `&type=${encodeURIComponent(params.type)}`;
     if (params.startDate) url += `&startDate=${encodeURIComponent(params.startDate)}`;
     if (params.endDate) url += `&endDate=${encodeURIComponent(params.endDate)}`;
+    if (params.page !== undefined) url += `&page=${params.page}`;
+    if (params.size !== undefined) url += `&size=${params.size}`;
+    if (params.direction) url += `&direction=${params.direction}`;
     if (params.filters && params.filters.length > 0) {
       const cleanedFilters = params.filters.map(({ field, condition, value }) => ({ field, condition, value }));
       url += `&filters=${encodeURIComponent(JSON.stringify(cleanedFilters))}`;
