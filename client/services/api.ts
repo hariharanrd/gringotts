@@ -1,5 +1,6 @@
 
-import { Transaction, Expense, Income, Saving, Revolving, Category, SubCategory, Item, TransactionType, Budget, BudgetUtilization, InvestmentGoal, CreditCard, CreditCardBill, TimeRange, Profile, Personalization, UserSession, Loan, LoanSimulation, LoanAmortizationRow } from '../types';
+import { Transaction, Expense, Income, Saving, Revolving, Category, SubCategory, Item, TransactionType, Budget, BudgetUtilization, InvestmentGoal, CreditCard, CreditCardBill, TimeRange, Profile, Personalization, UserSession, Loan, LoanSimulation, LoanAmortizationRow, ZohoIntegrationStatus } from '../types';
+
 
 const BASE_URL = "/api/v1";
 
@@ -815,7 +816,44 @@ export const api = {
     });
     const result = await handleResponse(response);
     return result.data;
-  }
+  },
   // Loans API End
+
+  // Zoho API Start
+  getZohoStatus: async (): Promise<ZohoIntegrationStatus> => {
+    const response = await fetchWithCredentials(`${BASE_URL}/zoho/status`);
+    const result = await handleResponse(response);
+    return result.data;
+  },
+
+  connectZoho: async (data: {
+    clientId: string;
+    clientSecret: string;
+    refreshToken: string;
+    workspaceName: string;
+    dataCenter: string;
+  }): Promise<{ status: string; message: string }> => {
+    const response = await fetchWithCredentials(`${BASE_URL}/zoho/connect`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    return handleResponse(response);
+  },
+
+  syncZoho: async (): Promise<{ status: string; message: string }> => {
+    const response = await fetchWithCredentials(`${BASE_URL}/zoho/sync`, {
+      method: 'POST',
+    });
+    return handleResponse(response);
+  },
+
+  disconnectZoho: async (): Promise<{ status: string; message: string }> => {
+    const response = await fetchWithCredentials(`${BASE_URL}/zoho/disconnect`, {
+      method: 'DELETE',
+    });
+    return handleResponse(response);
+  }
+  // Zoho API End
 };
+
 

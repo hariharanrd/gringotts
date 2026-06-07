@@ -14,3 +14,4 @@ client/dist/assets/index-BDAbBSKe.js
 .antigravitycli/d9e6214f-fe3b-4cb8-a1a0-80a692b66ddb.json
 .idea/compiler.xml
 supabase/*.sh
+supabase/migrations/seed.sql

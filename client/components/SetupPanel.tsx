@@ -16,7 +16,16 @@ import {
   ChevronDown,
   Plus,
   Trash2,
-  Pencil
+  Pencil,
+  Database,
+  Loader2,
+  AlertTriangle,
+  RefreshCcw,
+  ExternalLink,
+  Eye,
+  EyeOff,
+  Save,
+  Copy
 } from 'lucide-react';
 import { useTheme, THEME_LIBRARY } from './ThemeContext';
 import { api } from '../services/api';
@@ -29,7 +38,7 @@ interface SetupPanelProps {
   onImportSuccess: () => void;
 }
 
-type TabType = 'categories' | 'import' | 'export' | 'appearance';
+type TabType = 'categories' | 'import' | 'export' | 'integrations' | 'appearance';
 
 const SetupPanel: React.FC<SetupPanelProps> = ({ isOpen, onClose, onImportSuccess }) => {
   const { showToast } = useToast();
@@ -49,6 +58,111 @@ const SetupPanel: React.FC<SetupPanelProps> = ({ isOpen, onClose, onImportSucces
   const [exportStartDate, setExportStartDate] = useState<string>('');
   const [exportEndDate, setExportEndDate] = useState<string>('');
   const [exportLoading, setExportLoading] = useState(false);
+
+  // --- Zoho Integration States ---
+  const [zohoStatus, setZohoStatus] = useState<any>(null);
+  const [zohoLoading, setZohoLoading] = useState(false);
+  const [zohoSaving, setZohoSaving] = useState(false);
+  const [zohoSyncing, setZohoSyncing] = useState(false);
+  const [showSecret, setShowSecret] = useState(false);
+  const [showRefresh, setShowRefresh] = useState(false);
+
+  const [zohoClientId, setZohoClientId] = useState('');
+  const [zohoClientSecret, setZohoClientSecret] = useState('');
+  const [zohoRefreshToken, setZohoRefreshToken] = useState('');
+  const [zohoWorkspaceName, setZohoWorkspaceName] = useState('');
+  const [zohoDataCenter, setZohoDataCenter] = useState('com');
+
+  const fetchZohoStatus = async () => {
+    setZohoLoading(true);
+    try {
+      const status = await (api as any).getZohoStatus();
+      setZohoStatus(status);
+      if (status.connected) {
+        setZohoWorkspaceName(status.workspaceName || '');
+        setZohoDataCenter(status.dataCenter || 'com');
+      }
+    } catch (err) {
+      console.error('Failed to fetch Zoho status', err);
+    } finally {
+      setZohoLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'integrations' && isOpen) {
+      fetchZohoStatus();
+    }
+  }, [activeTab, isOpen]);
+
+  const handleConnectZoho = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!zohoClientId || !zohoClientSecret || !zohoRefreshToken || !zohoWorkspaceName) {
+      showToast('Please fill in all connection details', 'error');
+      return;
+    }
+    setZohoSaving(true);
+    try {
+      await (api as any).connectZoho({
+        clientId: zohoClientId,
+        clientSecret: zohoClientSecret,
+        refreshToken: zohoRefreshToken,
+        workspaceName: zohoWorkspaceName,
+        dataCenter: zohoDataCenter
+      });
+      showToast('Successfully connected to Zoho Analytics', 'success');
+      await fetchZohoStatus();
+    } catch (err: any) {
+      showToast(err.message || 'Connection failed', 'error');
+    } finally {
+      setZohoSaving(false);
+    }
+  };
+
+  const handleSyncZoho = async () => {
+    setZohoSyncing(true);
+    try {
+      await (api as any).syncZoho();
+      showToast('Synchronization completed successfully', 'success');
+      await fetchZohoStatus();
+    } catch (err: any) {
+      showToast(err.message || 'Synchronization failed', 'error');
+      await fetchZohoStatus();
+    } finally {
+      setZohoSyncing(false);
+    }
+  };
+
+  const handleDisconnectZoho = async () => {
+    if (!confirm('Are you sure you want to disconnect Zoho Analytics? Your credentials will be removed.')) {
+      return;
+    }
+    try {
+      await (api as any).disconnectZoho();
+      showToast('Disconnected successfully', 'success');
+      setZohoClientId('');
+      setZohoClientSecret('');
+      setZohoRefreshToken('');
+      setZohoWorkspaceName('');
+      setZohoDataCenter('com');
+      await fetchZohoStatus();
+    } catch (err: any) {
+      showToast(err.message || 'Disconnection failed', 'error');
+    }
+  };
+
+  const [scopesCopied, setScopesCopied] = useState(false);
+
+  const handleCopyScopes = async () => {
+    try {
+      await navigator.clipboard.writeText('ZohoAnalytics.metadata.all, ZohoAnalytics.data.all');
+      setScopesCopied(true);
+      setTimeout(() => setScopesCopied(false), 2000);
+      showToast('Scopes copied to clipboard', 'success');
+    } catch (err) {
+      showToast('Failed to copy scopes', 'error');
+    }
+  };
 
   useEffect(() => {
     if (isOpen) {
@@ -164,6 +278,7 @@ const SetupPanel: React.FC<SetupPanelProps> = ({ isOpen, onClose, onImportSucces
     { id: 'categories', label: 'Categories & Items', icon: Tag },
     { id: 'import', label: 'Import Statement', icon: Download },
     { id: 'export', label: 'Export Data', icon: Upload },
+    { id: 'integrations', label: 'Integrations', icon: Database },
     { id: 'appearance', label: 'Appearance', icon: Palette }
   ];
 
@@ -581,6 +696,235 @@ const SetupPanel: React.FC<SetupPanelProps> = ({ isOpen, onClose, onImportSucces
                   )}
                 </button>
               </div>
+            </div>
+          )}
+
+          {/* INTEGRATIONS TAB */}
+          {activeTab === 'integrations' && (
+            <div className="space-y-6 animate-in fade-in duration-200">
+              <div>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">External Integrations</h3>
+                <p className="text-xs text-slate-400 mt-0.5">Connect your Gringotts account to external analytics platforms for advanced dashboarding.</p>
+              </div>
+
+              {zohoLoading ? (
+                <div className="flex justify-center py-8">
+                  <Loader2 className="w-6 h-6 text-cyan-500 animate-spin" />
+                </div>
+              ) : zohoStatus?.connected ? (
+                // CONNECTED VIEW
+                <div className="space-y-6">
+                  <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                        <span className="text-sm font-semibold text-slate-900 dark:text-white">Connected to Zoho Analytics</span>
+                      </div>
+                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-cyan-500/10 text-cyan-600 dark:text-cyan-400">
+                        {zohoStatus.dataCenter ? zohoStatus.dataCenter.toUpperCase() : 'COM'}
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4 text-xs">
+                      <div>
+                        <span className="text-slate-400">Workspace</span>
+                        <p className="font-semibold text-slate-800 dark:text-slate-200 mt-0.5">{zohoStatus.workspaceName}</p>
+                      </div>
+                      <div>
+                        <span className="text-slate-400">Last Synced</span>
+                        <p className="font-semibold text-slate-800 dark:text-slate-200 mt-0.5">
+                          {zohoStatus.lastSyncedAt ? new Date(zohoStatus.lastSyncedAt).toLocaleString() : 'Never'}
+                        </p>
+                      </div>
+                    </div>
+
+                    {zohoStatus.lastSyncError && (
+                      <div className="p-3 bg-rose-50 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-900/50 rounded-lg flex items-start gap-2.5">
+                        <AlertTriangle className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
+                        <div className="text-xs text-rose-800 dark:text-rose-400">
+                          <p className="font-semibold">Last Sync Error:</p>
+                          <p className="mt-0.5">{zohoStatus.lastSyncError}</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="p-4 bg-slate-50 dark:bg-slate-800/20 border border-slate-200 dark:border-slate-700/50 rounded-xl text-xs text-slate-500 dark:text-slate-400 space-y-1.5">
+                    <p className="font-semibold text-slate-800 dark:text-slate-200">Automatically Syncing Everyday:</p>
+                    <p>Gringotts runs a background task once everyday at 1:00 AM to automatically append your latest transactions, categories, subcategories, and items to Zoho.</p>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row gap-3 pt-2">
+                    <button
+                      onClick={handleSyncZoho}
+                      disabled={zohoSyncing}
+                      className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-600 disabled:opacity-60 text-white text-sm font-semibold transition-all shadow-lg shadow-cyan-500/20"
+                    >
+                      {zohoSyncing ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          Syncing Data...
+                        </>
+                      ) : (
+                        <>
+                          <RefreshCcw className="w-4 h-4" />
+                          Sync Now
+                        </>
+                      )}
+                    </button>
+                    <button
+                      onClick={handleDisconnectZoho}
+                      className="px-4 py-2.5 rounded-xl border border-rose-500/20 text-rose-500 hover:bg-rose-500/10 text-sm font-semibold transition-all"
+                    >
+                      Disconnect
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                // CONNECT FORM
+                <form onSubmit={handleConnectZoho} className="space-y-4">
+                  <div className="p-4 bg-cyan-50 dark:bg-cyan-950/10 border border-cyan-100 dark:border-cyan-900/30 rounded-xl text-xs text-cyan-800 dark:text-cyan-400 leading-relaxed">
+                    <p className="font-semibold mb-1">Before connecting:</p>
+                    <p className="mb-2">You need to register a "Self Client" in your Zoho API Console and generate credentials.</p>
+                    <div className="mb-2">
+                      <strong className="font-bold">Required Scopes:</strong> When generating your code/refresh token, you must request the following scopes:
+                      <div className="flex items-center gap-2 mt-1">
+                        <code className="flex-1 p-1.5 bg-cyan-100/50 dark:bg-cyan-950/50 rounded font-mono select-all text-[10px] border border-cyan-200/30 truncate">
+                          ZohoAnalytics.metadata.all, ZohoAnalytics.data.all
+                        </code>
+                        <button
+                          type="button"
+                          onClick={handleCopyScopes}
+                          className="p-1.5 rounded-lg bg-cyan-500 hover:bg-cyan-600 text-white transition-all shadow-sm shrink-0 flex items-center justify-center"
+                          title="Copy scopes to clipboard"
+                        >
+                          {scopesCopied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                        </button>
+                      </div>
+                    </div>
+                    <a
+                      href="https://api-console.zoho.com/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-cyan-500 hover:text-cyan-600 dark:hover:text-cyan-400 font-semibold inline-flex items-center gap-1"
+                    >
+                      Open Zoho API Console <ExternalLink className="w-3.5 h-3.5" />
+                    </a>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                        Client ID
+                      </label>
+                      <input
+                        type="text"
+                        value={zohoClientId}
+                        onChange={e => setZohoClientId(e.target.value)}
+                        placeholder="Paste your Zoho Client ID"
+                        className="w-full px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 transition-all focus:bg-white dark:focus:bg-slate-900"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                        Data Center
+                      </label>
+                      <div className="relative">
+                        <select
+                          value={zohoDataCenter}
+                          onChange={e => setZohoDataCenter(e.target.value)}
+                          className="w-full px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500/50 transition-all appearance-none focus:bg-white dark:focus:bg-slate-900"
+                        >
+                          <option value="com">US (.com)</option>
+                          <option value="eu">Europe (.eu)</option>
+                          <option value="in">India (.in)</option>
+                          <option value="com.au">Australia (.com.au)</option>
+                          <option value="jp">Japan (.jp)</option>
+                        </select>
+                        <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                        Client Secret
+                      </label>
+                      <div className="relative">
+                        <input
+                          type={showSecret ? 'text' : 'password'}
+                          value={zohoClientSecret}
+                          onChange={e => setZohoClientSecret(e.target.value)}
+                          placeholder="Paste your Zoho Client Secret"
+                          className="w-full px-4 py-2.5 pr-11 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 transition-all focus:bg-white dark:focus:bg-slate-900"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowSecret(!showSecret)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                        >
+                          {showSecret ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                        Workspace Name
+                      </label>
+                      <input
+                        type="text"
+                        value={zohoWorkspaceName}
+                        onChange={e => setZohoWorkspaceName(e.target.value)}
+                        placeholder="e.g. Gringotts Reports"
+                        className="w-full px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 transition-all focus:bg-white dark:focus:bg-slate-900"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                      Refresh Token
+                    </label>
+                    <div className="relative">
+                      <input
+                        type={showRefresh ? 'text' : 'password'}
+                        value={zohoRefreshToken}
+                        onChange={e => setZohoRefreshToken(e.target.value)}
+                        placeholder="Paste your Zoho OAuth Refresh Token"
+                        className="w-full px-4 py-2.5 pr-11 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 transition-all focus:bg-white dark:focus:bg-slate-900"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowRefresh(!showRefresh)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                      >
+                        {showRefresh ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={zohoSaving}
+                    className="w-full mt-4 flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-cyan-500 hover:bg-cyan-600 disabled:opacity-60 text-white text-sm font-semibold transition-all shadow-lg shadow-cyan-500/20"
+                  >
+                    {zohoSaving ? (
+                      <>
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                        Connecting to Zoho Analytics...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="w-4 h-4" />
+                        Connect Zoho Workspace
+                      </>
+                    )}
+                  </button>
+                </form>
+              )}
             </div>
           )}
 

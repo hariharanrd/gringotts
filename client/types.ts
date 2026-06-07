@@ -299,3 +299,12 @@ export interface Loan {
   expense_item?: Item;
 }
 
+export interface ZohoIntegrationStatus {
+  connected: boolean;
+  workspaceName?: string;
+  lastSyncedAt?: string | null;
+  lastSyncError?: string | null;
+  dataCenter?: string;
+}
+
+

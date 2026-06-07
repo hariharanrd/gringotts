@@ -1,6 +1,9 @@
 package com.luna.Gringotts.repository;
 
 import com.luna.Gringotts.records.Item;
+
+import java.util.List;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
@@ -15,4 +18,6 @@ public interface ItemRepository extends JpaRepository<Item, Long> {
     Page<Item> findBySubCategoryCategoryTypeAndSubCategoryCategoryUserOrderByNameAsc(String type, com.luna.Gringotts.records.User user, org.springframework.data.domain.Pageable pageable);
 
     boolean existsBySubCategoryId(Long subCategoryId);
+
+    List<Item> findBySubCategoryCategoryUser(com.luna.Gringotts.records.User user);
 }

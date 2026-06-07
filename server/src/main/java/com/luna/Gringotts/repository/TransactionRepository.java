@@ -49,4 +49,10 @@ public interface TransactionRepository<T extends Transaction> extends JpaReposit
     boolean existsByCategoryId(Long categoryId);
     boolean existsBySubCategoryId(Long subCategoryId);
     boolean existsByItemId(Long itemId);
+
+    @EntityGraph(attributePaths = {"category", "subCategory", "item"})
+    List<T> findByUser(User user);
+
+    @EntityGraph(attributePaths = {"category", "subCategory", "item"})
+    List<T> findByUserAndCreatedAtAfter(User user, LocalDateTime after);
 }

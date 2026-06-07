@@ -235,6 +235,9 @@ const Account: React.FC<AccountProps> = ({ onProfileUpdate }) => {
   const [sessions, setSessions] = useState<UserSession[]>([]);
   const [sessionsLoading, setSessionsLoading] = useState(false);
 
+
+
+
   useEffect(() => {
     api.getProfile()
       .then(p => {
@@ -539,6 +542,9 @@ const Account: React.FC<AccountProps> = ({ onProfileUpdate }) => {
       showToast(err.message || 'Failed to revoke session', 'error');
     }
   };
+
+
+
 
   // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -1442,6 +1448,8 @@ const Account: React.FC<AccountProps> = ({ onProfileUpdate }) => {
               )}
             </div>
           )}
+
+
 
           {/* ─ Danger Zone ─ */}
           {section === 'account' && (
