@@ -1,13 +1,25 @@
 # 🚀 Release Notes
 
-## [June 07, 2026] Weekly Scheduled Transactions
+## [June 07, 2026] Budget Redesign & Weekly Scheduled Transactions
 
-This release introduces **Weekly Scheduled Transactions** support, allowing users to automate recurring transactions on a weekly basis.
+This release introduces a complete redesign of the **Budget Management** module for historical performance tracking, lock controls, and automated leak analysis, alongside new **Weekly Scheduled Transactions** support.
+
+### 📊 Historical Budget Timeline & Performance Tracking
+- **Interactive Timeline**: A modern horizontal scroll timeline displays the last 6 months (and custom budget slots) with instant status indicators.
+- **Dynamic Capacity Gauge**: Custom SVG circular progress ring visualizing overall utilization with smart alert states.
+- **Leak Identification Panel**: "What went wrong?" panel highlights categories that exceeded limits and lists uncategorized leakage.
+- **Planned Savings Tracker**: Tracks and compares savings progress against monthly budgeted targets.
+- **Past Period Locking**: Enforces read-only controls on both client and server to prevent creating, cloning, or modifying budgets in past periods.
+- **Intelligent Creation Form**: Year selection is now a select dropdown supporting up to the next 5 years, dynamically filtering months to prevent past selection.
 
 ### 📅 Weekly Scheduling Support
 - **Weekly Frequency Option**: Select "Weekly" as a recurring interval when creating or editing scheduled transactions.
 - **Automatic Run Date Calculation**: The backend service automatically advances the next run date by exactly 1 week upon execution or when activating a schedule.
 - **Seamless Frontend Integration**: The frequency option is fully supported in the Scheduled Transaction modal, tables, list views, and details page.
+
+### Performance Improvements
+- **Unused App-level Fetch Removal**: Removed redundant parallel API queries (`getExpenses`, `getIncomes`, `getSavings`) from the main application mount, eliminating unnecessary network overhead.
+- **Personalization Sync Optimization**: Refactored column selection and search filter sync in the Transactions module. Settings are now persisted to the backend only on explicit user actions (e.g., check/uncheck columns, apply/clear filters) rather than triggering redundant API writes on every tab switch or page load.
 
 ## [June 04, 2026] Compact View, Spot Editing & Page Size Customization
 

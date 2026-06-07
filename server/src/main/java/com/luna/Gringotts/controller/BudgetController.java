@@ -56,6 +56,18 @@ public class BudgetController {
         return ResponseEntity.ok(Map.of("data", util));
     }
 
+    /** Historical utilization for a specific month and year */
+    @GetMapping("/historical-utilization")
+    public ResponseEntity<Map<String, Object>> getHistoricalUtilization(
+            @RequestParam int month,
+            @RequestParam int year) {
+        Map<String, Object> util = budgetService.getHistoricalUtilization(month, year);
+        if (util == null) {
+            return ResponseEntity.ok(Map.of("data", Map.of()));
+        }
+        return ResponseEntity.ok(Map.of("data", util));
+    }
+
     /** Get a specific budget by ID */
     @GetMapping("/{id}")
     public ResponseEntity<Map<String, Object>> getBudgetById(@PathVariable Long id) {

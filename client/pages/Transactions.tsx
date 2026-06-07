@@ -317,21 +317,12 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
     setSelectedIds(new Set());
   }, [currentPage, filters, refreshTrigger, currentTab, sortDirection, pageSize]);
 
-  // Persist filters to localStorage
-  useEffect(() => {
-    const value = JSON.stringify(filters);
+  const updateFilters = (newFilters: FilterCriteria[]) => {
+    setFilters(newFilters);
+    const value = JSON.stringify(newFilters);
     localStorage.setItem('gringotts_transaction_filters', value);
     personalizationSync.save('FILTERS', 'TRANSACTION', value);
-  }, [filters]);
-
-  // Persist columns to localStorage
-  useEffect(() => {
-    if (visibleColumns.size > 0) {
-      const value = JSON.stringify(Array.from(visibleColumns));
-      localStorage.setItem(`gringotts_columns_${currentTab}`, value);
-      personalizationSync.save('COLUMNS', currentTab.toUpperCase(), value);
-    }
-  }, [visibleColumns, currentTab]);
+  };
 
   // Click outside handlers
   useEffect(() => {
@@ -395,6 +386,11 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
       const next = new Set(prev);
       if (next.has(key)) next.delete(key);
       else next.add(key);
+      
+      const value = JSON.stringify(Array.from(next));
+      localStorage.setItem(`gringotts_columns_${currentTab}`, value);
+      personalizationSync.save('COLUMNS', currentTab.toUpperCase(), value);
+      
       return next;
     });
   };
@@ -700,7 +696,7 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
           <FilterMenu
             activeFilters={filters}
             availableFields={getAvailableFields()}
-            onApplyFilters={(f) => { setFilters(f); setCurrentPage(1); }}
+            onApplyFilters={(f) => { updateFilters(f); setCurrentPage(1); }}
           />
 
           <button
@@ -751,12 +747,12 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
             availableFields={getAvailableFields()}
             onRemoveFilter={(idx) => {
               const newFilters = filters.filter((_, i) => i !== idx);
-              setFilters(newFilters);
+              updateFilters(newFilters);
               setCurrentPage(1);
             }}
           />
           <button
-            onClick={() => { setFilters([]); setCurrentPage(1); }}
+            onClick={() => { updateFilters([]); setCurrentPage(1); }}
             className="ml-auto text-[10px] font-black text-rose-500 uppercase tracking-widest px-3 py-1.5 hover:bg-rose-500/10 rounded-lg transition-colors whitespace-nowrap"
           >
             Clear All
