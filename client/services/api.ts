@@ -521,6 +521,11 @@ export const api = {
     return handleResponseAndGetData(response);
   },
 
+  getHistoricalBudgetUtilization: async (month: number, year: number): Promise<BudgetUtilization> => {
+    const response = await fetchWithCredentials(`${BASE_URL}/budgets/historical-utilization?month=${month}&year=${year}`);
+    return handleResponseAndGetData(response);
+  },
+
   createBudget: async (data: Partial<Budget>) => {
     const response = await fetchWithCredentials(`${BASE_URL}/budgets`, {
       method: 'POST',

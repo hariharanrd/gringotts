@@ -80,6 +80,9 @@ public class BudgetService {
             if (budget.getMonth() == null || budget.getYear() == null) {
                 throw new IllegalArgumentException("Non-master budgets must specify month and year");
             }
+            if (isPastMonth(budget.getMonth(), budget.getYear())) {
+                throw new IllegalArgumentException("Cannot create a budget for a past month");
+            }
         }
 
         double totalAllocated = 0.0;
@@ -108,10 +111,12 @@ public class BudgetService {
         return budgetRepository.save(budget);
     }
 
-    /** Clones the source budget's header + all allocations into a new monthly version. */
     @Transactional
     public Budget createMonthlyVersion(Long sourceBudgetId, int month, int year) {
         User user = iamService.getCurrentUser();
+        if (isPastMonth(month, year)) {
+            throw new IllegalArgumentException("Cannot create a budget version for a past month");
+        }
         if (budgetRepository.findByMonthAndYearAndUser(month, year, user).isPresent()) {
             throw new IllegalStateException("A budget for " + month + "/" + year + " already exists");
         }
@@ -142,6 +147,15 @@ public class BudgetService {
     @Transactional
     public Budget updateBudget(Long id, Budget incoming) {
         Budget existing = getBudgetById(id);
+
+        if (!Boolean.TRUE.equals(existing.getIsMaster())) {
+            if (isPastMonth(existing.getMonth(), existing.getYear())) {
+                throw new IllegalArgumentException("Cannot update a budget for a past month");
+            }
+            if (isPastMonth(incoming.getMonth(), incoming.getYear())) {
+                throw new IllegalArgumentException("Cannot move a budget to a past month");
+            }
+        }
 
         existing.setName(incoming.getName());
         existing.setTotalAmount(incoming.getTotalAmount());
@@ -228,9 +242,20 @@ public class BudgetService {
         return computeUtilization(budget);
     }
 
+    public Map<String, Object> getHistoricalUtilization(int month, int year) {
+        User user = iamService.getCurrentUser();
+        Optional<Budget> monthlyBudget = budgetRepository.findByMonthAndYearAndUser(month, year, user);
+        if (monthlyBudget.isPresent()) {
+            return computeUtilization(monthlyBudget.get(), month, year);
+        }
+        Optional<Budget> masterBudget = budgetRepository.findByIsMasterTrueAndUser(user);
+        if (masterBudget.isPresent()) {
+            return computeUtilization(masterBudget.get(), month, year);
+        }
+        return null;
+    }
+
     private Map<String, Object> computeUtilization(Budget budget) {
-        // Determine time window
-        LocalDateTime start, end;
         int targetMonth, targetYear;
 
         if (Boolean.TRUE.equals(budget.getIsMaster()) || budget.getMonth() == null) {
@@ -242,6 +267,13 @@ public class BudgetService {
             targetMonth = budget.getMonth();
             targetYear = budget.getYear();
         }
+
+        return computeUtilization(budget, targetMonth, targetYear);
+    }
+
+    private Map<String, Object> computeUtilization(Budget budget, int targetMonth, int targetYear) {
+        // Determine time window
+        LocalDateTime start, end;
 
         YearMonth ym = YearMonth.of(targetYear, targetMonth);
         start = ym.atDay(1).atStartOfDay();
@@ -370,5 +402,15 @@ public class BudgetService {
         unallocatedEntry.put("remaining", -unCategorizedSpend);
         unallocatedEntry.put("percent_used", 100.0); // Flag as 100% used so client logic highlights it
         return unallocatedEntry;
+    }
+
+    private boolean isPastMonth(Integer month, Integer year) {
+        if (month == null || year == null) {
+            return false;
+        }
+        LocalDateTime now = LocalDateTime.now();
+        int currentYear = now.getYear();
+        int currentMonth = now.getMonthValue();
+        return year < currentYear || (year == currentYear && month < currentMonth);
     }
 }
