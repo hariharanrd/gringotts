@@ -21,7 +21,9 @@ import {
   Download,
   Upload,
   Rows2,
-  Rows4
+  Rows4,
+  Calendar as CalendarIcon,
+  List
 } from 'lucide-react';
 import { useToast } from '../components/ToastContext';
 import Pagination from '../components/Pagination';
@@ -31,6 +33,7 @@ import { FilterMenu, FilterCriteria, FilterChips } from '../components/FilterMen
 import ConfirmationDialog from '../components/ConfirmationDialog';
 import CategoryIcon from '../components/CategoryIcon';
 import ExportModal from '../components/ExportModal';
+import { TransactionsCalendar } from '../components/TransactionsCalendar';
 
 interface TransactionsProps {
   onEdit: (transaction: Transaction) => void;
@@ -82,6 +85,7 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
   const [totalPages, setTotalPages] = useState(1);
   const [hasMore, setHasMore] = useState(false);
   const [pageSize, setPageSize] = useState(() => Number(localStorage.getItem('gringotts_transaction_pagesize')) || 10);
+  const [displayMode, setDisplayMode] = useState<'list' | 'calendar'>('list');
   const [viewMode, setViewMode] = useState<'relaxed' | 'compact'>(() => (localStorage.getItem('gringotts_transaction_viewmode') as 'relaxed' | 'compact') || 'relaxed');
   const [editingCell, setEditingCell] = useState<{ id: number; field: string } | null>(null);
   const [editValue, setEditValue] = useState<any>(null);
@@ -646,6 +650,24 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
         </div>
         {/* Right Section Tools */}
         <div className="flex items-center gap-2 sm:gap-3">
+          {/* Display Mode Toggle */}
+          <div className="flex items-center bg-slate-100 dark:bg-slate-800/85 p-1 rounded-xl border border-slate-200 dark:border-slate-700/60 shadow-sm">
+            <button
+              onClick={() => setDisplayMode('list')}
+              className={`p-2 rounded-lg transition-all ${displayMode === 'list' ? 'bg-white dark:bg-slate-700 text-cyan-600 dark:text-cyan-400 shadow-sm' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'}`}
+              title="List View"
+            >
+              <List className="w-4.5 h-4.5" />
+            </button>
+            <button
+              onClick={() => setDisplayMode('calendar')}
+              className={`p-2 rounded-lg transition-all ${displayMode === 'calendar' ? 'bg-white dark:bg-slate-700 text-cyan-600 dark:text-cyan-400 shadow-sm' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'}`}
+              title="Calendar View"
+            >
+              <CalendarIcon className="w-4.5 h-4.5" />
+            </button>
+          </div>
+
           {/* View Mode Toggle (Wide Screen Only) */}
           <div className="hidden lg:flex items-center bg-slate-100 dark:bg-slate-800/85 p-1 rounded-xl border border-slate-200 dark:border-slate-700/60 shadow-sm">
             <button
@@ -760,6 +782,10 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
         </div>
       )}
 
+      {displayMode === 'calendar' ? (
+        <TransactionsCalendar onTransactionClick={(t) => handleRowClick({ target: document.createElement('div') } as any, t)} />
+      ) : (
+      <>
       <div className="glass overflow-hidden rounded-3xl border border-slate-200 dark:border-slate-800/50">
         {/* Desktop View: Table */}
         <div className="hidden lg:block overflow-x-auto">
@@ -1247,6 +1273,8 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
         pageSize={pageSize}
         onPageSizeChange={handlePageSizeChange}
       />
+      </>
+      )}
 
       <ConfirmationDialog
         isOpen={isDeleteDialogOpen}
