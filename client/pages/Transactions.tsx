@@ -570,19 +570,19 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
       <div className="flex flex-wrap items-center gap-3 sm:gap-4 w-full justify-between">
         <div className="flex items-center gap-3 w-full sm:w-auto">
           {/* Dropdown Tab Selector */}
-          <div className={`relative grow sm:grow-0 sm:min-w-[240px] ${selectedIds.size > 0 ? 'hidden sm:block' : ''}`} ref={tabMenuRef}>
+          <div className={`relative grow sm:grow-0 sm:min-w-[200px] ${selectedIds.size > 0 ? 'hidden sm:block' : ''}`} ref={tabMenuRef}>
             <button
               onClick={() => setIsTabMenuOpen(!isTabMenuOpen)}
-              className={`w-full flex items-center gap-3 px-5 py-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/60 shadow-sm hover:shadow-md transition-all ${isTabMenuOpen ? 'ring-2 ring-cyan-500/20 border-cyan-500/50' : ''}`}
+              className={`w-full flex items-center gap-2.5 px-3.5 py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/60 shadow-sm hover:shadow-md transition-all ${isTabMenuOpen ? 'ring-2 ring-cyan-500/20 border-cyan-500/50' : ''}`}
             >
-              <div className={`p-2 rounded-xl bg-gradient-to-br ${activeTabInfo.color} shadow-lg shadow-slate-500/10`}>
-                <activeTabInfo.icon className="w-5 h-5 text-white" />
+              <div className={`p-1.5 rounded-lg bg-gradient-to-br ${activeTabInfo.color} shadow-lg shadow-slate-500/10`}>
+                <activeTabInfo.icon className="w-4 h-4 text-white" />
               </div>
-              <div className="text-left pr-8">
-                <p className="text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-widest font-bold">Viewing</p>
-                <p className="text-sm font-bold text-slate-900 dark:text-white">{activeTabInfo.label}</p>
+              <div className="text-left pr-6">
+                <p className="text-[9px] text-slate-400 dark:text-slate-500 uppercase tracking-widest font-bold">Viewing</p>
+                <p className="text-xs font-bold text-slate-900 dark:text-white">{activeTabInfo.label}</p>
               </div>
-              <ChevronDown className={`absolute right-4 w-4 h-4 text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-200 transition-transform ${isTabMenuOpen ? 'rotate-180' : ''}`} />
+              <ChevronDown className={`absolute right-3 w-3.5 h-3.5 text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-200 transition-transform ${isTabMenuOpen ? 'rotate-180' : ''}`} />
             </button>
 
             {isTabMenuOpen && (
@@ -591,7 +591,7 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
                   <button
                     key={tab.id}
                     onClick={() => handleTabChange(tab.id)}
-                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors ${currentTab === tab.id ? 'bg-slate-100 dark:bg-slate-800 text-cyan-600 dark:text-cyan-400' : 'text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-slate-200'}`}
+                    className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${currentTab === tab.id ? 'bg-slate-100 dark:bg-slate-800 text-cyan-600 dark:text-cyan-400' : 'text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-slate-200'}`}
                   >
                     <tab.icon className={`w-4 h-4 ${currentTab === tab.id ? 'text-cyan-500' : 'text-slate-400'}`} />
                     {tab.label}
@@ -603,10 +603,10 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
 
           <button
             onClick={() => onAdd(currentTab === 'all' ? undefined : (currentTab.toUpperCase() as any))}
-            className={`flex items-center justify-center gap-2 text-white py-3 px-5 rounded-2xl transition-all font-bold text-sm shrink-0 shadow-lg ${selectedIds.size > 0 ? 'hidden sm:flex' : ''}`}
+            className={`flex items-center justify-center gap-1.5 text-white py-2 px-3.5 rounded-xl transition-all font-bold text-xs shrink-0 shadow-lg ${selectedIds.size > 0 ? 'hidden sm:flex' : ''}`}
             style={{
               background: `linear-gradient(to right, var(--theme-gradient-from), var(--theme-gradient-to))`,
-              boxShadow: `0 10px 15px -3px rgba(var(--theme-accent-rgb), 0.2), 0 4px 6px -4px rgba(var(--theme-accent-rgb), 0.2)`
+              boxShadow: `0 8px 12px -3px rgba(var(--theme-accent-rgb), 0.15), 0 3px 4px -4px rgba(var(--theme-accent-rgb), 0.15)`
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.filter = 'brightness(1.1)';
@@ -615,8 +615,8 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
               e.currentTarget.style.filter = 'none';
             }}
           >
-            <PlusCircle className="w-4 h-4" />
-            <span className="hidden sm:inline">Add</span>
+            <PlusCircle className="w-3.5 h-3.5" />
+            <span>Add</span>
           </button>
 
           {/* Bulk Actions */}
@@ -649,115 +649,124 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
           )}
         </div>
         {/* Right Section Tools */}
-        <div className="flex items-center gap-2 sm:gap-3">
+        <div className="flex items-center justify-start sm:justify-start w-full sm:w-auto gap-2 sm:gap-3">
           {/* Display Mode Toggle */}
           <div className="flex items-center bg-slate-100 dark:bg-slate-800/85 p-1 rounded-xl border border-slate-200 dark:border-slate-700/60 shadow-sm">
             <button
               onClick={() => setDisplayMode('list')}
-              className={`p-2 rounded-lg transition-all ${displayMode === 'list' ? 'bg-white dark:bg-slate-700 text-cyan-600 dark:text-cyan-400 shadow-sm' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'}`}
+              className={`p-1.5 rounded-lg transition-all ${displayMode === 'list' ? 'bg-white dark:bg-slate-700 text-cyan-600 dark:text-cyan-400 shadow-sm' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'}`}
               title="List View"
             >
-              <List className="w-4.5 h-4.5" />
+              <List className="w-4 h-4" />
             </button>
             <button
               onClick={() => setDisplayMode('calendar')}
-              className={`p-2 rounded-lg transition-all ${displayMode === 'calendar' ? 'bg-white dark:bg-slate-700 text-cyan-600 dark:text-cyan-400 shadow-sm' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'}`}
+              className={`p-1.5 rounded-lg transition-all ${displayMode === 'calendar' ? 'bg-white dark:bg-slate-700 text-cyan-600 dark:text-cyan-400 shadow-sm' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'}`}
               title="Calendar View"
             >
-              <CalendarIcon className="w-4.5 h-4.5" />
+              <CalendarIcon className="w-4 h-4" />
             </button>
           </div>
 
           {/* View Mode Toggle (Wide Screen Only) */}
-          <div className="hidden lg:flex items-center bg-slate-100 dark:bg-slate-800/85 p-1 rounded-xl border border-slate-200 dark:border-slate-700/60 shadow-sm">
-            <button
-              onClick={() => handleViewModeChange('relaxed')}
-              className={`p-2 rounded-lg transition-all ${viewMode === 'relaxed' ? 'bg-white dark:bg-slate-700 text-cyan-600 dark:text-cyan-400 shadow-sm' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'}`}
-              title="Relaxed View"
-            >
-              <Rows2 className="w-4.5 h-4.5" />
-            </button>
-            <button
-              onClick={() => handleViewModeChange('compact')}
-              className={`p-2 rounded-lg transition-all ${viewMode === 'compact' ? 'bg-white dark:bg-slate-700 text-cyan-600 dark:text-cyan-400 shadow-sm' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'}`}
-              title="Compact View"
-            >
-              <Rows4 className="w-4.5 h-4.5" />
-            </button>
-          </div>
+          {displayMode === 'list' && (
+            <div className="hidden lg:flex items-center bg-slate-100 dark:bg-slate-800/85 p-1 rounded-xl border border-slate-200 dark:border-slate-700/60 shadow-sm">
+              <button
+                onClick={() => handleViewModeChange('relaxed')}
+                className={`p-1.5 rounded-lg transition-all ${viewMode === 'relaxed' ? 'bg-white dark:bg-slate-700 text-cyan-600 dark:text-cyan-400 shadow-sm' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'}`}
+                title="Relaxed View"
+              >
+                <Rows2 className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => handleViewModeChange('compact')}
+                className={`p-1.5 rounded-lg transition-all ${viewMode === 'compact' ? 'bg-white dark:bg-slate-700 text-cyan-600 dark:text-cyan-400 shadow-sm' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'}`}
+                title="Compact View"
+              >
+                <Rows4 className="w-4 h-4" />
+              </button>
+            </div>
+          )}
 
-          <div className="relative hidden lg:block" ref={columnDropdownRef}>
-            <button
-              onClick={() => setIsColumnChooserOpen(!isColumnChooserOpen)}
-              className="p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/60 rounded-xl shadow-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-slate-500"
-            >
-              <Columns className="w-5 h-5" />
-            </button>
-            {isColumnChooserOpen && (
-              <div className="absolute right-0 mt-2 w-56 glass rounded-2xl shadow-2xl py-3 z-50 border border-slate-200 dark:border-slate-800">
-                <p className="px-4 pb-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Toggle Columns</p>
-                <div className="max-h-64 overflow-y-auto px-1">
-                  {ALL_COLUMNS.map(col => (
-                    <label key={col.key} className="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer transition-colors">
-                      <input
-                        type="checkbox"
-                        checked={visibleColumns.has(col.key)}
-                        onChange={() => toggleColumn(col.key)}
-                        className="w-4 h-4 rounded accent-cyan-500"
-                      />
-                      <span className="text-xs font-medium text-slate-600 dark:text-slate-400">{col.label}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-
-          
-
+          {/* Filter button */}
           <FilterMenu
             activeFilters={filters}
             availableFields={getAvailableFields()}
             onApplyFilters={(f) => { updateFilters(f); setCurrentPage(1); }}
           />
 
-          <button
-            onClick={() => {
-              setSortDirection(prev => prev === 'ASC' ? 'DESC' : 'ASC');
-              setCurrentPage(1);
-            }}
-            className="p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/60 rounded-xl shadow-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-slate-500 flex items-center gap-2 group"
-            title={`Sort by Date: ${sortDirection === 'DESC' ? 'Newest First' : 'Oldest First'}`}
-          >
-            {sortDirection === 'DESC' ? (
-              <ArrowDown className="w-5 h-5 text-cyan-500 group-hover:scale-110 transition-transform" />
-            ) : (
-              <ArrowUp className="w-5 h-5 text-cyan-500 group-hover:scale-110 transition-transform" />
-            )}
-          </button>
+          {/* Action Utilities Group */}
+          {displayMode === 'list' && (
+            <div className="flex items-center bg-slate-100 dark:bg-slate-800/85 p-1 rounded-xl border border-slate-200 dark:border-slate-700/60 shadow-sm">
+              {/* Sort Button */}
+              <button
+                onClick={() => {
+                  setSortDirection(prev => prev === 'ASC' ? 'DESC' : 'ASC');
+                  setCurrentPage(1);
+                }}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-white dark:hover:bg-slate-700 transition-all group"
+                title={`Sort by Date: ${sortDirection === 'DESC' ? 'Newest First' : 'Oldest First'}`}
+              >
+                {sortDirection === 'DESC' ? (
+                  <ArrowDown className="w-4 h-4 text-cyan-500 group-hover:scale-110 transition-transform" />
+                ) : (
+                  <ArrowUp className="w-4 h-4 text-cyan-500 group-hover:scale-110 transition-transform" />
+                )}
+              </button>
 
-          <button
-            onClick={() => setIsExportModalOpen(true)}
-            className="p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/60 rounded-xl shadow-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-slate-500 flex items-center gap-2 group"
-            title="Export View"
-          >
-            <Upload className="w-5 h-5 text-cyan-500 group-hover:scale-110 transition-transform" />
-          </button>
+              {/* Column Chooser Dropdown */}
+              <div className="relative hidden lg:block" ref={columnDropdownRef}>
+                <button
+                  onClick={() => setIsColumnChooserOpen(!isColumnChooserOpen)}
+                  className={`p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-all ${isColumnChooserOpen ? 'bg-white dark:bg-slate-700' : 'hover:bg-white dark:hover:bg-slate-700'}`}
+                  title="Toggle Columns"
+                >
+                  <Columns className="w-4 h-4 text-cyan-500" />
+                </button>
+                {isColumnChooserOpen && (
+                  <div className="absolute right-0 mt-2 w-56 glass rounded-2xl shadow-2xl py-3 z-50 border border-slate-200 dark:border-slate-800">
+                    <p className="px-4 pb-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Toggle Columns</p>
+                    <div className="max-h-64 overflow-y-auto px-1">
+                      {ALL_COLUMNS.map(col => (
+                        <label key={col.key} className="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer transition-colors">
+                          <input
+                            type="checkbox"
+                            checked={visibleColumns.has(col.key)}
+                            onChange={() => toggleColumn(col.key)}
+                            className="w-4 h-4 rounded accent-cyan-500"
+                          />
+                          <span className="text-xs font-medium text-slate-600 dark:text-slate-400">{col.label}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
 
+              {/* Export View Button */}
+              <button
+                onClick={() => setIsExportModalOpen(true)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-white dark:hover:bg-slate-700 transition-all group"
+                title="Export View"
+              >
+                <Upload className="w-4 h-4 text-cyan-500 group-hover:scale-110 transition-transform" />
+              </button>
 
-
-          {currentTab !== 'all' && (
-            <button
-              onClick={() => {
-                const newMode = !isSelectionMode;
-                setIsSelectionMode(newMode);
-                if (!newMode) setSelectedIds(new Set());
-              }}
-              className={`lg:hidden flex items-center justify-center p-3 rounded-2xl border transition-all ${isSelectionMode ? 'bg-cyan-500 text-white border-cyan-500 shadow-lg shadow-cyan-500/20' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-500'}`}
-              title="Select Mode"
-            >
-              <ListChecks className="w-5 h-5" />
-            </button>
+              {/* Selection Mode Button (Mobile Only) */}
+              {currentTab !== 'all' && (
+                <button
+                  onClick={() => {
+                    const newMode = !isSelectionMode;
+                    setIsSelectionMode(newMode);
+                    if (!newMode) setSelectedIds(new Set());
+                  }}
+                  className={`lg:hidden p-1.5 rounded-lg transition-all ${isSelectionMode ? 'bg-cyan-500 text-white shadow-sm' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-white dark:hover:bg-slate-700'}`}
+                  title="Select Mode"
+                >
+                  <ListChecks className="w-4 h-4 text-cyan-500" />
+                </button>
+              )}
+            </div>
           )}
         </div>
       </div>
@@ -783,7 +792,11 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
       )}
 
       {displayMode === 'calendar' ? (
-        <TransactionsCalendar onTransactionClick={(t) => handleRowClick({ target: document.createElement('div') } as any, t)} />
+        <TransactionsCalendar 
+          onTransactionClick={(t) => handleRowClick({ target: document.createElement('div') } as any, t)} 
+          filters={filters}
+          currentTab={currentTab}
+        />
       ) : (
       <>
       <div className="glass overflow-hidden rounded-3xl border border-slate-200 dark:border-slate-800/50">
@@ -1465,6 +1478,9 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
         onClose={() => setIsExportModalOpen(false)}
         currentTab={currentTab}
         activeFilters={filters}
+        currentPage={currentPage}
+        pageSize={pageSize}
+        sortDirection={sortDirection}
       />
     </div>
   );

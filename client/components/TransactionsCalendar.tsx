@@ -29,9 +29,12 @@ import {
 } from 'lucide-react';
 import { Transaction, TransactionType, Saving, Revolving } from '../types';
 import { api } from '../services/api';
+import { FilterCriteria } from './FilterMenu';
 
 interface TransactionsCalendarProps {
   onTransactionClick?: (t: Transaction) => void;
+  filters?: FilterCriteria[];
+  currentTab?: string;
 }
 
 type ViewType = 'month' | 'week';
@@ -45,7 +48,11 @@ interface DaySummary {
   transactions: Transaction[];
 }
 
-export const TransactionsCalendar: React.FC<TransactionsCalendarProps> = ({ onTransactionClick }) => {
+export const TransactionsCalendar: React.FC<TransactionsCalendarProps> = ({ 
+  onTransactionClick,
+  filters = [],
+  currentTab = 'all'
+}) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [view, setView] = useState<ViewType>('month');
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -54,7 +61,7 @@ export const TransactionsCalendar: React.FC<TransactionsCalendarProps> = ({ onTr
 
   useEffect(() => {
     fetchData();
-  }, [currentDate, view]);
+  }, [currentDate, view, filters, currentTab]);
 
   const fetchData = async () => {
     setIsLoading(true);
@@ -70,12 +77,25 @@ export const TransactionsCalendar: React.FC<TransactionsCalendarProps> = ({ onTr
         end = endOfWeek(currentDate);
       }
 
-      const filters = [
+      const dateFilters = [
         { field: 'transaction_time', condition: 'ge', value: format(start, "yyyy-MM-dd'T'00:00:00") },
         { field: 'transaction_time', condition: 'le', value: format(end, "yyyy-MM-dd'T'23:59:59") }
       ];
 
-      const res = await api.getTransactions(1, filters, 'DESC', 3000);
+      const requestFilters = [
+        ...dateFilters,
+        ...filters
+      ];
+
+      if (currentTab && currentTab !== 'all') {
+        requestFilters.push({
+          field: 'type',
+          condition: 'eq',
+          value: currentTab.toUpperCase()
+        });
+      }
+
+      const res = await api.getTransactions(1, requestFilters, 'DESC', 3000);
       setTransactions(res.data);
     } catch (e) {
       console.error("Failed to fetch calendar transactions", e);
