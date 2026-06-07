@@ -763,7 +763,7 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
                   className={`lg:hidden p-1.5 rounded-lg transition-all ${isSelectionMode ? 'bg-cyan-500 text-white shadow-sm' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-white dark:hover:bg-slate-700'}`}
                   title="Select Mode"
                 >
-                  <ListChecks className="w-4 h-4 text-cyan-500" />
+                  <ListChecks className={`w-4 h-4 ${isSelectionMode ? 'text-white' : 'text-cyan-500'}`} />
                 </button>
               )}
             </div>

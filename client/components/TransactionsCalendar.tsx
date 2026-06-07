@@ -253,26 +253,33 @@ export const TransactionsCalendar: React.FC<TransactionsCalendarProps> = ({
           {day.revolving !== 0 && (
             <div className="flex justify-between items-center text-[10px] sm:text-xs">
               <RefreshCw className="w-3 h-3 text-blue-500 hidden sm:block" />
-              <span className={`font-medium truncate ml-auto ${day.revolving > 0 ? 'text-blue-500' : 'text-rose-500'}`}>
+              <span className="text-blue-500 font-medium truncate ml-auto">
                 {day.revolving > 0 ? '+' : ''}{formatShortValue(day.revolving)}
               </span>
             </div>
           )}
         </div>
 
-        {/* Mobile Compact View (Shortened Numeric Value) */}
+        {/* Mobile Compact View (Stacked Shortened Numeric Values) */}
         {isCompact && hasActivity && (
-          <div className="text-center mt-1">
-            {day.income - day.expense !== 0 ? (
-              <span className={`text-[8px] sm:text-[9px] font-bold block leading-none truncate ${day.income - day.expense > 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
-                {day.income - day.expense > 0 ? '+' : ''}{formatShortValue(day.income - day.expense)}
+          <div className="text-center mt-1 space-y-0.5">
+            {day.income > 0 && (
+              <span className="text-[8px] sm:text-[9px] font-bold block leading-none truncate text-emerald-500">
+                +{formatShortValue(day.income)}
               </span>
-            ) : day.saving !== 0 ? (
-              <span className={`text-[8px] sm:text-[9px] font-bold block leading-none truncate ${day.saving > 0 ? 'text-violet-500' : 'text-rose-500'}`}>
+            )}
+            {day.expense > 0 && (
+              <span className="text-[8px] sm:text-[9px] font-bold block leading-none truncate text-rose-500">
+                -{formatShortValue(day.expense)}
+              </span>
+            )}
+            {day.saving !== 0 && (
+              <span className="text-[8px] sm:text-[9px] font-bold block leading-none truncate text-violet-500">
                 {day.saving > 0 ? '+' : ''}{formatShortValue(day.saving)}
               </span>
-            ) : (
-              <span className={`text-[8px] sm:text-[9px] font-bold block leading-none truncate ${day.revolving > 0 ? 'text-blue-500' : 'text-rose-500'}`}>
+            )}
+            {day.revolving !== 0 && (
+              <span className="text-[8px] sm:text-[9px] font-bold block leading-none truncate text-blue-500">
                 {day.revolving > 0 ? '+' : ''}{formatShortValue(day.revolving)}
               </span>
             )}
@@ -301,40 +308,40 @@ export const TransactionsCalendar: React.FC<TransactionsCalendarProps> = ({
   const selectedDayData = summaryByDay.find(d => selectedDay && isSameDay(d.date, selectedDay));
 
   return (
-    <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
-      <div className="flex flex-wrap items-center justify-between gap-4 glass p-4 rounded-3xl border border-slate-200 dark:border-slate-800/50">
-        <div className="flex items-center gap-4">
-          <div className="flex bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl">
+    <div className="space-y-3 animate-in fade-in slide-in-from-bottom-2">
+      <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-3 glass p-2 sm:p-2.5 rounded-2xl border border-slate-200 dark:border-slate-800/50 shadow-sm">
+        <div className="flex items-center gap-2">
+          <div className="flex bg-slate-100 dark:bg-slate-800/80 p-0.5 sm:p-1 rounded-xl">
             <button
               onClick={() => setView('month')}
-              className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition-all ${view === 'month' ? 'bg-white dark:bg-slate-700 text-cyan-500 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+              className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${view === 'month' ? 'bg-white dark:bg-slate-700 text-cyan-500 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
             >
               Monthly
             </button>
             <button
               onClick={() => setView('week')}
-              className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition-all ${view === 'week' ? 'bg-white dark:bg-slate-700 text-cyan-500 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+              className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${view === 'week' ? 'bg-white dark:bg-slate-700 text-cyan-500 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
             >
               Weekly
             </button>
           </div>
         </div>
 
-        <div className="flex items-center gap-4">
-          <button onClick={prev} className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-slate-600 dark:text-slate-300">
-            <ChevronLeft className="w-5 h-5" />
+        <div className="flex items-center gap-2 sm:gap-3">
+          <button onClick={prev} className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-slate-600 dark:text-slate-300">
+            <ChevronLeft className="w-4 h-4" />
           </button>
-          <div className="min-w-[140px] text-center">
-            <h2 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-wider">
+          <div className="min-w-[105px] sm:min-w-[145px] text-center">
+            <h2 className="text-sm sm:text-base font-black text-slate-900 dark:text-white uppercase tracking-wider">
               {view === 'month' ? format(currentDate, 'MMMM yyyy') : `${format(startOfWeek(currentDate), 'MMM d')} - ${format(endOfWeek(currentDate), 'MMM d, yyyy')}`}
             </h2>
           </div>
           <button 
             onClick={next} 
             disabled={isNextDisabled}
-            className={`p-2 rounded-xl transition-colors ${isNextDisabled ? 'opacity-30 cursor-not-allowed bg-slate-100/50 dark:bg-slate-800/40 text-slate-400' : 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300'}`}
+            className={`p-1.5 rounded-lg transition-colors ${isNextDisabled ? 'opacity-30 cursor-not-allowed bg-slate-100/50 dark:bg-slate-800/40 text-slate-400' : 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300'}`}
           >
-            <ChevronRight className="w-5 h-5" />
+            <ChevronRight className="w-4 h-4" />
           </button>
         </div>
       </div>
@@ -449,7 +456,7 @@ export const TransactionsCalendar: React.FC<TransactionsCalendarProps> = ({
 
                       {/* Revolving */}
                       {day.revolving !== 0 ? (
-                        <span className={`text-xs font-bold flex items-center gap-1 min-w-[75px] ${day.revolving > 0 ? 'text-blue-500' : 'text-rose-500'}`}>
+                        <span className="text-xs font-bold flex items-center gap-1 min-w-[75px] text-blue-500">
                           <RefreshCw className="w-3.5 h-3.5 flex-shrink-0" />
                           {day.revolving > 0 ? `+${formatShortValue(day.revolving)}` : formatShortValue(day.revolving)}
                         </span>
@@ -504,7 +511,7 @@ export const TransactionsCalendar: React.FC<TransactionsCalendarProps> = ({
                       {day.income > 0 && <span className="text-xs font-bold text-emerald-500">+{formatShortValue(day.income)} IN</span>}
                       {day.expense > 0 && <span className="text-xs font-bold text-rose-500">-{formatShortValue(day.expense)} EX</span>}
                       {day.saving !== 0 && <span className={`text-xs font-bold ${day.saving > 0 ? 'text-violet-500' : 'text-rose-500'}`}>{day.saving > 0 ? '+' : ''}{formatShortValue(day.saving)} SV</span>}
-                      {day.revolving !== 0 && <span className={`text-xs font-bold ${day.revolving > 0 ? 'text-blue-500' : 'text-rose-500'}`}>{day.revolving > 0 ? '+' : ''}{formatShortValue(day.revolving)} RV</span>}
+                      {day.revolving !== 0 && <span className="text-xs font-bold text-blue-500">{day.revolving > 0 ? '+' : ''}{formatShortValue(day.revolving)} RV</span>}
                     </div>
                   </div>
                 );
