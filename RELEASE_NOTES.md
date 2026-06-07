@@ -17,6 +17,10 @@ This release introduces a complete redesign of the **Budget Management** module 
 - **Automatic Run Date Calculation**: The backend service automatically advances the next run date by exactly 1 week upon execution or when activating a schedule.
 - **Seamless Frontend Integration**: The frequency option is fully supported in the Scheduled Transaction modal, tables, list views, and details page.
 
+### Performance Improvements
+- **Unused App-level Fetch Removal**: Removed redundant parallel API queries (`getExpenses`, `getIncomes`, `getSavings`) from the main application mount, eliminating unnecessary network overhead.
+- **Personalization Sync Optimization**: Refactored column selection and search filter sync in the Transactions module. Settings are now persisted to the backend only on explicit user actions (e.g., check/uncheck columns, apply/clear filters) rather than triggering redundant API writes on every tab switch or page load.
+
 ## [June 04, 2026] Compact View, Spot Editing & Page Size Customization
 
 This release introduces a space-saving **Compact View** toggle, **Spot Editing** (inline cell edits), and customizable **Page Size** controls to the transaction log, allowing users to quickly view, update, and manage financial records in-place without context switching.
