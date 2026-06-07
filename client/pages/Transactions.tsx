@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { personalizationSync } from '../services/personalizationSync';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
-import { Transaction, TransactionType, Category, SubCategory, Item, CreditCard, Saving, Revolving, InvestmentGoal } from '../types';
+import { Transaction, TransactionType, Category, SubCategory, Item, CreditCard, Saving, Revolving, InvestmentGoal, Expense, Income } from '../types';
 import { PAYMENT_MODES, SAVING_DIRECTIONS, REVOLVING_DIRECTIONS, REVOLVING_STATUSES } from '../constants';
 import {
   Landmark,
@@ -283,16 +283,16 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
       let response;
       switch (t.type) {
         case TransactionType.EXPENSE:
-          response = await api.updateExpense(updatedData);
+          response = await api.updateExpense(updatedData as Expense);
           break;
         case TransactionType.INCOME:
-          response = await api.updateIncome(updatedData);
+          response = await api.updateIncome(updatedData as Income);
           break;
         case TransactionType.SAVING:
-          response = await api.updateSaving(updatedData);
+          response = await api.updateSaving(updatedData as Saving);
           break;
         case TransactionType.REVOLVING:
-          response = await api.updateRevolving(updatedData);
+          response = await api.updateRevolving(updatedData as Revolving);
           break;
       }
       showToast('Transaction updated successfully!', 'success');
@@ -820,7 +820,7 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
                       )}
                     </td>
                     {visibleColumns.has('date') && (
-                      <td className={`${cellPadding} whitespace-nowrap`} data-spot-edit="true">
+                      <td className={`${cellPadding} whitespace-nowrap`}>
                         {isDateEditing ? (
                           <input
                             type="date"
@@ -833,20 +833,19 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
                           />
                         ) : (
                           <div
-                            onClick={(e) => { e.stopPropagation(); startEditingCell(t, 'transaction_time'); }}
                             className="group/cell flex items-center justify-between min-w-0 w-full"
                           >
                             <div className={viewMode === 'compact' ? 'flex items-baseline gap-1.5' : ''}>
                               <p className="text-xs font-bold text-slate-700 dark:text-slate-300">{new Date(t.transaction_time).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}</p>
                               <p className={`text-[10px] text-slate-400 font-medium ${viewMode === 'compact' ? 'opacity-80' : 'block'}`}>#{t.id}</p>
                             </div>
-                            <Pencil className="w-3 h-3 text-slate-400 opacity-0 group-hover/cell:opacity-100 hover:text-cyan-500 transition-opacity ml-1.5 shrink-0 cursor-pointer" />
+                            <Pencil onClick={(e) => { e.stopPropagation(); startEditingCell(t, 'transaction_time'); }} className="w-3 h-3 text-slate-400 opacity-0 group-hover/cell:opacity-100 hover:text-cyan-500 transition-opacity ml-1.5 shrink-0 cursor-pointer" />
                           </div>
                         )}
                       </td>
                     )}
                     {visibleColumns.has('description') && (
-                      <td className={`${cellPadding} min-w-[200px]`} data-spot-edit="true">
+                      <td className={`${cellPadding} min-w-[200px]`}>
                         {isDescEditing ? (
                           <input
                             type="text"
@@ -859,7 +858,6 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
                           />
                         ) : (
                           <div
-                            onClick={(e) => { e.stopPropagation(); startEditingCell(t, 'description'); }}
                             className="group/cell flex items-center justify-between min-w-0 w-full"
                           >
                             <div className={`flex items-center ${viewMode === 'compact' ? 'gap-2' : 'gap-3'} min-w-0 flex-1`}>
@@ -876,7 +874,7 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
                                 )}
                               </div>
                             </div>
-                            <Pencil className="w-3 h-3 text-slate-400 opacity-0 group-hover/cell:opacity-100 hover:text-cyan-500 transition-opacity ml-1.5 shrink-0 cursor-pointer" />
+                            <Pencil onClick={(e) => { e.stopPropagation(); startEditingCell(t, 'description'); }} className="w-3 h-3 text-slate-400 opacity-0 group-hover/cell:opacity-100 hover:text-cyan-500 transition-opacity ml-1.5 shrink-0 cursor-pointer" />
                           </div>
                         )}
                       </td>
@@ -893,7 +891,7 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
                       </td>
                     )}
                     {visibleColumns.has('category') && (
-                      <td className={`${cellPadding} whitespace-nowrap`} data-spot-edit="true">
+                      <td className={`${cellPadding} whitespace-nowrap`}>
                         {isCategoryEditing ? (
                           <CustomSelect
                             value={editValue}
@@ -910,7 +908,6 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
                           />
                         ) : (
                           <div
-                            onClick={(e) => { e.stopPropagation(); startEditingCell(t, 'category'); }}
                             className="group/cell flex items-center justify-between min-w-0 w-full gap-2"
                           >
                             {t.category ? (
@@ -918,13 +915,13 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
                             ) : (
                               <span className="text-xs text-slate-400 italic">None</span>
                             )}
-                            <Pencil className="w-3 h-3 text-slate-400 opacity-0 group-hover/cell:opacity-100 hover:text-cyan-500 transition-opacity shrink-0 cursor-pointer" />
+                            <Pencil onClick={(e) => { e.stopPropagation(); startEditingCell(t, 'category'); }} className="w-3 h-3 text-slate-400 opacity-0 group-hover/cell:opacity-100 hover:text-cyan-500 transition-opacity shrink-0 cursor-pointer" />
                           </div>
                         )}
                       </td>
                     )}
                     {visibleColumns.has('subcategory') && (
-                      <td className={`${cellPadding} whitespace-nowrap`} data-spot-edit="true">
+                      <td className={`${cellPadding} whitespace-nowrap`}>
                         {isSubcategoryEditing ? (
                           <CustomSelect
                             value={editValue}
@@ -939,7 +936,6 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
                           />
                         ) : (
                           <div
-                            onClick={(e) => { e.stopPropagation(); startEditingCell(t, 'subcategory'); }}
                             className="group/cell flex items-center justify-between min-w-0 w-full gap-2"
                           >
                             {t.subcategory ? (
@@ -947,13 +943,13 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
                             ) : (
                               <span className="text-[10px] text-slate-400 italic">None</span>
                             )}
-                            <Pencil className="w-3 h-3 text-slate-400 opacity-0 group-hover/cell:opacity-100 hover:text-cyan-500 transition-opacity shrink-0 cursor-pointer" />
+                            <Pencil onClick={(e) => { e.stopPropagation(); startEditingCell(t, 'subcategory'); }} className="w-3 h-3 text-slate-400 opacity-0 group-hover/cell:opacity-100 hover:text-cyan-500 transition-opacity shrink-0 cursor-pointer" />
                           </div>
                         )}
                       </td>
                     )}
                     {visibleColumns.has('item') && (
-                      <td className={`${cellPadding} whitespace-nowrap`} data-spot-edit="true">
+                      <td className={`${cellPadding} whitespace-nowrap`}>
                         {isItemEditing ? (
                           <CustomSelect
                             value={editValue}
@@ -968,7 +964,6 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
                           />
                         ) : (
                           <div
-                            onClick={(e) => { e.stopPropagation(); startEditingCell(t, 'item'); }}
                             className="group/cell flex items-center justify-between min-w-0 w-full gap-2"
                           >
                             {(t as any).item ? (
@@ -976,13 +971,13 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
                             ) : (
                               <span className="text-[10px] text-slate-400 italic">None</span>
                             )}
-                            <Pencil className="w-3 h-3 text-slate-400 opacity-0 group-hover/cell:opacity-100 hover:text-cyan-500 transition-opacity shrink-0 cursor-pointer" />
+                            <Pencil onClick={(e) => { e.stopPropagation(); startEditingCell(t, 'item'); }} className="w-3 h-3 text-slate-400 opacity-0 group-hover/cell:opacity-100 hover:text-cyan-500 transition-opacity shrink-0 cursor-pointer" />
                           </div>
                         )}
                       </td>
                     )}
                     {visibleColumns.has('payment_mode') && (
-                      <td className={`${cellPadding} whitespace-nowrap`} data-spot-edit="true">
+                      <td className={`${cellPadding} whitespace-nowrap`}>
                         {isPaymentModeEditing ? (
                           <CustomSelect
                             value={editValue}
@@ -997,7 +992,6 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
                           />
                         ) : (
                           <div
-                            onClick={(e) => { e.stopPropagation(); startEditingCell(t, 'payment_mode'); }}
                             className="group/cell flex items-center justify-between min-w-0 w-full gap-2"
                           >
                             {(t as any).payment_mode ? (
@@ -1005,13 +999,13 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
                             ) : (
                               <span className="text-[10px] text-slate-400 italic">None</span>
                             )}
-                            <Pencil className="w-3 h-3 text-slate-400 opacity-0 group-hover/cell:opacity-100 hover:text-cyan-500 transition-opacity shrink-0 cursor-pointer" />
+                            <Pencil onClick={(e) => { e.stopPropagation(); startEditingCell(t, 'payment_mode'); }} className="w-3 h-3 text-slate-400 opacity-0 group-hover/cell:opacity-100 hover:text-cyan-500 transition-opacity shrink-0 cursor-pointer" />
                           </div>
                         )}
                       </td>
                     )}
                     {visibleColumns.has('is_in') && (
-                      <td className={`${cellPadding} whitespace-nowrap`} data-spot-edit="true">
+                      <td className={`${cellPadding} whitespace-nowrap`}>
                         {typeof (t as any).is_in !== 'undefined' && (
                           isInEditing ? (
                             <CustomSelect
@@ -1027,20 +1021,19 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
                             />
                           ) : (
                             <div
-                              onClick={(e) => { e.stopPropagation(); startEditingCell(t, 'is_in'); }}
                               className="group/cell flex items-center justify-between min-w-0 w-full gap-2"
                             >
                               <span className={`text-[10px] font-bold px-2 py-1 rounded-md uppercase ${(t as any).is_in ? 'text-emerald-500 bg-emerald-500/10' : 'text-rose-500 bg-rose-500/10'}`}>
                                 {(t as any).is_in ? 'In' : 'Out'}
                               </span>
-                              <Pencil className="w-3 h-3 text-slate-400 opacity-0 group-hover/cell:opacity-100 hover:text-cyan-500 transition-opacity shrink-0 cursor-pointer" />
+                              <Pencil onClick={(e) => { e.stopPropagation(); startEditingCell(t, 'is_in'); }} className="w-3 h-3 text-slate-400 opacity-0 group-hover/cell:opacity-100 hover:text-cyan-500 transition-opacity shrink-0 cursor-pointer" />
                             </div>
                           )
                         )}
                       </td>
                     )}
                     {visibleColumns.has('is_give') && (
-                      <td className={`${cellPadding} whitespace-nowrap`} data-spot-edit="true">
+                      <td className={`${cellPadding} whitespace-nowrap`}>
                         {typeof (t as any).is_give !== 'undefined' && (
                           isGiveEditing ? (
                             <CustomSelect
@@ -1056,20 +1049,19 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
                             />
                           ) : (
                             <div
-                              onClick={(e) => { e.stopPropagation(); startEditingCell(t, 'is_give'); }}
                               className="group/cell flex items-center justify-between min-w-0 w-full gap-2"
                             >
                               <span className={`text-[10px] font-bold px-2 py-1 rounded-md uppercase ${(t as any).is_give ? 'text-blue-500 bg-blue-500/10' : 'text-violet-500 bg-violet-500/10'}`}>
                                 {(t as any).is_give ? 'Given' : 'Received'}
                               </span>
-                              <Pencil className="w-3 h-3 text-slate-400 opacity-0 group-hover/cell:opacity-100 hover:text-cyan-500 transition-opacity shrink-0 cursor-pointer" />
+                              <Pencil onClick={(e) => { e.stopPropagation(); startEditingCell(t, 'is_give'); }} className="w-3 h-3 text-slate-400 opacity-0 group-hover/cell:opacity-100 hover:text-cyan-500 transition-opacity shrink-0 cursor-pointer" />
                             </div>
                           )
                         )}
                       </td>
                     )}
                     {visibleColumns.has('closed') && (
-                      <td className={`${cellPadding} whitespace-nowrap`} data-spot-edit="true">
+                      <td className={`${cellPadding} whitespace-nowrap`}>
                         {typeof (t as any).closed !== 'undefined' && (
                           isClosedEditing ? (
                             <CustomSelect
@@ -1085,20 +1077,19 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
                             />
                           ) : (
                             <div
-                              onClick={(e) => { e.stopPropagation(); startEditingCell(t, 'closed'); }}
                               className="group/cell flex items-center justify-between min-w-0 w-full gap-2"
                             >
                               <span className={`text-[10px] font-bold px-2 py-1 rounded-md uppercase ${(t as any).closed ? 'text-slate-500 bg-slate-500/10' : 'text-amber-500 bg-amber-500/10'}`}>
                                 {(t as any).closed ? 'Closed' : 'Active'}
                               </span>
-                              <Pencil className="w-3 h-3 text-slate-400 opacity-0 group-hover/cell:opacity-100 hover:text-cyan-500 transition-opacity shrink-0 cursor-pointer" />
+                              <Pencil onClick={(e) => { e.stopPropagation(); startEditingCell(t, 'closed'); }} className="w-3 h-3 text-slate-400 opacity-0 group-hover/cell:opacity-100 hover:text-cyan-500 transition-opacity shrink-0 cursor-pointer" />
                             </div>
                           )
                         )}
                       </td>
                     )}
                     {visibleColumns.has('notes') && (
-                      <td className={`${cellPadding} min-w-[150px]`} data-spot-edit="true">
+                      <td className={`${cellPadding} min-w-[150px]`}>
                         {isNotesEditing ? (
                           <input
                             type="text"
@@ -1112,17 +1103,16 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
                           />
                         ) : (
                           <div
-                            onClick={(e) => { e.stopPropagation(); startEditingCell(t, 'notes'); }}
                             className="group/cell flex items-center justify-between min-w-0 w-full gap-2"
                           >
                             <span className="text-[10px] text-slate-400 line-clamp-1 flex-1" title={t.notes || ''}>{t.notes || <span className="italic opacity-50">None</span>}</span>
-                            <Pencil className="w-3 h-3 text-slate-400 opacity-0 group-hover/cell:opacity-100 hover:text-cyan-500 transition-opacity shrink-0 cursor-pointer" />
+                            <Pencil onClick={(e) => { e.stopPropagation(); startEditingCell(t, 'notes'); }} className="w-3 h-3 text-slate-400 opacity-0 group-hover/cell:opacity-100 hover:text-cyan-500 transition-opacity shrink-0 cursor-pointer" />
                           </div>
                         )}
                       </td>
                     )}
                     {visibleColumns.has('amount') && (
-                      <td className={`${cellPadding} text-right font-bold tabular-nums whitespace-nowrap ${viewMode === 'compact' ? 'text-xs' : 'text-sm'} ${getAmountColor(t)}`} data-spot-edit="true">
+                      <td className={`${cellPadding} text-right font-bold tabular-nums whitespace-nowrap ${viewMode === 'compact' ? 'text-xs' : 'text-sm'} ${getAmountColor(t)}`}>
                         {isAmountEditing ? (
                           <input
                             type="number"
@@ -1135,11 +1125,10 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
                           />
                         ) : (
                           <div
-                            onClick={(e) => { e.stopPropagation(); startEditingCell(t, 'value'); }}
                             className="group/cell flex items-center justify-end min-w-0 w-full"
                           >
                             <span>{getAmountSign(t)}₹{t.value.toLocaleString('en-IN')}</span>
-                            <Pencil className="w-3 h-3 text-slate-400 opacity-0 group-hover/cell:opacity-100 hover:text-cyan-500 transition-opacity ml-1.5 shrink-0 cursor-pointer" />
+                            <Pencil onClick={(e) => { e.stopPropagation(); startEditingCell(t, 'value'); }} className="w-3 h-3 text-slate-400 opacity-0 group-hover/cell:opacity-100 hover:text-cyan-500 transition-opacity ml-1.5 shrink-0 cursor-pointer" />
                           </div>
                         )}
                       </td>
