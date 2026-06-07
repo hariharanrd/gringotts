@@ -1,8 +1,16 @@
 # 🚀 Release Notes
 
-## [June 07, 2026] Weekly Scheduled Transactions
+## [June 07, 2026] Budget Redesign & Weekly Scheduled Transactions
 
-This release introduces **Weekly Scheduled Transactions** support, allowing users to automate recurring transactions on a weekly basis.
+This release introduces a complete redesign of the **Budget Management** module for historical performance tracking, lock controls, and automated leak analysis, alongside new **Weekly Scheduled Transactions** support.
+
+### 📊 Historical Budget Timeline & Performance Tracking
+- **Interactive Timeline**: A modern horizontal scroll timeline displays the last 6 months (and custom budget slots) with instant status indicators.
+- **Dynamic Capacity Gauge**: Custom SVG circular progress ring visualizing overall utilization with smart alert states.
+- **Leak Identification Panel**: "What went wrong?" panel highlights categories that exceeded limits and lists uncategorized leakage.
+- **Planned Savings Tracker**: Tracks and compares savings progress against monthly budgeted targets.
+- **Past Period Locking**: Enforces read-only controls on both client and server to prevent creating, cloning, or modifying budgets in past periods.
+- **Intelligent Creation Form**: Year selection is now a select dropdown supporting up to the next 5 years, dynamically filtering months to prevent past selection.
 
 ### 📅 Weekly Scheduling Support
 - **Weekly Frequency Option**: Select "Weekly" as a recurring interval when creating or editing scheduled transactions.
