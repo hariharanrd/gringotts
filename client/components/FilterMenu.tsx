@@ -182,30 +182,35 @@ export const FilterMenu: React.FC<FilterMenuProps> = ({ activeFilters, onApplyFi
   const addFilter = () => {
     if (availableFields.length === 0) return;
     const defaultField = availableFields[0];
-    const defaultCondition = getAvailableConditions(defaultField.type || 'string')[0].value;
+    const defaultCondition = getAvailableConditions(defaultField)[0].value;
     setDraftFilters([...draftFilters, { field: defaultField.value, condition: defaultCondition, value: '' }]);
   };
 
   const updateFilter = (index: number, key: keyof FilterCriteria, val: string, label?: string) => {
-    const newFilters = [...draftFilters];
+    setDraftFilters(prev => prev.map((f, i) => {
+      if (i === index) {
+        const updated = { ...f, [key]: val };
+        
+        if (key === 'field') {
+          const fieldDef = availableFields.find(x => x.value === val);
+          const conditions = getAvailableConditions(fieldDef);
+          if (!conditions.find(c => c.value === f.condition)) {
+            updated.condition = conditions[0].value;
+          }
+          updated.value = '';
+          delete updated.label;
+        }
 
-    if (key === 'field') {
-      const fieldDef = availableFields.find(f => f.value === val);
-      const conditions = getAvailableConditions(fieldDef?.type || 'string');
-      if (!conditions.find(c => c.value === newFilters[index].condition)) {
-        newFilters[index].condition = conditions[0].value;
+        if (label !== undefined) {
+          updated.label = label;
+        } else if (key === 'value' && !label) {
+          delete updated.label;
+        }
+        
+        return updated;
       }
-    }
-
-    newFilters[index][key] = val;
-    if (label !== undefined) {
-      newFilters[index].label = label;
-    } else if (key === 'value' && !label) {
-      // If value is updated without explicit label, clear old label
-      delete newFilters[index].label;
-    }
-
-    setDraftFilters(newFilters);
+      return f;
+    }));
   };
 
   const removeDraftFilter = (index: number) => {
@@ -231,8 +236,14 @@ export const FilterMenu: React.FC<FilterMenuProps> = ({ activeFilters, onApplyFi
     setIsOpen(false);
   };
 
-  const getAvailableConditions = (type: string) => {
-    switch (type) {
+  const getAvailableConditions = (fieldDef?: FilterFieldDef) => {
+    if (!fieldDef) return [{ value: 'eq', label: 'equals' }];
+
+    if (fieldDef.options || fieldDef.fetchOptions || fieldDef.type === 'boolean') {
+      return [{ value: 'eq', label: 'equals' }];
+    }
+
+    switch (fieldDef.type) {
       case 'number':
         return [
           { value: 'eq', label: 'equals' },
@@ -249,10 +260,6 @@ export const FilterMenu: React.FC<FilterMenuProps> = ({ activeFilters, onApplyFi
           { value: 'lt', label: 'before' },
           { value: 'le', label: 'on or before' }
         ];
-      case 'boolean':
-        return [
-          { value: 'eq', label: 'equals' }
-        ];
       case 'string':
       default:
         return [
@@ -263,20 +270,28 @@ export const FilterMenu: React.FC<FilterMenuProps> = ({ activeFilters, onApplyFi
   };
 
   return (
-    <div className="flex items-center gap-3 w-full sm:w-auto relative" ref={dropdownRef}>
-
-      <button
-        onClick={isOpen ? () => setIsOpen(false) : handleOpen}
-        className={`flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border shadow-sm transition-colors text-sm font-medium whitespace-nowrap w-full sm:w-auto ${activeFilters.length > 0
-          ? 'bg-cyan-50 dark:bg-cyan-500/10 border-cyan-200 dark:border-cyan-500/30 text-cyan-700 dark:text-cyan-300'
-          : 'bg-slate-100 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700/60 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+    <div className="relative" ref={dropdownRef}>
+      <div className="flex items-center bg-slate-100 dark:bg-slate-800/85 p-1 rounded-xl border border-slate-200 dark:border-slate-700/60 shadow-sm">
+        <button
+          onClick={isOpen ? () => setIsOpen(false) : handleOpen}
+          className={`flex items-center justify-center gap-1.5 p-1.5 rounded-lg transition-all text-xs font-bold whitespace-nowrap ${
+            activeFilters.length > 0
+              ? 'bg-cyan-500 text-white shadow-sm hover:bg-cyan-600'
+              : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-white dark:hover:bg-slate-700 shadow-none'
           }`}
-      >
-        <Filter className="w-4 h-4" />
-        <span className="hidden sm:inline">Filter</span>
-        <span className="sm:hidden">Filters</span>
-        {activeFilters.length > 0 && <span>({activeFilters.length})</span>}
-      </button>
+          title="Filters"
+        >
+          <Filter className={`w-4 h-4 ${activeFilters.length > 0 ? 'text-white' : 'text-cyan-500'}`} />
+          <span className="hidden sm:inline">Filters</span>
+          {activeFilters.length > 0 && (
+            <span className={`text-[9px] font-extrabold rounded-full px-1.5 py-0.5 min-w-[16px] h-4 flex items-center justify-center shadow-sm ${
+              activeFilters.length > 0 ? 'bg-white text-cyan-600' : 'bg-cyan-500 text-white'
+            }`}>
+              {activeFilters.length}
+            </span>
+          )}
+        </button>
+      </div>
 
       {isOpen && (
         <>
@@ -322,7 +337,7 @@ export const FilterMenu: React.FC<FilterMenuProps> = ({ activeFilters, onApplyFi
                       value={filter.condition}
                       onChange={e => updateFilter(index, 'condition', e.target.value)}
                     >
-                      {getAvailableConditions(availableFields.find(f => f.value === filter.field)?.type || 'string').map(c => (
+                      {getAvailableConditions(availableFields.find(f => f.value === filter.field)).map(c => (
                         <option key={c.value} value={c.value}>{c.label}</option>
                       ))}
                     </select>

@@ -88,7 +88,10 @@ public class TransactionController {
             @RequestParam(value = "type", defaultValue = "all") String type,
             @RequestParam(value = "startDate", required = false) String startDateStr,
             @RequestParam(value = "endDate", required = false) String endDateStr,
-            @RequestParam(value = "filters", required = false) String filtersJson) {
+            @RequestParam(value = "filters", required = false) String filtersJson,
+            @RequestParam(value = "page", required = false) Integer page,
+            @RequestParam(value = "size", required = false) Integer size,
+            @RequestParam(value = "direction", defaultValue = "DESC") String direction) {
 
         if (!"csv".equalsIgnoreCase(format) && !"xlsx".equalsIgnoreCase(format)) {
             return ResponseEntity.badRequest().body("Invalid format. Must be csv or xlsx".getBytes());
@@ -108,7 +111,7 @@ public class TransactionController {
         }
 
         List<com.luna.Gringotts.records.SearchCriteria> filters = parseFilters(filtersJson);
-        List<Transaction> transactions = transactionService.getTransactionsForExport(type, startDate, endDate, filters);
+        List<Transaction> transactions = transactionService.getTransactionsForExport(type, startDate, endDate, filters, page, size, direction);
 
         byte[] fileBytes;
         String contentType;
