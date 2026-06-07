@@ -1,8 +1,8 @@
 # 🚀 Release Notes
 
-## [June 07, 2026] Budget Redesign & Weekly Scheduled Transactions
+## [June 07, 2026] Budget Redesign, Weekly Scheduled Transactions & Transactions Calendar View
 
-This release introduces a complete redesign of the **Budget Management** module for historical performance tracking, lock controls, and automated leak analysis, alongside new **Weekly Scheduled Transactions** support.
+This release introduces the interactive **Transactions Calendar View** (with monthly/weekly toggles, compact mobile support, and consolidated summary stats), a complete redesign of the **Budget Management** module for historical performance tracking, lock controls, and automated leak analysis, alongside new **Weekly Scheduled Transactions** support.
 
 ### 📊 Historical Budget Timeline & Performance Tracking
 - **Interactive Timeline**: A modern horizontal scroll timeline displays the last 6 months (and custom budget slots) with instant status indicators.
@@ -11,6 +11,14 @@ This release introduces a complete redesign of the **Budget Management** module 
 - **Planned Savings Tracker**: Tracks and compares savings progress against monthly budgeted targets.
 - **Past Period Locking**: Enforces read-only controls on both client and server to prevent creating, cloning, or modifying budgets in past periods.
 - **Intelligent Creation Form**: Year selection is now a select dropdown supporting up to the next 5 years, dynamically filtering months to prevent past selection.
+
+### 📅 Interactive Transactions Calendar View
+- **Dual Layout Modes**: Switch seamlessly between a standard monthly calendar grid view and a weekly vertical timeline layout with summarized details.
+- **Stacked Compact Indicators**: Mobile grid cells dynamically display stacked, space-optimized numeric tags for all active transaction types (Income, Expense, Saving, Revolving) simultaneously.
+- **Consistent Type-Specific Colors**: Unified indicator styling where savings remain violet (`text-violet-500`) and revolving transactions remain blue (`text-blue-500`) regardless of sign, keeping signs intact.
+- **Daily Details Modal View**: Click any day in the monthly grid or weekly view to open a detail modal listing each transaction's descriptions, categories, payment methods, and exact values, with direct links to details.
+- **Query Filter & Tab Integration**: Integrates directly with current transaction search filters and category tabs to display customized summaries.
+- **Consolidated Period Stat Cards**: Period footer dashboard showing aggregated summary statistics tracking total income, total expenses, net savings, and net revolving balances for the active period.
 
 ### 📅 Weekly Scheduling Support
 - **Weekly Frequency Option**: Select "Weekly" as a recurring interval when creating or editing scheduled transactions.
