@@ -19,7 +19,6 @@ import { Login } from './pages/Login';
 import { Register } from './pages/Register';
 import { ForgotPassword } from './pages/ForgotPassword';
 import { ResetPassword } from './pages/ResetPassword';
-import { api } from './services/api';
 import { Transaction, TransactionType } from './types';
 import { ToastProvider, useToast } from './components/ToastContext';
 import { ThemeProvider } from './components/ThemeContext';
@@ -78,30 +77,12 @@ const GringottsApp: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalDefaultType, setModalDefaultType] = useState<TransactionType | undefined>(undefined);
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [username, setUsername] = useState<string>('');
   const [displayName, setDisplayName] = useState<string>('');
   const [profilePicture, setProfilePicture] = useState<string>('');
   const [hasRecoveryEmail, setHasRecoveryEmail] = useState<boolean>(true);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
-
-  const fetchAllTransactions = async () => {
-    setIsLoading(true);
-    try {
-      const [expensesRes, incomesRes, savingsRes] = await Promise.all([
-        api.getExpenses(1),
-        api.getIncomes(1),
-        api.getSavings(1),
-      ]);
-      setTransactions([...expensesRes.data, ...incomesRes.data, ...savingsRes.data]);
-    } catch (error) {
-      console.error("Failed to fetch transactions:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const fetchUser = async () => {
     try {
@@ -121,7 +102,6 @@ const GringottsApp: React.FC = () => {
         }
 
         setIsAuthenticated(true);
-        fetchAllTransactions();
       } else {
         setIsAuthenticated(false);
       }
@@ -160,12 +140,10 @@ const GringottsApp: React.FC = () => {
   }
 
   const handleTransactionSuccess = (_savedType?: TransactionType, _savedId?: number) => {
-    fetchAllTransactions();
     setRefreshKey(prev => prev + 1);
   };
 
   const handleImportSuccess = () => {
-    fetchAllTransactions();
     setRefreshKey(prev => prev + 1);
   };
 
@@ -193,31 +171,27 @@ const GringottsApp: React.FC = () => {
               onLogout={handleLogout}
               onImportSuccess={handleImportSuccess}
             >
-              {isLoading ? (
-                <DashboardSkeleton />
-              ) : (
-                <Routes>
-                  <Route path="/dashboard" element={<Dashboard />} />
-                  <Route path="/transactions" element={<Transactions onEdit={handleEditTransaction} onAdd={handleAddTransaction} refreshTrigger={refreshKey} />} />
-                  <Route path="/transaction/:id" element={<TransactionDetails />} />
-                  <Route path="/schedules" element={<ScheduledTransactions />} />
-                  <Route path="/schedules/:id" element={<ScheduleDetails />} />
-                  <Route path="/budget" element={<Budget />} />
-                  <Route path="/investment-planner" element={<InvestmentPlanner />} />
-                  <Route path="/loans" element={<Loans />} />
-                  <Route path="/credit-cards" element={<CreditCards />} />
-                  <Route path="/credit-cards/:id" element={<CreditCardDetails />} />
+              <Routes>
+                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/transactions" element={<Transactions onEdit={handleEditTransaction} onAdd={handleAddTransaction} refreshTrigger={refreshKey} />} />
+                <Route path="/transaction/:id" element={<TransactionDetails />} />
+                <Route path="/schedules" element={<ScheduledTransactions />} />
+                <Route path="/schedules/:id" element={<ScheduleDetails />} />
+                <Route path="/budget" element={<Budget />} />
+                <Route path="/investment-planner" element={<InvestmentPlanner />} />
+                <Route path="/loans" element={<Loans />} />
+                <Route path="/credit-cards" element={<CreditCards />} />
+                <Route path="/credit-cards/:id" element={<CreditCardDetails />} />
 
-                  <Route path="/account" element={<Account onProfileUpdate={fetchUser} />} />
-                  <Route path="/logout" element={<Logout onLogout={handleLogout} />} />
-                  <Route path="*" element={
-                    <div className="flex flex-col items-center justify-center min-h-[60vh]">
-                      <h1 className="text-8xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-slate-300 dark:from-slate-700 to-slate-400 dark:to-slate-500">404</h1>
-                      <p className="text-lg text-slate-500 dark:text-slate-400 mt-4">Page not found</p>
-                    </div>
-                  } />
-                </Routes>
-              )}
+                <Route path="/account" element={<Account onProfileUpdate={fetchUser} />} />
+                <Route path="/logout" element={<Logout onLogout={handleLogout} />} />
+                <Route path="*" element={
+                  <div className="flex flex-col items-center justify-center min-h-[60vh]">
+                    <h1 className="text-8xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-slate-300 dark:from-slate-700 to-slate-400 dark:to-slate-500">404</h1>
+                    <p className="text-lg text-slate-500 dark:text-slate-400 mt-4">Page not found</p>
+                  </div>
+                } />
+              </Routes>
             </Layout>
             <TransactionModal
               isOpen={isModalOpen}
