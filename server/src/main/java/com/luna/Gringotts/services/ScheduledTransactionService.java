@@ -245,6 +245,8 @@ public class ScheduledTransactionService {
                 return null;
             case "DAILY":
                 return date.plusDays(1);
+            case "WEEKLY":
+                return date.plusWeeks(1);
             case "MONTHLY":
                 int day = date.getDayOfMonth();
                 LocalDate nextMonth = date.plusMonths(1);
@@ -418,6 +420,8 @@ public class ScheduledTransactionService {
                 return null;
             case "DAILY":
                 return current.plusDays(1);
+            case "WEEKLY":
+                return current.plusWeeks(1);
             case "MONTHLY":
                 // preserve day-of-month when possible, fallback to last day
                 int day = current.getDayOfMonth();

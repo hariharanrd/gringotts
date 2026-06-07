@@ -1,5 +1,14 @@
 # 🚀 Release Notes
 
+## [June 07, 2026] Weekly Scheduled Transactions
+
+This release introduces **Weekly Scheduled Transactions** support, allowing users to automate recurring transactions on a weekly basis.
+
+### 📅 Weekly Scheduling Support
+- **Weekly Frequency Option**: Select "Weekly" as a recurring interval when creating or editing scheduled transactions.
+- **Automatic Run Date Calculation**: The backend service automatically advances the next run date by exactly 1 week upon execution or when activating a schedule.
+- **Seamless Frontend Integration**: The frequency option is fully supported in the Scheduled Transaction modal, tables, list views, and details page.
+
 ## [June 04, 2026] Compact View, Spot Editing & Page Size Customization
 
 This release introduces a space-saving **Compact View** toggle, **Spot Editing** (inline cell edits), and customizable **Page Size** controls to the transaction log, allowing users to quickly view, update, and manage financial records in-place without context switching.
