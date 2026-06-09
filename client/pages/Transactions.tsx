@@ -37,7 +37,7 @@ import { TransactionsCalendar } from '../components/TransactionsCalendar';
 
 interface TransactionsProps {
   onEdit: (transaction: Transaction) => void;
-  onAdd: (defaultType?: TransactionType) => void;
+  onAdd: (defaultType?: TransactionType, defaultDate?: Date) => void;
   refreshTrigger: number;
 }
 
@@ -794,6 +794,7 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
       {displayMode === 'calendar' ? (
         <TransactionsCalendar 
           onTransactionClick={(t) => handleRowClick({ target: document.createElement('div') } as any, t)} 
+          onAddTransaction={(date) => onAdd(currentTab === 'all' ? undefined : (currentTab.toUpperCase() as any), date)}
           filters={filters}
           currentTab={currentTab}
         />
