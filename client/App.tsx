@@ -13,7 +13,7 @@ import InvestmentPlanner from './pages/InvestmentPlanner';
 import CreditCards from './pages/CreditCards';
 import CreditCardDetails from './pages/CreditCardDetails';
 import TransactionDetails from './pages/TransactionDetails';
-import Account from './pages/Account';
+import Settings from './pages/Settings';
 import Loans from './pages/Loans';
 import { Login } from './pages/Login';
 import { Register } from './pages/Register';
@@ -76,6 +76,7 @@ const GringottsApp: React.FC = () => {
   const { showToast } = useToast();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalDefaultType, setModalDefaultType] = useState<TransactionType | undefined>(undefined);
+  const [modalDefaultDate, setModalDefaultDate] = useState<Date | undefined>(undefined);
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
   const [username, setUsername] = useState<string>('');
   const [displayName, setDisplayName] = useState<string>('');
@@ -130,12 +131,14 @@ const GringottsApp: React.FC = () => {
   const handleEditTransaction = async (transaction: Transaction) => {
     setSelectedTransaction(transaction);
     setModalDefaultType(undefined);
+    setModalDefaultDate(undefined);
     setIsModalOpen(true);
   }
 
-  const handleAddTransaction = (type?: TransactionType) => {
+  const handleAddTransaction = (type?: TransactionType, date?: Date) => {
     setSelectedTransaction(null);
     setModalDefaultType(type);
+    setModalDefaultDate(date);
     setIsModalOpen(true);
   }
 
@@ -151,6 +154,7 @@ const GringottsApp: React.FC = () => {
     setIsModalOpen(false);
     setSelectedTransaction(null);
     setModalDefaultType(undefined);
+    setModalDefaultDate(undefined);
   };
 
   return (
@@ -183,7 +187,7 @@ const GringottsApp: React.FC = () => {
                 <Route path="/credit-cards" element={<CreditCards />} />
                 <Route path="/credit-cards/:id" element={<CreditCardDetails />} />
 
-                <Route path="/account" element={<Account onProfileUpdate={fetchUser} />} />
+                <Route path="/settings" element={<Settings onProfileUpdate={fetchUser} onImportSuccess={handleImportSuccess} />} />
                 <Route path="/logout" element={<Logout onLogout={handleLogout} />} />
                 <Route path="*" element={
                   <div className="flex flex-col items-center justify-center min-h-[60vh]">
@@ -199,6 +203,7 @@ const GringottsApp: React.FC = () => {
               onSuccess={handleTransactionSuccess}
               transaction={selectedTransaction}
               defaultType={modalDefaultType}
+              defaultDate={modalDefaultDate}
             />
           </PrivateRoute>
         } />

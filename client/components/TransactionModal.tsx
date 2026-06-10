@@ -13,6 +13,7 @@ interface TransactionModalProps {
   onSuccess: (savedType: TransactionType, savedId: number) => void;
   transaction?: Transaction | null;
   defaultType?: TransactionType;
+  defaultDate?: Date;
 }
 
 type TransactionFormState = Omit<Partial<Transaction>, 'value' | 'credit_card'> & {
@@ -30,7 +31,7 @@ type TransactionFormState = Omit<Partial<Transaction>, 'value' | 'credit_card'> 
   loan_id?: number;
 };
 
-const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, onSuccess, transaction, defaultType }) => {
+const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, onSuccess, transaction, defaultType, defaultDate }) => {
   const { showToast } = useToast();
   const [type, setType] = useState<TransactionType>(TransactionType.EXPENSE);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -82,13 +83,20 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, on
   })() : false;
 
   const resetForm = () => {
+    const initialDate = defaultDate ? (() => {
+      const dateToUse = new Date(defaultDate);
+      const now = new Date();
+      dateToUse.setHours(now.getHours(), now.getMinutes(), 0, 0);
+      return dateToUse;
+    })() : new Date();
+
     setFormData({
       value: 0,
       description: '',
       category: undefined,
       subcategory: undefined,
       item: undefined,
-      transaction_time: toLocalISOString(new Date()),
+      transaction_time: toLocalISOString(initialDate),
       payment_mode: 'UPI',
       is_in: true,
       is_give: true,
@@ -156,8 +164,35 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, on
             funding_goal_id: transaction.funding_goal?.id,
             loan_id: transaction.loan_id
           });
-        } else if (defaultType) {
-          setType(defaultType);
+        } else {
+          if (defaultType) {
+            setType(defaultType);
+          }
+
+          const initialDate = defaultDate ? (() => {
+            const dateToUse = new Date(defaultDate);
+            const now = new Date();
+            dateToUse.setHours(now.getHours(), now.getMinutes(), 0, 0);
+            return dateToUse;
+          })() : new Date();
+
+          setFormData({
+            value: 0,
+            description: '',
+            category: undefined,
+            subcategory: undefined,
+            item: undefined,
+            transaction_time: toLocalISOString(initialDate),
+            payment_mode: 'UPI',
+            is_in: true,
+            is_give: true,
+            closed: false,
+            notes: '',
+            credit_card: undefined,
+            include_in_budget: true,
+            funding_goal_id: undefined,
+            loan_id: undefined
+          });
         }
 
         // Fetch credit cards
@@ -177,7 +212,7 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, on
     };
 
     fetchDropdownData();
-  }, [isOpen, transaction, defaultType]);
+  }, [isOpen, transaction, defaultType, defaultDate]);
 
   const handleCategoryChange = async (catId: number) => {
     const category = categories.find(c => c.id === catId);
