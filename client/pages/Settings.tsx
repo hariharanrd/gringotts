@@ -5,25 +5,45 @@ import { api } from '../services/api';
 import { useToast } from '../components/ToastContext';
 import { useTheme, THEME_LIBRARY, ThemeId } from '../components/ThemeContext';
 import {
-  User, KeyRound, Trash2, Camera, Save, Eye, EyeOff, AlertTriangle, X, Check, Palette, Sun, Moon, ChevronDown, Loader2, Info, RefreshCcw, Globe, Monitor, LogOut, QrCode, Copy, CheckCircle2, Lock
+  User, KeyRound, Trash2, Camera, Save, Eye, EyeOff, AlertTriangle, X, Check, Palette, Sun, Moon, ChevronDown, Loader2, Info, RefreshCcw, Globe, Monitor, LogOut, QrCode, Copy, CheckCircle2, Lock, Tag, Upload, Download, FileSpreadsheet, FileText, Layers, Plus, Pencil
 } from 'lucide-react';
+import Configuration from './Configuration';
 import { UserSession } from '../types';
 import { personalizationSync } from '../services/personalizationSync';
 import { getUserTimeZone, getTimezoneOffset } from '../services/dateUtils';
 
-interface AccountProps {
+interface SettingsProps {
   onProfileUpdate: () => void;
+  onImportSuccess: () => void;
 }
 
-type Section = 'profile' | 'security' | 'sessions' | 'danger' | 'account' | 'preferences';
+type Section = 'profile' | 'security' | 'sessions' | 'account' | 'preferences' | 'categories' | 'import' | 'export' | 'appearance';
 
-const SECTION_TABS: { id: Section; label: string; icon: React.ElementType }[] = [
-  { id: 'profile', label: 'Profile', icon: User },
-  { id: 'preferences', label: 'Regional', icon: Globe },
-  { id: 'security', label: 'Security', icon: KeyRound },
-  { id: 'sessions', label: 'Active Sessions', icon: Monitor },
-  { id: 'account', label: 'Account', icon: User }
+const SETTINGS_GROUPS = [
+  {
+    title: 'Account Settings',
+    items: [
+      { id: 'profile' as Section, label: 'Profile', icon: User },
+      { id: 'preferences' as Section, label: 'Regional', icon: Globe },
+      { id: 'security' as Section, label: 'Security', icon: KeyRound },
+      { id: 'sessions' as Section, label: 'Active Sessions', icon: Monitor },
+      { id: 'account' as Section, label: 'Account', icon: User }
+    ]
+  },
+  {
+    title: 'Vault Configuration',
+    items: [
+       { id: 'appearance' as Section, label: 'Appearance', icon: Palette },
+      { id: 'categories' as Section, label: 'Categories & Items', icon: Tag },
+      { id: 'import' as Section, label: 'Import Statement', icon: Download },
+      { id: 'export' as Section, label: 'Export Data', icon: Upload }
+     
+    ]
+  }
 ];
+
+// Helper to get all tabs
+const SECTION_TABS = SETTINGS_GROUPS.flatMap(g => g.items);
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -150,9 +170,9 @@ const DeleteModal: React.FC<{
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
-const Account: React.FC<AccountProps> = ({ onProfileUpdate }) => {
+const Settings: React.FC<SettingsProps> = ({ onProfileUpdate, onImportSuccess }) => {
   const { showToast } = useToast();
-  const { theme, setTheme } = useTheme();
+  const { theme, setTheme, isDark, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -162,6 +182,24 @@ const Account: React.FC<AccountProps> = ({ onProfileUpdate }) => {
     return (tab && SECTION_TABS.some(t => t.id === tab)) ? tab : 'profile';
   });
   const [loading, setLoading] = useState(true);
+  const [highlightRecovery, setHighlightRecovery] = useState(false);
+  const recoveryEmailInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (searchParams.get('highlight') === 'recovery') {
+      setHighlightRecovery(true);
+      setTimeout(() => {
+        recoveryEmailInputRef.current?.focus();
+      }, 100);
+      const timer = setTimeout(() => {
+        setHighlightRecovery(false);
+        const newParams = new URLSearchParams(window.location.search);
+        newParams.delete('highlight');
+        setSearchParams(newParams, { replace: true });
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     const tab = searchParams.get('tab') as Section;
@@ -234,6 +272,92 @@ const Account: React.FC<AccountProps> = ({ onProfileUpdate }) => {
   // Sessions section
   const [sessions, setSessions] = useState<UserSession[]>([]);
   const [sessionsLoading, setSessionsLoading] = useState(false);
+
+  // --- Import States ---
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [importType, setImportType] = useState<string>('HDFC');
+  const [importLoading, setImportLoading] = useState(false);
+
+  // --- Export States ---
+  const [exportFormat, setExportFormat] = useState<'csv' | 'xlsx'>('xlsx');
+  const [exportRangeType, setExportRangeType] = useState<'all' | 'custom'>('all');
+  const [exportType, setExportType] = useState<string>('all');
+  const [exportStartDate, setExportStartDate] = useState<string>('');
+  const [exportEndDate, setExportEndDate] = useState<string>('');
+  const [exportLoading, setExportLoading] = useState(false);
+
+  useEffect(() => {
+    // Initialize export dates to 30 days ago and today
+    const today = new Date();
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(today.getDate() - 30);
+    const formatDate = (date: Date) => date.toISOString().split('T')[0];
+    setExportStartDate(formatDate(thirtyDaysAgo));
+    setExportEndDate(formatDate(today));
+  }, []);
+
+  // --- Import Action ---
+  const handleImportFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setImportFile(e.target.files[0]);
+    }
+  };
+
+  const handleImportSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!importFile) { showToast('Please select a file', 'error'); return; }
+    setImportLoading(true);
+    const formData = new FormData();
+    formData.append('file', importFile);
+    formData.append('type', importType);
+    try {
+      const response = await fetch('/api/v1/upload', { method: 'POST', body: formData });
+      if (!response.ok) throw new Error('Upload failed');
+      showToast('Transactions imported successfully', 'success');
+      onImportSuccess();
+      setImportFile(null);
+    } catch (error) {
+      showToast('Failed to import transactions', 'error');
+    } finally {
+      setImportLoading(false);
+    }
+  };
+
+  // --- Export Action ---
+  const handleExportSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (exportRangeType === 'custom') {
+      if (!exportStartDate || !exportEndDate) { showToast('Please select start and end dates', 'error'); return; }
+      if (new Date(exportStartDate) > new Date(exportEndDate)) { showToast('Start date cannot be after end date', 'error'); return; }
+    }
+    setExportLoading(true);
+    try {
+      const typeParam = exportType === 'all' ? undefined : exportType;
+      const blob = await api.exportTransactions({
+        format: exportFormat,
+        type: typeParam as any,
+        startDate: exportRangeType === 'custom' ? exportStartDate : undefined,
+        endDate: exportRangeType === 'custom' ? exportEndDate : undefined,
+        filters: [],
+      });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      const todayStr = new Date().toISOString().split('T')[0];
+      const filename = `${exportType}_export_${todayStr}.${exportFormat}`;
+      link.setAttribute('download', filename);
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode?.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      showToast(`Exported successfully as ${exportFormat.toUpperCase()}`, 'success');
+    } catch (error: any) {
+      showToast(error.message || 'Failed to export transactions', 'error');
+    } finally {
+      setExportLoading(false);
+    }
+  };
+
 
   useEffect(() => {
     api.getProfile()
@@ -605,20 +729,25 @@ const Account: React.FC<AccountProps> = ({ onProfileUpdate }) => {
           </div>
 
           {/* Desktop Sidebar Sidebar */}
-          <nav className="hidden md:flex md:flex-col gap-2">
-            {SECTION_TABS.map(({ id, label, icon: Icon }) => (
-              <button
-                key={id}
-                onClick={() => handleSectionChange(id)}
-                className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 w-full text-left
-                  ${section === id
-                    ? 'bg-gradient-to-r from-cyan-500/10 to-blue-500/10 text-cyan-600 dark:text-cyan-400'
-                    : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 hover:text-slate-800 dark:hover:text-slate-200'
-                  }`}
-              >
-                <Icon className="w-4 h-4 shrink-0" />
-                <span>{label}</span>
-              </button>
+          <nav className="hidden md:flex md:flex-col gap-6">
+            {SETTINGS_GROUPS.map((group, gIdx) => (
+              <div key={gIdx} className="space-y-1">
+                <h3 className="px-4 text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">{group.title}</h3>
+                {group.items.map(({ id, label, icon: Icon }) => (
+                  <button
+                    key={id}
+                    onClick={() => handleSectionChange(id)}
+                    className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 w-full text-left
+                      ${section === id
+                        ? 'bg-gradient-to-r from-cyan-500/10 to-blue-500/10 text-cyan-600 dark:text-cyan-400'
+                        : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 hover:text-slate-800 dark:hover:text-slate-200'
+                      }`}
+                  >
+                    <Icon className="w-4 h-4 shrink-0" />
+                    <span>{label}</span>
+                  </button>
+                ))}
+              </div>
             ))}
           </nav>
         </aside>
@@ -754,6 +883,7 @@ const Account: React.FC<AccountProps> = ({ onProfileUpdate }) => {
 
                 <div className="relative">
                   <input
+                    ref={recoveryEmailInputRef}
                     type="email"
                     value={recoveryEmail}
                     onChange={e => {
@@ -765,7 +895,11 @@ const Account: React.FC<AccountProps> = ({ onProfileUpdate }) => {
                     disabled={verificationStep === 'otp_sent' || verificationLoading}
                     placeholder="Enter your recovery email"
                     maxLength={128}
-                    className="w-full px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 transition-all disabled:opacity-60"
+                    className={`w-full px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 border text-slate-900 dark:text-white text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 transition-all disabled:opacity-60 ${
+                      highlightRecovery
+                        ? 'border-amber-500 ring-2 ring-amber-500/50 dark:ring-amber-500/40 bg-amber-500/5 dark:bg-amber-500/10 scale-[1.01]'
+                        : 'border-slate-200 dark:border-slate-700'
+                    }`}
                   />
                   {initialRecoveryEmail && recoveryEmail === initialRecoveryEmail && (
                     <button
@@ -1443,6 +1577,306 @@ const Account: React.FC<AccountProps> = ({ onProfileUpdate }) => {
             </div>
           )}
 
+          {/* ─ Categories ─ */}
+          {section === 'categories' && (
+            <div className="bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700/50 rounded-2xl p-6 space-y-6">
+              <div>
+                <h2 className="text-base font-semibold text-slate-900 dark:text-white">Categories & Items</h2>
+                <p className="text-xs text-slate-400 mt-0.5">Manage transaction categories, sub-categories, and specific items.</p>
+              </div>
+              <Configuration isPanel={true} />
+            </div>
+          )}
+
+          {/* ─ Import ─ */}
+          {section === 'import' && (
+            <div className="bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700/50 rounded-2xl p-6 space-y-6 max-w-xl">
+              <div>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">Import Statement</h3>
+                <p className="text-xs text-slate-400 mt-0.5">Upload a bank statement in CSV or Excel format to bulk import transaction records.</p>
+              </div>
+
+              <form onSubmit={handleImportSubmit} className="space-y-5">
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Statement Source</label>
+                  <select
+                    className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/60 rounded-xl focus:ring-2 focus:ring-cyan-500/40 outline-none text-slate-900 dark:text-white text-sm"
+                    value={importType}
+                    onChange={(e) => setImportType(e.target.value)}
+                  >
+                    <option value="HDFC">HDFC Bank</option>
+                    <option value="APayCC">Amazon Pay ICICI</option>
+                    <option value="HDFCCC">HDFC Credit Card</option>
+                  </select>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Statement File</label>
+                  <div className="relative border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-2xl p-8 text-center hover:bg-slate-50 dark:hover:bg-slate-800/20 hover:border-cyan-500/30 transition-all group cursor-pointer">
+                    <input
+                      type="file"
+                      accept=".csv, .xlsx, .xls"
+                      onChange={handleImportFileChange}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                    />
+                    <div className="flex flex-col items-center gap-3 text-slate-400 dark:text-slate-500 group-hover:text-slate-600 dark:group-hover:text-slate-300 transition-colors">
+                      {importFile ? (
+                        <>
+                          <FileSpreadsheet className="w-10 h-10 text-emerald-500 dark:text-emerald-400" />
+                          <span className="text-sm font-semibold text-emerald-500 dark:text-emerald-400 break-all px-4">{importFile.name}</span>
+                        </>
+                      ) : (
+                        <>
+                          <Download className="w-10 h-10 text-slate-400 dark:text-slate-600 group-hover:scale-105 transition-transform" />
+                          <div>
+                            <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Click or drag file here</span>
+                            <p className="text-xs text-slate-400 mt-1">Supports CSV, XLSX, XLS files up to 10MB</p>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={importLoading || !importFile}
+                  className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-semibold rounded-xl shadow-lg shadow-cyan-500/20 hover:brightness-105 active:scale-[0.99] transition-all disabled:opacity-50 disabled:scale-100"
+                >
+                  {importLoading ? (
+                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    <>Import Statement</>
+                  )}
+                </button>
+              </form>
+            </div>
+          )}
+
+          {/* ─ Export ─ */}
+          {section === 'export' && (
+            <div className="bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700/50 rounded-2xl p-6 space-y-6 max-w-xl">
+              <div>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">Export Data</h3>
+                <p className="text-xs text-slate-400 mt-0.5">Download your financial transaction records locally in Excel or CSV formats.</p>
+              </div>
+
+              <form onSubmit={handleExportSubmit} className="space-y-5">
+                <div className="space-y-2.5">
+                  <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">File Format</label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setExportFormat('xlsx')}
+                      className={`flex items-center justify-center gap-3 px-4 py-3 rounded-xl border text-sm font-semibold transition-all ${
+                        exportFormat === 'xlsx'
+                          ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 ring-2 ring-emerald-500/20'
+                          : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800/40 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/80'
+                      }`}
+                    >
+                      <FileSpreadsheet className="w-5 h-5 text-emerald-500" />
+                      <span>XLSX (Excel)</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setExportFormat('csv')}
+                      className={`flex items-center justify-center gap-3 px-4 py-3 rounded-xl border text-sm font-semibold transition-all ${
+                        exportFormat === 'csv'
+                          ? 'border-blue-500/30 bg-blue-500/10 text-blue-600 dark:text-blue-400 ring-2 ring-blue-500/20'
+                          : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800/40 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/80'
+                      }`}
+                    >
+                      <FileText className="w-5 h-5 text-blue-500" />
+                      <span>CSV (Text)</span>
+                    </button>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Transaction Type</label>
+                  <select
+                    className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/60 rounded-xl focus:ring-2 focus:ring-cyan-500/40 outline-none text-slate-900 dark:text-white text-sm"
+                    value={exportType}
+                    onChange={(e) => setExportType(e.target.value)}
+                  >
+                    <option value="all">All Transactions</option>
+                    <option value="expense">Expenses Only</option>
+                    <option value="income">Incomes Only</option>
+                    <option value="saving">Savings Only</option>
+                  </select>
+                </div>
+
+                <div className="space-y-2.5">
+                  <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Date Range</label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setExportRangeType('all')}
+                      className={`px-4 py-3 rounded-xl border text-xs font-bold uppercase tracking-wider transition-all ${
+                        exportRangeType === 'all'
+                          ? 'border-cyan-500/30 bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 ring-1 ring-cyan-500/20'
+                          : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800/40 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/80'
+                      }`}
+                    >
+                      All Data
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setExportRangeType('custom')}
+                      className={`px-4 py-3 rounded-xl border text-xs font-bold uppercase tracking-wider transition-all ${
+                        exportRangeType === 'custom'
+                          ? 'border-cyan-500/30 bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 ring-1 ring-cyan-500/20'
+                          : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800/40 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/80'
+                      }`}
+                    >
+                      Custom Range
+                    </button>
+                  </div>
+                </div>
+
+                {exportRangeType === 'custom' && (
+                  <div className="grid grid-cols-2 gap-4 p-4 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/50 dark:border-slate-700/50 animate-in slide-in-from-top-3 duration-200">
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Start Date</label>
+                      <input
+                        type="date"
+                        required
+                        className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/60 rounded-lg text-sm text-slate-900 dark:text-white outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/30"
+                        value={exportStartDate}
+                        onChange={(e) => setExportStartDate(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">End Date</label>
+                      <input
+                        type="date"
+                        required
+                        className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/60 rounded-lg text-sm text-slate-900 dark:text-white outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/30"
+                        value={exportEndDate}
+                        onChange={(e) => setExportEndDate(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex items-start gap-2.5 p-4 rounded-2xl bg-amber-500/5 dark:bg-amber-500/10 border border-amber-500/15 text-amber-700 dark:text-amber-400">
+                  <Info className="w-5 h-5 mt-0.5 shrink-0 text-amber-500" />
+                  <div className="text-xs leading-relaxed">
+                    <p className="font-bold text-amber-800 dark:text-amber-300">Important Limit Note</p>
+                    <p className="text-slate-500 dark:text-slate-400 mt-1">
+                      Maximum 3,000 rows will be exported. If your selected data exceeds this, only the latest 3,000 transactions will be included. Use date filters to export larger history in chunks.
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={exportLoading}
+                  className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-semibold rounded-xl shadow-lg shadow-cyan-500/20 hover:brightness-105 active:scale-[0.99] transition-all disabled:opacity-50 disabled:scale-100"
+                >
+                  {exportLoading ? (
+                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    <>Export Transactions</>
+                  )}
+                </button>
+              </form>
+            </div>
+          )}
+
+          {/* ─ Appearance ─ */}
+          {section === 'appearance' && (
+            <div className="bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700/50 rounded-2xl p-6 space-y-6">
+              <div>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">Theme Library</h3>
+                <p className="text-xs text-slate-400 mt-0.5">Select a design theme to personalize your dashboard. Your selection is automatically applied and saved.</p>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {THEME_LIBRARY.map((t) => {
+                  const isSelected = theme === t.id;
+                  return (
+                    <button
+                      key={t.id}
+                      onClick={() => setTheme(t.id)}
+                      className={`group relative text-left rounded-2xl p-4 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl ${
+                        isSelected
+                          ? 'ring-2 shadow-lg scale-[1.01]'
+                          : 'hover:ring-1 border border-slate-200 dark:border-slate-800'
+                      }`}
+                      style={{
+                        background: t.colors.bg,
+                        borderColor: isSelected ? t.colors.accent : t.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
+                        ['--tw-ring-color' as any]: t.colors.accent,
+                        boxShadow: isSelected ? `0 4px 20px ${t.colors.accent}30` : undefined,
+                        ...(isSelected ? { outline: `2px solid ${t.colors.accent}`, outlineOffset: '1px' } : {}),
+                      }}
+                    >
+                      {isSelected && (
+                        <div
+                          className="absolute top-3 right-3 w-6 h-6 rounded-full flex items-center justify-center shadow-md z-10 animate-in zoom-in"
+                          style={{ background: t.colors.accent }}
+                        >
+                          <Check className="w-3.5 h-3.5" style={{ color: t.isDark && t.id !== 'neo-pop' ? '#fff' : t.colors.bg }} />
+                        </div>
+                      )}
+                      <div className="flex gap-1.5 mb-3">
+                        <div className="h-8 flex-1 rounded-lg" style={{ background: t.colors.surface, border: `1px solid ${t.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'}` }} />
+                        <div className="h-8 w-10 rounded-lg" style={{ background: `linear-gradient(135deg, ${t.colors.accent}, ${t.colors.accentSecondary})` }} />
+                      </div>
+                      <div className="flex gap-1.5 mb-3">
+                        {[t.colors.bg, t.colors.surface, t.colors.accent, t.colors.accentSecondary, t.colors.text].map((c, i) => (
+                          <div
+                            key={i}
+                            className="w-5 h-5 rounded-full shadow-sm"
+                            style={{ background: c, border: `1px solid ${t.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}` }}
+                          />
+                        ))}
+                      </div>
+                      <h3 className="text-sm font-bold" style={{ color: t.colors.text }}>{t.name}</h3>
+                      <p className="text-[11px] mt-0.5 leading-relaxed" style={{ color: t.isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.45)' }}>
+                        {t.description}
+                      </p>
+                      <span
+                        className="inline-block mt-2 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider"
+                        style={{
+                          background: `${t.colors.accent}18`,
+                          color: t.colors.accent,
+                        }}
+                      >
+                        {t.vibe}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/35 border border-slate-100 dark:border-slate-800/50 flex items-center justify-between">
+                <div className="text-xs text-slate-500 dark:text-slate-400">
+                  <p className="font-semibold text-slate-700 dark:text-slate-300">Quick Theme Switch</p>
+                  <p className="mt-0.5">Toggle between dark and light modes quickly.</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={toggleTheme}
+                  className="flex items-center gap-2 py-2 px-4 rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-105 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold shadow-sm transition-all"
+                >
+                  {isDark ? (
+                    <>
+                      <Sun className="w-3.5 h-3.5 text-amber-500" />
+                      <span>Switch Light</span>
+                    </>
+                  ) : (
+                    <>
+                      <Moon className="w-3.5 h-3.5 text-blue-500" />
+                      <span>Switch Dark</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* ─ Danger Zone ─ */}
           {section === 'account' && (
             <div className="bg-white dark:bg-slate-900/60 border border-rose-500/30 rounded-2xl p-6">
@@ -1496,4 +1930,4 @@ const Account: React.FC<AccountProps> = ({ onProfileUpdate }) => {
   );
 };
 
-export default Account;
+export default Settings;

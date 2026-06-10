@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -15,19 +15,14 @@ import {
   ChevronLeft,
   ChevronRight,
   ReceiptText,
-  UserCircle2,
   CreditCard,
   Clock,
   Table2,
   AlertTriangle,
-  ArrowRight,
-  KeyRound,
-  Globe,
-  Monitor
+  ArrowRight
 } from 'lucide-react';
 
 import { useTheme } from './ThemeContext';
-import SetupPanel from './SetupPanel';
 
 interface LayoutProps {
   userName: string;
@@ -50,14 +45,26 @@ const navItems = [
 ];
 
 
-const Layout: React.FC<LayoutProps> = ({ userName, displayName, profilePicture, hasRecoveryEmail, children, onImportSuccess }) => {
+const Layout: React.FC<LayoutProps> = ({ userName, displayName, profilePicture, hasRecoveryEmail, children, onLogout, onImportSuccess }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isPinned, setIsPinned] = useState(true);
-  const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const [isSetupOpen, setIsSetupOpen] = useState(false);
   const [isWarningDismissed, setIsWarningDismissed] = useState(() => sessionStorage.getItem('dismissedRecoveryEmailWarning') === 'true');
   const location = useLocation();
   const { theme, toggleTheme, isDark } = useTheme();
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsProfileOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   const getPageTitle = (path: string) => {
     const parts = path.split('/').filter(Boolean);
@@ -65,7 +72,7 @@ const Layout: React.FC<LayoutProps> = ({ userName, displayName, profilePicture, 
 
     const root = parts[0];
     if (root === 'investment-planner') return 'Goals & Planning';
-    if (root === 'account') return 'My Account';
+    if (root === 'settings') return 'Vault Settings';
     if (root === 'transaction') return 'Transaction Details';
     if (root === 'schedules' && parts.length > 1) return 'Schedule Details';
     if (root === 'credit-cards' && parts.length > 2 && parts[2] === 'history') return 'Billing History';
@@ -179,29 +186,6 @@ const Layout: React.FC<LayoutProps> = ({ userName, displayName, profilePicture, 
             })}
           </nav>
 
-          {/* Bottom user section */}
-          <div className="p-4" style={{ borderTop: '1px solid var(--theme-border-subtle)' }}>
-            <div className={`flex items-center ${isPinned ? 'gap-3 px-3' : 'justify-center px-0'} py-2`}>
-              <div
-                className="w-9 h-9 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-lg shrink-0 overflow-hidden"
-                style={{
-                  background: `linear-gradient(to bottom right, var(--theme-avatar-from), var(--theme-avatar-to))`,
-                  boxShadow: `0 4px 14px var(--theme-avatar-shadow)`,
-                }}
-              >
-                {profilePicture
-                  ? <img src={profilePicture} alt="avatar" className="w-full h-full object-cover" />
-                  : avatarInitial
-                }
-              </div>
-              {isPinned && (
-                <div className="flex-1 min-w-0 animate-in fade-in slide-in-from-left-2 duration-300">
-                  <p className="text-sm font-semibold truncate sidebar-user-text" style={{ color: 'var(--theme-text)' }}>{displayLabel}</p>
-                  <p className="text-[11px]" style={{ color: 'var(--theme-text-muted)' }}>Vault Keeper</p>
-                </div>
-              )}
-            </div>
-          </div>
         </div>
       </aside>
 
@@ -226,7 +210,7 @@ const Layout: React.FC<LayoutProps> = ({ userName, displayName, profilePicture, 
             <h2 className="text-lg font-semibold" style={{ color: 'var(--theme-text)' }}>{getPageTitle(location.pathname)}</h2>
           </div>
 
-          <div className="flex items-center gap-3 relative">
+          <div ref={dropdownRef} className="flex items-center gap-3 relative">
             {/* Theme Toggle */}
             <button
               onClick={toggleTheme}
@@ -239,25 +223,27 @@ const Layout: React.FC<LayoutProps> = ({ userName, displayName, profilePicture, 
               {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
             </button>
 
-            {/* Setup Gear Toggle */}
-            <button
-              onClick={() => setIsSetupOpen(true)}
+            {/* Settings Gear Toggle */}
+            <Link
+              to="/settings"
               className="p-2 rounded-xl transition-all hover:scale-105"
-              title="Vault Setup"
+              title="Vault Settings"
               style={{ color: 'var(--theme-text-muted)' }}
               onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'var(--theme-surface-hover)'; }}
               onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
             >
               <Settings className="w-5 h-5" />
-            </button>
+            </Link>
+
+            {/* Profile Toggle */}
             <button
               onClick={() => setIsProfileOpen(!isProfileOpen)}
-              className="flex items-center gap-3 p-2 pr-4 rounded-xl transition-all duration-200"
+              className="flex items-center gap-2.5 p-1.5 rounded-xl transition-all duration-200"
               onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'var(--theme-surface-hover)'; }}
               onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
             >
               <div
-                className="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-xs shadow-lg overflow-hidden"
+                className="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-xs shadow-lg overflow-hidden shrink-0"
                 style={{
                   background: `linear-gradient(to bottom right, var(--theme-avatar-from), var(--theme-avatar-to))`,
                   boxShadow: `0 4px 14px var(--theme-avatar-shadow)`,
@@ -273,89 +259,22 @@ const Layout: React.FC<LayoutProps> = ({ userName, displayName, profilePicture, 
 
             {isProfileOpen && (
               <div
-                className="absolute top-full right-0 mt-2 w-52 rounded-xl shadow-2xl py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200"
+                className="absolute top-full right-0 mt-2 w-40 rounded-xl shadow-2xl py-1 z-50 animate-in fade-in slide-in-from-top-2 duration-200"
                 style={{
                   background: 'var(--theme-surface)',
                   border: '1px solid var(--theme-border)',
                 }}
               >
-                <Link
-                  to="/account?tab=profile"
-                  className="flex items-center gap-3 px-4 py-2 text-sm font-medium transition-colors w-full"
-                  onClick={() => setIsProfileOpen(false)}
-                  style={{ color: 'var(--theme-text-secondary)' }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = 'var(--theme-surface-hover)';
-                    e.currentTarget.style.color = 'var(--theme-text)';
+                <button
+                  onClick={() => {
+                    setIsProfileOpen(false);
+                    onLogout();
                   }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = 'transparent';
-                    e.currentTarget.style.color = 'var(--theme-text-secondary)';
-                  }}
-                >
-                  <UserCircle2 className="w-4 h-4" />
-                  Profile
-                </Link>
-                <Link
-                  to="/account?tab=security"
-                  className="flex items-center gap-3 px-4 py-2 text-sm font-medium transition-colors w-full"
-                  onClick={() => setIsProfileOpen(false)}
-                  style={{ color: 'var(--theme-text-secondary)' }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = 'var(--theme-surface-hover)';
-                    e.currentTarget.style.color = 'var(--theme-text)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = 'transparent';
-                    e.currentTarget.style.color = 'var(--theme-text-secondary)';
-                  }}
-                >
-                  <KeyRound className="w-4 h-4" />
-                  Security
-                </Link>
-                <Link
-                  to="/account?tab=preferences"
-                  className="flex items-center gap-3 px-4 py-2 text-sm font-medium transition-colors w-full"
-                  onClick={() => setIsProfileOpen(false)}
-                  style={{ color: 'var(--theme-text-secondary)' }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = 'var(--theme-surface-hover)';
-                    e.currentTarget.style.color = 'var(--theme-text)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = 'transparent';
-                    e.currentTarget.style.color = 'var(--theme-text-secondary)';
-                  }}
-                >
-                  <Globe className="w-4 h-4" />
-                  Regional
-                </Link>
-                <Link
-                  to="/account?tab=sessions"
-                  className="flex items-center gap-3 px-4 py-2 text-sm font-medium transition-colors w-full"
-                  onClick={() => setIsProfileOpen(false)}
-                  style={{ color: 'var(--theme-text-secondary)' }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = 'var(--theme-surface-hover)';
-                    e.currentTarget.style.color = 'var(--theme-text)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = 'transparent';
-                    e.currentTarget.style.color = 'var(--theme-text-secondary)';
-                  }}
-                >
-                  <Monitor className="w-4 h-4" />
-                  Active Sessions
-                </Link>
-                <div style={{ borderTop: '1px solid var(--theme-border-subtle)', margin: '4px 0' }} />
-                <Link
-                  to="/logout"
-                  className="flex items-center gap-3 px-4 py-2.5 text-sm text-rose-500 dark:text-rose-400 hover:bg-rose-500/10 transition-colors w-full font-medium"
-                  onClick={() => setIsProfileOpen(false)}
+                  className="flex items-center gap-3 px-4 py-2.5 text-sm text-rose-500 dark:text-rose-400 hover:bg-rose-500/10 transition-colors w-full font-medium rounded-lg"
                 >
                   <LogOut className="w-4 h-4" />
                   Sign Out
-                </Link>
+                </button>
               </div>
             )}
           </div>
@@ -385,7 +304,7 @@ const Layout: React.FC<LayoutProps> = ({ userName, displayName, profilePicture, 
                 Remind me Later
               </button>
               <Link
-                to="/account"
+                to="/settings?tab=profile&highlight=recovery"
                 className="flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 rounded-xl transition-all shadow-md shadow-amber-500/15"
               >
                 Configure Email
@@ -399,12 +318,6 @@ const Layout: React.FC<LayoutProps> = ({ userName, displayName, profilePicture, 
           {children}
         </div>
       </main>
-
-      <SetupPanel 
-        isOpen={isSetupOpen}
-        onClose={() => setIsSetupOpen(false)}
-        onImportSuccess={onImportSuccess || (() => {})}
-      />
     </div>
   );
 };
