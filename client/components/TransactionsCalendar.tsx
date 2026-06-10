@@ -265,7 +265,7 @@ export const TransactionsCalendar: React.FC<TransactionsCalendarProps> = ({
 
         {/* Mobile Compact View (Stacked Shortened Numeric Values) */}
         {isCompact && hasActivity && (
-          <div className="text-center mt-1 space-y-0.5 pb-7">
+          <div className="text-center mt-1 space-y-0.5 pb-1">
             {day.income > 0 && (
               <span className="text-[8px] sm:text-[9px] font-bold block leading-none truncate text-emerald-500">
                 +{formatShortValue(day.income)}
@@ -295,7 +295,7 @@ export const TransactionsCalendar: React.FC<TransactionsCalendarProps> = ({
               e.stopPropagation();
               onAddTransaction?.(day.date);
             }}
-            className="absolute bottom-1.5 sm:bottom-auto sm:top-1/2 left-1/2 -translate-x-1/2 translate-y-0 sm:-translate-y-1/2 p-0.5 sm:p-1.5 rounded-full bg-cyan-500/10 dark:bg-cyan-500/20 hover:bg-cyan-500 text-cyan-500 hover:text-white border border-cyan-500/30 dark:border-cyan-500/40 backdrop-blur-sm shadow-sm hover:shadow-md hover:scale-110 active:scale-95 transition-all duration-200 opacity-100 sm:opacity-0 sm:group-hover/cell:opacity-100 focus:opacity-100 shrink-0 z-10"
+            className="hidden sm:block absolute bottom-1.5 sm:bottom-auto sm:top-1/2 left-1/2 -translate-x-1/2 translate-y-0 sm:-translate-y-1/2 p-0.5 sm:p-1.5 rounded-full bg-cyan-500/10 dark:bg-cyan-500/20 hover:bg-cyan-500 text-cyan-500 hover:text-white border border-cyan-500/30 dark:border-cyan-500/40 backdrop-blur-sm shadow-sm hover:shadow-md hover:scale-110 active:scale-95 transition-all duration-200 opacity-100 sm:opacity-0 sm:group-hover/cell:opacity-100 focus:opacity-100 shrink-0 z-10"
             title="Add Transaction"
           >
             <Plus className="w-3 h-3 sm:w-4 sm:h-4" />
@@ -325,8 +325,8 @@ export const TransactionsCalendar: React.FC<TransactionsCalendarProps> = ({
 
   return (
     <div className="space-y-3 animate-in fade-in slide-in-from-bottom-2">
-      <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-3 glass p-2 sm:p-2.5 rounded-2xl border border-slate-200 dark:border-slate-800/50 shadow-sm">
-        <div className="flex items-center gap-2">
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 glass p-2 sm:p-2.5 rounded-2xl border border-slate-200 dark:border-slate-800/50 shadow-sm">
+        <div className="flex items-center justify-center sm:justify-start w-full sm:w-1/3">
           <div className="flex bg-slate-100 dark:bg-slate-800/80 p-0.5 sm:p-1 rounded-xl">
             <button
               onClick={() => setView('month')}
@@ -343,11 +343,11 @@ export const TransactionsCalendar: React.FC<TransactionsCalendarProps> = ({
           </div>
         </div>
 
-        <div className="flex items-center gap-2 sm:gap-3">
+        <div className="flex items-center justify-center gap-2 sm:gap-3 w-full sm:w-1/3">
           <button onClick={prev} className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-slate-600 dark:text-slate-300">
             <ChevronLeft className="w-4 h-4" />
           </button>
-          <div className="min-w-[105px] sm:min-w-[145px] text-center">
+          <div className="min-w-[120px] sm:min-w-[155px] text-center">
             <h2 className="text-sm sm:text-base font-black text-slate-900 dark:text-white uppercase tracking-wider">
               {view === 'month' ? format(currentDate, 'MMMM yyyy') : `${format(startOfWeek(currentDate), 'MMM d')} - ${format(endOfWeek(currentDate), 'MMM d, yyyy')}`}
             </h2>
@@ -360,6 +360,8 @@ export const TransactionsCalendar: React.FC<TransactionsCalendarProps> = ({
             <ChevronRight className="w-4 h-4" />
           </button>
         </div>
+
+        <div className="hidden sm:block w-1/3"></div>
       </div>
 
       <div className="glass rounded-3xl overflow-hidden border border-slate-200 dark:border-slate-800/50 shadow-sm relative">
@@ -542,18 +544,6 @@ export const TransactionsCalendar: React.FC<TransactionsCalendarProps> = ({
                         {day.saving !== 0 && <span className={`text-xs font-bold ${day.saving > 0 ? 'text-violet-500' : 'text-rose-500'}`}>{day.saving > 0 ? '+' : ''}{formatShortValue(day.saving)} SV</span>}
                         {day.revolving !== 0 && <span className="text-xs font-bold text-blue-500">{day.revolving > 0 ? '+' : ''}{formatShortValue(day.revolving)} RV</span>}
                       </div>
-                      {!isFutureDay && (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onAddTransaction?.(day.date);
-                          }}
-                          className="p-1.5 rounded-full bg-cyan-500/10 dark:bg-cyan-500/20 text-cyan-500 border border-cyan-500/30 dark:border-cyan-500/40 backdrop-blur-sm shadow-md active:scale-95 transition-all duration-200 shrink-0"
-                          title="Add Transaction"
-                        >
-                          <Plus className="w-3.5 h-3.5" />
-                        </button>
-                      )}
                     </div>
                   </div>
                 );
