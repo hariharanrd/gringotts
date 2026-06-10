@@ -1,4 +1,23 @@
 # 🚀 Release Notes
+## [June 08, 2026] Quick Add Transaction in Calendar View, Full Page Setup, Dedicated Upcoming Budgets Section
+
+This release adds a **Quick Add** shortcut directly in the Transactions Calendar date cells, consolidates the sidebar setup panel and account preferences into a **Dedicated Setup & Settings Page**, and refines the budget dashboard by separating future budget templates into an **Upcoming Budgets** section.
+
+### 📅 Quick Add Transaction in Calendar View
+- **Hover Action Button**: A hover-triggered "+" button has been added to every date cell in the Transactions Calendar grid.
+- **Pre-filled Modals**: Clicking the "+" button opens the transaction modal automatically pre-filled with the selected date, facilitating fast and seamless transaction entry.
+
+### ⚙️ Consolidated Settings & Vault Setup Page
+- **Unified Settings Hub**: Merged the slide-out `SetupPanel` and `Account` components into a single consolidated `/settings` page.
+- **Categorized Left Navigation**: Organized account configurations under *Account Settings* (Profile, Regional, Security, Active Sessions) and *Vault Configuration* (Appearance, Categories, Import, Export).
+- **Header Dropdown**: Restored the top-right profile photo dropdown with a clean **Sign Out** button. Other configuration panels are accessed via the Settings Gear (Setup) button next to it.
+- **Secure Warning Banner Redirect**: Corrected the recovery email warning banner navigation to point to the Profile settings tab rather than the Security tab.
+- **Automatic Field Focusing & Highlight**: Navigating from the warning banner automatically focuses the Recovery Email input field and triggers a temporary visual amber glow/scale highlight that transitions out after 3 seconds.
+
+### 📊 Excluded Future Budgets & Upcoming Section
+- **Historical Timeline Boundary**: The Historical Utilization Timeline now displays only past and current months, ending exactly at the current month.
+- **Upcoming Budgets Panel**: Added a new card list at the bottom of the Budget dashboard displaying all pre-configured budgets for future periods.
+- **Allocated Metrics & Category Splits**: Lists the total cap limit, planned savings targets, and category allocation splits for each upcoming budget, with integrated Edit and Delete actions.
 
 ## [June 07, 2026] Budget Redesign, Weekly Scheduled Transactions & Transactions Calendar View
 
