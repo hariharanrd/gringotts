@@ -90,15 +90,24 @@ export const TransactionsCalendar: React.FC<TransactionsCalendarProps> = ({
         ...filters
       ];
 
-      if (currentTab && currentTab !== 'all') {
-        requestFilters.push({
-          field: 'type',
-          condition: 'eq',
-          value: currentTab.toUpperCase()
-        });
+      let res;
+      switch (currentTab) {
+        case 'expense':
+          res = await api.getExpenses(1, requestFilters, 'DESC', 3000);
+          break;
+        case 'income':
+          res = await api.getIncomes(1, requestFilters, 'DESC', 3000);
+          break;
+        case 'saving':
+          res = await api.getSavings(1, requestFilters, 'DESC', 3000);
+          break;
+        case 'revolving':
+          res = await api.getRevolvings(1, requestFilters, 'DESC', 3000);
+          break;
+        default:
+          res = await api.getTransactions(1, requestFilters, 'DESC', 3000);
+          break;
       }
-
-      const res = await api.getTransactions(1, requestFilters, 'DESC', 3000);
       setTransactions(res.data);
     } catch (e) {
       console.error("Failed to fetch calendar transactions", e);
