@@ -4,7 +4,11 @@ import com.luna.Gringotts.records.CreditCard;
 import com.luna.Gringotts.records.Transaction;
 import com.luna.Gringotts.records.User;
 import com.luna.Gringotts.records.InvestmentGoal;
+import com.luna.Gringotts.records.TransactionGroup;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
@@ -49,4 +53,14 @@ public interface TransactionRepository<T extends Transaction> extends JpaReposit
     boolean existsByCategoryId(Long categoryId);
     boolean existsBySubCategoryId(Long subCategoryId);
     boolean existsByItemId(Long itemId);
+
+    @EntityGraph(attributePaths = {"category", "subCategory", "item", "group"})
+    List<T> findByGroupAndUser(TransactionGroup group, User user);
+
+    @EntityGraph(attributePaths = {"category", "subCategory", "item", "group"})
+    List<T> findByGroupIdAndUser(Long groupId, User user);
+
+    @Modifying
+    @Query("UPDATE Transaction t SET t.group = null WHERE t.group.id = :groupId AND t.user = :user")
+    void nullifyGroupByGroupIdAndUser(@Param("groupId") Long groupId, @Param("user") User user);
 }

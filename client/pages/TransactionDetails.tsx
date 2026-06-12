@@ -6,7 +6,7 @@ import {
   ArrowLeft, Pencil, Trash2,
   TrendingDown, TrendingUp, PiggyBank, RefreshCw,
   CalendarDays, Tag, Layers, Package, CreditCard, Banknote,
-  ArrowDownCircle, ArrowUpCircle, CheckCircle2, Clock, StickyNote, Hash,
+  ArrowDownCircle, ArrowUpCircle, CheckCircle2, Clock, StickyNote, Hash, FolderClosed
 } from 'lucide-react';
 import { useToast } from '../components/ToastContext';
 import TransactionModal from '../components/TransactionModal';
@@ -271,6 +271,20 @@ const TransactionDetails: React.FC = () => {
                   className="flex items-center gap-1.5 px-3 py-1 bg-violet-50 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400 rounded-full text-xs font-bold hover:bg-violet-100 dark:hover:bg-violet-900/50 transition-all border border-violet-100 dark:border-violet-800"
                 >
                   <span>{transaction.funding_goal.icon || '🎯'} {transaction.funding_goal.name}</span>
+                </button>
+              }
+            />
+          )}
+
+          {/* Group Info */}
+          {transaction.group && (
+            <Field icon={FolderClosed} label="Assigned Group"
+              value={
+                <button
+                  onClick={() => navigate(`/groups/${transaction.group.id}`)}
+                  className="flex items-center gap-1.5 px-3 py-1 bg-cyan-50 dark:bg-cyan-900/30 text-cyan-600 dark:text-cyan-400 rounded-full text-xs font-bold hover:bg-cyan-100 dark:hover:bg-cyan-900/50 transition-all border border-cyan-100 dark:border-cyan-800"
+                >
+                  <span><FolderClosed className="inline w-3.5 h-3.5 mr-1" />{transaction.group.name}</span>
                 </button>
               }
             />

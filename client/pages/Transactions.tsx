@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { personalizationSync } from '../services/personalizationSync';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
-import { Transaction, TransactionType, Category, SubCategory, Item, CreditCard, Saving, Revolving, InvestmentGoal, Expense, Income } from '../types';
+import { Transaction, TransactionType, Category, SubCategory, Item, CreditCard, Saving, Revolving, InvestmentGoal, Expense, Income, TransactionGroup } from '../types';
 import { PAYMENT_MODES, SAVING_DIRECTIONS, REVOLVING_DIRECTIONS, REVOLVING_STATUSES } from '../constants';
 import {
   Landmark,
@@ -51,9 +51,9 @@ const TABS: { id: TabType; label: string; icon: any; color: string }[] = [
   { id: 'revolving', label: 'Revolving', icon: RefreshCw, color: 'from-blue-500 to-cyan-600' },
 ];
 
-type BulkField = 'category' | 'subcategory' | 'item' | 'notes' | 'payment_mode' | 'is_in' | 'is_give' | 'closed' | 'credit_card' | 'funding_goal';
+type BulkField = 'category' | 'subcategory' | 'item' | 'notes' | 'payment_mode' | 'is_in' | 'is_give' | 'closed' | 'credit_card' | 'funding_goal' | 'group';
 
-type ColumnKey = 'date' | 'description' | 'category' | 'subcategory' | 'item' | 'amount' | 'type' | 'payment_mode' | 'is_in' | 'is_give' | 'closed' | 'notes';
+type ColumnKey = 'date' | 'description' | 'category' | 'subcategory' | 'item' | 'amount' | 'type' | 'payment_mode' | 'is_in' | 'is_give' | 'closed' | 'notes' | 'group';
 
 const ALL_COLUMNS: { key: ColumnKey; label: string }[] = [
   { key: 'date', label: 'Date' },
@@ -67,6 +67,7 @@ const ALL_COLUMNS: { key: ColumnKey; label: string }[] = [
   { key: 'is_give', label: 'Give/Receive' },
   { key: 'closed', label: 'Status' },
   { key: 'notes', label: 'Notes' },
+  { key: 'group', label: 'Group' },
   { key: 'amount', label: 'Amount' },
 ];
 
@@ -147,6 +148,8 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
   const [isBulkDeleteDialogOpen, setIsBulkDeleteDialogOpen] = useState(false);
   const [bulkFundingGoalId, setBulkFundingGoalId] = useState<number | ''>('');
   const [goals, setGoals] = useState<InvestmentGoal[]>([]);
+  const [bulkGroups, setBulkGroups] = useState<TransactionGroup[]>([]);
+  const [bulkGroupId, setBulkGroupId] = useState<number | ''>('');
 
   const getAvailableBalance = (g: InvestmentGoal) => {
     if (g.goal_type === 'ONE_TIME') {
@@ -363,6 +366,12 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
   }, [isBulkEditDialogOpen, bulkField, goals.length]);
 
   useEffect(() => {
+    if (isBulkEditDialogOpen && bulkField === 'group' && bulkGroups.length === 0) {
+      api.getTransactionGroups().then(res => setBulkGroups(res.data.filter(g => g.status === 'ACTIVE'))).catch(() => { });
+    }
+  }, [isBulkEditDialogOpen, bulkField, bulkGroups.length]);
+
+  useEffect(() => {
     if (bulkCategoryId !== '') {
       api.getSubCategories(bulkCategoryId as number).then(setSubCategories).catch(() => { });
     } else {
@@ -399,6 +408,32 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
     });
   };
 
+  const getSelectedTxTypes = () => {
+    const types = new Set<string>();
+    transactions.forEach(t => {
+      if (selectedIds.has(t.id)) {
+        types.add(t.type);
+      }
+    });
+    return Array.from(types);
+  };
+
+  const getFilteredBulkGroups = () => {
+    return bulkGroups.filter(g => {
+      if (currentTab === 'expense') return g.allows_expense !== false;
+      if (currentTab === 'income') return g.allows_income !== false;
+      if (currentTab === 'saving') return g.allows_saving !== false;
+      if (currentTab === 'revolving') return g.allows_revolving !== false;
+      
+      const selectedTypes = getSelectedTxTypes();
+      if (selectedTypes.includes('EXPENSE') && g.allows_expense === false) return false;
+      if (selectedTypes.includes('INCOME') && g.allows_income === false) return false;
+      if (selectedTypes.includes('SAVING') && g.allows_saving === false) return false;
+      if (selectedTypes.includes('REVOLVING') && g.allows_revolving === false) return false;
+      return true;
+    });
+  };
+
   const handleBulkUpdate = async () => {
     if (selectedIds.size === 0 || !bulkField) return;
     setBulkLoading(true);
@@ -414,12 +449,14 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
       if (bulkField === 'closed') fields['closed'] = bulkClosed;
       if (bulkField === 'credit_card') fields['credit_card'] = { id: bulkCreditCardId };
       if (bulkField === 'funding_goal') fields['funding_goal_id'] = bulkFundingGoalId === '' ? null : bulkFundingGoalId;
+      if (bulkField === 'group') fields['group'] = bulkGroupId === '' ? null : { id: bulkGroupId };
 
       await api.bulkUpdate(Array.from(selectedIds), fields);
       showToast(`Updated ${bulkField.replace('_', ' ')} for ${selectedIds.size} transaction(s)`, 'success');
       setSelectedIds(new Set());
       setBulkField('');
       setBulkFundingGoalId('');
+      setBulkGroupId('');
       setIsBulkEditDialogOpen(false);
       fetchTransactions(currentPage, filters);
     } catch (error: any) {
@@ -824,6 +861,7 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
                 {visibleColumns.has('is_give') && <th className={`${cellPadding} text-[11px] font-bold text-slate-400 uppercase tracking-widest`}>Give/Recv</th>}
                 {visibleColumns.has('closed') && <th className={`${cellPadding} text-[11px] font-bold text-slate-400 uppercase tracking-widest`}>Status</th>}
                 {visibleColumns.has('notes') && <th className={`${cellPadding} text-[11px] font-bold text-slate-400 uppercase tracking-widest`}>Notes</th>}
+                {visibleColumns.has('group') && <th className={`${cellPadding} text-[11px] font-bold text-slate-400 uppercase tracking-widest`}>Group</th>}
                 {visibleColumns.has('amount') && <th className={`${cellPadding} text-right text-[11px] font-bold text-slate-400 uppercase tracking-widest`}>Amount</th>}
                 <th className={`${cellPadding} text-right text-[11px] font-bold text-slate-400 uppercase tracking-widest`}>Actions</th>
               </tr>
@@ -1151,6 +1189,22 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
                         )}
                       </td>
                     )}
+                    {visibleColumns.has('group') && (
+                      <td className={`${cellPadding} min-w-[120px]`}>
+                        <div className="flex items-center gap-1.5">
+                          {t.group ? (
+                            <span
+                              className="px-2 py-0.5 text-[10px] font-bold rounded-lg text-white"
+                              style={{ backgroundColor: t.group.color || '#06b6d4' }}
+                            >
+                              {t.group.name}
+                            </span>
+                          ) : (
+                            <span className="text-slate-400 dark:text-slate-500 italic text-[10px]">None</span>
+                          )}
+                        </div>
+                      </td>
+                    )}
                     {visibleColumns.has('amount') && (
                       <td className={`${cellPadding} text-right font-bold tabular-nums whitespace-nowrap ${viewMode === 'compact' ? 'text-xs' : 'text-sm'} ${getAmountColor(t)}`}>
                         {isAmountEditing ? (
@@ -1314,6 +1368,7 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
                 onChange={e => {
                   setBulkField(e.target.value as BulkField | '');
                   setBulkFundingGoalId('');
+                  setBulkGroupId('');
                 }}
               >
                 <option value="">Choose Field…</option>
@@ -1323,6 +1378,7 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
                 <option value="notes">Notes</option>
                 <option value="payment_mode">Payment Mode</option>
                 <option value="credit_card">Credit Card</option>
+                <option value="group">Transaction Group</option>
                 {currentTab !== 'income' && currentTab !== 'all' && (
                   <option value="funding_goal">Fund from Goal</option>
                 )}
@@ -1413,6 +1469,21 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
                 >
                   <option value="">Select Credit Card…</option>
                   {creditCards.map(cc => <option key={cc.id} value={cc.id}>{cc.nickname} ({cc.issuer})</option>)}
+                </select>
+              )}
+
+              {bulkField === 'group' && (
+                <select
+                  className={`${selectClass} w-full`}
+                  value={bulkGroupId}
+                  onChange={e => setBulkGroupId(e.target.value ? Number(e.target.value) : '')}
+                >
+                  <option value="">No Group (Clear Assignment)</option>
+                  {getFilteredBulkGroups().map(g => (
+                    <option key={g.id} value={g.id}>
+                      {g.name}
+                    </option>
+                  ))}
                 </select>
               )}
 
