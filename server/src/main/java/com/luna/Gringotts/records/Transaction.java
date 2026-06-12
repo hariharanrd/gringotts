@@ -115,6 +115,11 @@ public class Transaction {
     @JsonProperty("loan_payment_type")
     String loanPaymentType; // "EMI" or "PART_PAYMENT"
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "group_id")
+    @JsonProperty("group")
+    TransactionGroup group;
+
     public Long getId() {
         return id;
     }
@@ -293,5 +298,13 @@ public class Transaction {
     @JsonProperty("loan_name")
     public String getLoanName() {
         return loan != null ? loan.getName() : null;
+    }
+
+    public TransactionGroup getGroup() {
+        return group;
+    }
+
+    public void setGroup(TransactionGroup group) {
+        this.group = group;
     }
 }

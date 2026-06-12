@@ -18,6 +18,7 @@ import {
   CreditCard,
   Clock,
   Table2,
+  FolderClosed,
   AlertTriangle,
   ArrowRight
 } from 'lucide-react';
@@ -37,6 +38,7 @@ interface LayoutProps {
 const navItems = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },
   { id: 'transactions', label: 'Transactions', icon: ReceiptText, path: '/transactions' },
+  { id: 'groups', label: 'Groups', icon: FolderClosed, path: '/groups' },
   { id: 'budget', label: 'Budget', icon: Table2, path: '/budget' },
   { id: 'investment-planner', label: 'Goals', icon: Goal, path: '/investment-planner' },
   { id: 'loans', label: 'Loans', icon: Landmark, path: '/loans' },

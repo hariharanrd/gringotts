@@ -12,6 +12,7 @@ import com.luna.Gringotts.repository.ItemRepository;
 import com.luna.Gringotts.repository.TransactionRepository;
 import com.luna.Gringotts.repository.UserRepository;
 import com.luna.Gringotts.repository.LoanRepository;
+import com.luna.Gringotts.repository.TransactionGroupRepository;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -85,6 +86,9 @@ public class TransactionService {
 
     @Autowired
     private LoanRepository loanRepository;
+
+    @Autowired
+    private TransactionGroupRepository transactionGroupRepository;
 
     public Transaction getTransactionById(Long id) {
         return transactionRepository.findById(id).orElse(null);
@@ -425,6 +429,37 @@ public class TransactionService {
             target.setLoan(null);
         }
         target.setLoanPaymentType(source.getLoanPaymentType());
+
+        if (source.getGroup() != null && source.getGroup().getId() != null) {
+            TransactionGroup group = transactionGroupRepository.findById(source.getGroup().getId()).orElse(null);
+            if (group != null && group.getUser() != null && group.getUser().getId().equals(currentUser.getId())) {
+                target.setGroup(group);
+            } else {
+                target.setGroup(null);
+            }
+        } else {
+            target.setGroup(null);
+        }
+        validateTransactionGroupRelation(target);
+    }
+
+    private void validateTransactionGroupRelation(Transaction transaction) {
+        TransactionGroup group = transaction.getGroup();
+        if (group == null) return;
+        
+        String type = transaction.getType(); // "EXPENSE", "INCOME", "SAVING", "REVOLVING"
+        if ("EXPENSE".equals(type) && !group.isAllowsExpense()) {
+            throw new IllegalArgumentException("The selected group does not support Expenses.");
+        }
+        if ("INCOME".equals(type) && !group.isAllowsIncome()) {
+            throw new IllegalArgumentException("The selected group does not support Incomes.");
+        }
+        if ("SAVING".equals(type) && !group.isAllowsSaving()) {
+            throw new IllegalArgumentException("The selected group does not support Savings.");
+        }
+        if ("REVOLVING".equals(type) && !group.isAllowsRevolving()) {
+            throw new IllegalArgumentException("The selected group does not support Revolving transactions.");
+        }
     }
 
     private void handleCreditCardDebit(Transaction t) {
@@ -848,6 +883,25 @@ public class TransactionService {
             }
         }
 
+        TransactionGroup bulkGroup = null;
+        boolean updateGroup = fields.containsKey("group_id") || fields.containsKey("group");
+        if (updateGroup) {
+            Object groupVal = fields.get("group");
+            if (groupVal == null) {
+                groupVal = fields.get("group_id");
+            }
+            if (groupVal != null) {
+                Long id;
+                if (groupVal instanceof Map<?, ?> groupMap) {
+                    id = toLong(groupMap.get("id"));
+                } else {
+                    id = toLong(groupVal);
+                }
+                bulkGroup = transactionGroupRepository.findByIdAndUser(id, user)
+                        .orElseThrow(() -> new IllegalArgumentException("Group not found: " + id));
+            }
+        }
+
         final Category finalCategory = category;
         final SubCategory finalSubCategory = subCategory;
         final Item finalItem = item;
@@ -862,6 +916,11 @@ public class TransactionService {
                 t.setItem(finalItem);
             if (fields.containsKey("notes"))
                 t.setNotes((String) fields.get("notes"));
+
+            if (updateGroup) {
+                t.setGroup(bulkGroup);
+                validateTransactionGroupRelation(t);
+            }
 
             handleCreditCardCredit(t);
 

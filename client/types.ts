@@ -39,6 +39,22 @@ export interface Item {
   description: string;
 }
 
+export interface TransactionGroup {
+  id: number;
+  name: string;
+  description?: string;
+  type: 'TRIP' | 'EVENT' | 'PROJECT' | 'PERSONAL' | 'CUSTOM';
+  icon?: string;
+  color?: string;
+  status: 'ACTIVE' | 'CLOSED';
+  created_at: string;
+  allows_expense: boolean;
+  allows_income: boolean;
+  allows_saving: boolean;
+  allows_revolving: boolean;
+  thumbnail?: string;
+}
+
 export interface Transaction {
   id: number;
   category?: Category;
@@ -59,6 +75,7 @@ export interface Transaction {
   loan_id?: number;
   loan_payment_type?: 'EMI' | 'PART_PAYMENT';
   loan_name?: string;
+  group?: TransactionGroup;
 }
 
 

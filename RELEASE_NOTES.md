@@ -1,4 +1,31 @@
 # 🚀 Release Notes
+## [June 12, 2026] Transaction Groups, Allowed Type Constraints & Custom Cover Images
+
+This release introduces **Transaction Groups** to logically organize transactions for projects, trips, or events, along with allowed transaction type metadata validations, custom cover image uploads, and seamless transaction creation directly from group views.
+
+### 🏢 Custom Transaction Groups
+- **Customized Groups**: Users can create, update, and manage transaction groups tailored for trips, events, or projects.
+- **Color Accents & Symbols**: Premium customization options support choosing HSL color accents and dedicated Lucide icons.
+- **Collapsible Archived Section**: Finished or settled groups can be archived and are housed in a dedicated collapsible dashboard section at the bottom, keeping active workspaces clutter-free.
+
+### 🛡️ Allowed Transaction Type Restrictions
+- **Type Restrictions (Group Meta)**: Configure allowed transaction types (Expenses, Incomes, Savings, and/or Revolving Transactions) for each group using checkboxes.
+- **Compatibility Checks**:
+  - Enforces type compatibility checks during transaction creation, single updates, and bulk editing.
+  - Rejects transactions whose types are not permitted by their selected group.
+- **Dynamic Stats & Chart Scaling**: The Group Details statistics cards and category breakdown charts automatically scale and hide panels for disallowed transaction types.
+
+### 🖼️ Group Cover & Thumbnail Images
+- **Base64 Database Storage**: Upload custom thumbnail cover images (up to 2MB) that are converted and stored as Base64 text.
+- **Visual Dashboards**: Cards in the main group list display the cover image with a sleek hover zoom animation.
+- **Premium Details Banner**: The Group Details view renders a beautiful full-width cover banner above the page title.
+
+### 📥 Add Transactions directly from Group Details
+- **Contextual Add Actions**: Instantly add new transactions via buttons in the page header, list header, or empty states.
+- **Automatic Group Locking**: Opened transaction modals auto-select the current group and disable the field.
+- **Dynamic Tab Filtering**: The transaction type selector tab bar is dynamically filtered to show only allowed types, and is completely hidden if only one type is permitted.
+- **Instant List Refresh**: Saving a new transaction immediately updates the group statistics and transaction lists without page reload.
+
 ## [June 08, 2026] Quick Add Transaction in Calendar View, Full Page Setup, Dedicated Upcoming Budgets Section
 
 This release adds a **Quick Add** shortcut directly in the Transactions Calendar date cells, consolidates the sidebar setup panel and account preferences into a **Dedicated Setup & Settings Page**, and refines the budget dashboard by separating future budget templates into an **Upcoming Budgets** section.

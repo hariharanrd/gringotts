@@ -15,6 +15,8 @@ import CreditCardDetails from './pages/CreditCardDetails';
 import TransactionDetails from './pages/TransactionDetails';
 import Settings from './pages/Settings';
 import Loans from './pages/Loans';
+import Groups from './pages/Groups';
+import GroupDetails from './pages/GroupDetails';
 import { Login } from './pages/Login';
 import { Register } from './pages/Register';
 import { ForgotPassword } from './pages/ForgotPassword';
@@ -186,6 +188,8 @@ const GringottsApp: React.FC = () => {
                 <Route path="/loans" element={<Loans />} />
                 <Route path="/credit-cards" element={<CreditCards />} />
                 <Route path="/credit-cards/:id" element={<CreditCardDetails />} />
+                <Route path="/groups" element={<Groups />} />
+                <Route path="/groups/:id" element={<GroupDetails />} />
 
                 <Route path="/settings" element={<Settings onProfileUpdate={fetchUser} onImportSuccess={handleImportSuccess} />} />
                 <Route path="/logout" element={<Logout onLogout={handleLogout} />} />

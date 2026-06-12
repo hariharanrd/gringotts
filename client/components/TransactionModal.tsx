@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Save, TrendingDown, TrendingUp, PiggyBank, RefreshCw, AlertTriangle, CreditCard as CardIcon, ChevronDown } from 'lucide-react';
 import { api } from '../services/api';
-import { Category, SubCategory, Item, TransactionType, Expense, Income, Saving, Revolving, Transaction, CreditCard, InvestmentGoal, Loan } from '../types';
+import { Category, SubCategory, Item, TransactionType, Expense, Income, Saving, Revolving, Transaction, CreditCard, InvestmentGoal, Loan, TransactionGroup } from '../types';
 import { useToast } from '../components/ToastContext';
 import { PAYMENT_MODES } from '../constants';
 import { toLocalISOString } from '../services/dateUtils';
@@ -14,6 +14,9 @@ interface TransactionModalProps {
   transaction?: Transaction | null;
   defaultType?: TransactionType;
   defaultDate?: Date;
+  defaultGroupId?: number;
+  disableGroupSelection?: boolean;
+  allowedTypes?: TransactionType[];
 }
 
 type TransactionFormState = Omit<Partial<Transaction>, 'value' | 'credit_card'> & {
@@ -29,9 +32,20 @@ type TransactionFormState = Omit<Partial<Transaction>, 'value' | 'credit_card'> 
   include_in_budget?: boolean;
   funding_goal_id?: number;
   loan_id?: number;
+  group_id?: number;
 };
 
-const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, onSuccess, transaction, defaultType, defaultDate }) => {
+const TransactionModal: React.FC<TransactionModalProps> = ({
+  isOpen,
+  onClose,
+  onSuccess,
+  transaction,
+  defaultType,
+  defaultDate,
+  defaultGroupId,
+  disableGroupSelection,
+  allowedTypes
+}) => {
   const { showToast } = useToast();
   const [type, setType] = useState<TransactionType>(TransactionType.EXPENSE);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -42,6 +56,7 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, on
   const itemCache = useRef<Record<number, Item[]>>({});
   const [creditCards, setCreditCards] = useState<CreditCard[]>([]);
   const [goals, setGoals] = useState<InvestmentGoal[]>([]);
+  const [groups, setGroups] = useState<TransactionGroup[]>([]);
 
   const [formData, setFormData] = useState<TransactionFormState>({
     value: 0,
@@ -58,7 +73,8 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, on
     credit_card: undefined,
     include_in_budget: true,
     funding_goal_id: undefined,
-    loan_id: undefined
+    loan_id: undefined,
+    group_id: undefined
   });
 
   const [loading, setLoading] = useState(false);
@@ -105,7 +121,8 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, on
       credit_card: undefined,
       include_in_budget: true,
       funding_goal_id: undefined,
-      loan_id: undefined
+      loan_id: undefined,
+      group_id: defaultGroupId || undefined
     });
     setSubCategories([]);
     setItems([]);
@@ -134,13 +151,16 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, on
     const fetchDropdownData = async () => {
       if (isOpen) {
         setShowTypeChangeConfirm(false);
-        const typeToUse = transaction ? transaction.type : (defaultType || type);
+        let typeToUse = transaction ? transaction.type : (defaultType || type);
+        if (allowedTypes && allowedTypes.length > 0 && !allowedTypes.includes(typeToUse)) {
+          typeToUse = allowedTypes[0];
+        }
+        setType(typeToUse);
+
         const cats = await api.getCategories(typeToUse);
         setCategories(cats);
 
         if (transaction) {
-          setType(transaction.type);
-
           if (transaction.category) {
             const subs = await getSubCategories(transaction.category.id);
             setSubCategories(subs);
@@ -150,7 +170,6 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, on
             const its = await getItems(transaction.subcategory.id);
             setItems(its);
           }
-
 
           setFormData({
             ...transaction,
@@ -162,13 +181,10 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, on
             credit_card: (transaction as any).credit_card?.id,
             include_in_budget: transaction.include_in_budget ?? true,
             funding_goal_id: transaction.funding_goal?.id,
-            loan_id: transaction.loan_id
+            loan_id: transaction.loan_id,
+            group_id: transaction.group?.id
           });
         } else {
-          if (defaultType) {
-            setType(defaultType);
-          }
-
           const initialDate = defaultDate ? (() => {
             const dateToUse = new Date(defaultDate);
             const now = new Date();
@@ -191,7 +207,8 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, on
             credit_card: undefined,
             include_in_budget: true,
             funding_goal_id: undefined,
-            loan_id: undefined
+            loan_id: undefined,
+            group_id: defaultGroupId || undefined
           });
         }
 
@@ -208,11 +225,23 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, on
         api.getLoans().then(res => {
           setLoans(res.data.filter(l => !l.is_closed));
         });
+
+        // Fetch active groups
+        api.getTransactionGroups().then(res => {
+          let filtered = res.data.filter(g => g.status === 'ACTIVE');
+          if (defaultGroupId && !filtered.some(g => g.id === defaultGroupId)) {
+            const defaultGroup = res.data.find(g => g.id === defaultGroupId);
+            if (defaultGroup) {
+              filtered.push(defaultGroup);
+            }
+          }
+          setGroups(filtered);
+        });
       }
     };
 
     fetchDropdownData();
-  }, [isOpen, transaction, defaultType, defaultDate]);
+  }, [isOpen, transaction, defaultType, defaultDate, defaultGroupId, allowedTypes?.join(',')]);
 
   const handleCategoryChange = async (catId: number) => {
     const category = categories.find(c => c.id === catId);
@@ -277,7 +306,8 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, on
         credit_card: formData.payment_mode === 'CREDIT_CARD' && formData.credit_card ? { id: formData.credit_card } : undefined,
         include_in_budget: formData.funding_goal_id ? false : formData.include_in_budget,
         funding_goal: formData.funding_goal_id ? { id: formData.funding_goal_id } : undefined,
-        loan: formData.loan_id ? { id: formData.loan_id } : undefined
+        loan: formData.loan_id ? { id: formData.loan_id } : undefined,
+        group: formData.group_id ? { id: formData.group_id } : null
       };
 
       let savedResponse: any;
@@ -327,46 +357,53 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, on
 
         <form onSubmit={handleSubmit} className="p-6 space-y-5 max-h-[75vh] overflow-y-auto">
           {/* Type Selector */}
-          <div className="grid grid-cols-4 gap-1 p-1 bg-slate-100 dark:bg-slate-800/60 rounded-xl border border-slate-200 dark:border-slate-700/50">
-            {Object.values(TransactionType).map((t) => {
-              const Icon = {
-                [TransactionType.EXPENSE]: TrendingDown,
-                [TransactionType.INCOME]: TrendingUp,
-                [TransactionType.SAVING]: PiggyBank,
-                [TransactionType.REVOLVING]: RefreshCw,
-              }[t];
+          {(!allowedTypes || allowedTypes.length > 1) && (
+            <div
+              className="grid gap-1 p-1 bg-slate-100 dark:bg-slate-800/60 rounded-xl border border-slate-200 dark:border-slate-700/50"
+              style={{
+                gridTemplateColumns: `repeat(${(allowedTypes || Object.values(TransactionType)).length}, minmax(0, 1fr))`
+              }}
+            >
+              {(allowedTypes || Object.values(TransactionType)).map((t) => {
+                const Icon = {
+                  [TransactionType.EXPENSE]: TrendingDown,
+                  [TransactionType.INCOME]: TrendingUp,
+                  [TransactionType.SAVING]: PiggyBank,
+                  [TransactionType.REVOLVING]: RefreshCw,
+                }[t];
 
-              return (
-                <button
-                  key={t}
-                  type="button"
-                  onClick={() => {
-                    setType(t);
-                    // Re-fetch categories for new type and clear selections
-                    api.getCategories(t).then(cats => {
-                      setCategories(cats);
-                      setSubCategories([]);
-                      setItems([]);
-                      setFormData(prev => ({
-                        ...prev,
-                        category: undefined,
-                        subcategory: undefined,
-                        item: undefined,
-                        funding_goal_id: t === TransactionType.INCOME ? undefined : prev.funding_goal_id,
-                        include_in_budget: t === TransactionType.INCOME ? true : prev.include_in_budget
-                      }));
-                    });
-                    api.getCreditCards().then(res => setCreditCards(res.data));
-                  }}
-                  className={`py-2.5 flex items-center justify-center text-sm font-semibold rounded-lg transition-all ${type === t ? `bg-gradient-to-r ${typeColors[t]} text-white shadow-lg` : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700/50'
-                    }`}
-                >
-                  <Icon className="w-5 h-5 md:hidden" />
-                  <span className="hidden md:inline">{t}</span>
-                </button>
-              )
-            })}
-          </div>
+                return (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => {
+                      setType(t);
+                      // Re-fetch categories for new type and clear selections
+                      api.getCategories(t).then(cats => {
+                        setCategories(cats);
+                        setSubCategories([]);
+                        setItems([]);
+                        setFormData(prev => ({
+                          ...prev,
+                          category: undefined,
+                          subcategory: undefined,
+                          item: undefined,
+                          funding_goal_id: t === TransactionType.INCOME ? undefined : prev.funding_goal_id,
+                          include_in_budget: t === TransactionType.INCOME ? true : prev.include_in_budget
+                        }));
+                      });
+                      api.getCreditCards().then(res => setCreditCards(res.data));
+                    }}
+                    className={`py-2.5 flex items-center justify-center text-sm font-semibold rounded-lg transition-all ${type === t ? `bg-gradient-to-r ${typeColors[t]} text-white shadow-lg` : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700/50'
+                      }`}
+                  >
+                    <Icon className="w-5 h-5 md:hidden" />
+                    <span className="hidden md:inline">{t}</span>
+                  </button>
+                )
+              })}
+            </div>
+          )}
 
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
@@ -684,6 +721,36 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, on
                 </div>
               )}
 
+
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-slate-600 dark:text-slate-300">Assign to Group (Optional)</label>
+              <select
+                className="w-full px-4 py-2.5 bg-slate-100 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 rounded-xl focus:ring-2 focus:ring-cyan-500/40 outline-none text-slate-900 dark:text-white disabled:opacity-60 disabled:cursor-not-allowed"
+                disabled={disableGroupSelection}
+                value={formData.group_id || ''}
+                onChange={(e) => {
+                  const groupIdVal = e.target.value ? Number(e.target.value) : undefined;
+                  setFormData(prev => ({ ...prev, group_id: groupIdVal }));
+                }}
+              >
+                <option value="">Do not assign to a Group</option>
+                {groups
+                  .filter(g => {
+                    if (formData.group_id === g.id) return true;
+                    if (type === TransactionType.EXPENSE) return g.allows_expense !== false;
+                    if (type === TransactionType.INCOME) return g.allows_income !== false;
+                    if (type === TransactionType.SAVING) return g.allows_saving !== false;
+                    if (type === TransactionType.REVOLVING) return g.allows_revolving !== false;
+                    return true;
+                  })
+                  .map(g => (
+                    <option key={g.id} value={g.id}>
+                      {g.name} ({g.type})
+                    </option>
+                  ))
+                }
+              </select>
+            </div>
 
             <div className="space-y-1.5">
               <label className="text-sm font-medium text-slate-600 dark:text-slate-300">Notes (Optional)</label>
