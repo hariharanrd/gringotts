@@ -345,17 +345,18 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
   const typeName = type.charAt(0).toUpperCase() + type.slice(1).toLowerCase();
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/40 dark:bg-black/60 backdrop-blur-sm">
-      <div className="bg-white dark:bg-slate-900 w-full max-w-lg rounded-2xl shadow-2xl shadow-black/20 dark:shadow-black/40 overflow-hidden border border-slate-200 dark:border-slate-700/50">
+    <div className="fixed inset-0 z-[60] overflow-y-auto bg-black/40 dark:bg-black/60 backdrop-blur-sm flex flex-col items-center p-4">
+      <div className="my-auto bg-white dark:bg-slate-900 w-full max-w-lg rounded-2xl shadow-2xl shadow-black/20 dark:shadow-black/40 overflow-hidden border border-slate-200 dark:border-slate-700/50 flex flex-col max-h-[calc(100dvh-2rem)] sm:max-h-[calc(100dvh-4rem)]">
         {/* Header */}
-        <div className={`px-6 py-4 flex items-center justify-between bg-gradient-to-r ${typeColors[type]} bg-opacity-10`}>
+        <div className={`px-6 py-4 flex items-center justify-between bg-gradient-to-r ${typeColors[type]} bg-opacity-10 shrink-0`}>
           <h3 className="text-lg font-bold text-white">{isEditing ? `Edit ${typeName}` : `Add ${typeName}`}</h3>
           <button onClick={onClose} className="text-white/70 hover:text-white transition-colors p-1 hover:bg-white/10 rounded-lg">
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-5 max-h-[75vh] overflow-y-auto">
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
+          <div className="p-6 space-y-5 overflow-y-auto custom-scrollbar flex-1">
           {/* Type Selector */}
           {(!allowedTypes || allowedTypes.length > 1) && (
             <div
@@ -763,7 +764,9 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
             </div>
           </div>
 
-          <div className="pt-4 flex gap-3">
+          </div>
+
+          <div className="p-6 pt-4 flex gap-3 border-t border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 shrink-0">
             <button
               type="button"
               onClick={() => { resetForm(); onClose(); }}

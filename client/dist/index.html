@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="en" class="dark" data-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -12,7 +12,7 @@
         darkMode: 'class',
       }
     </script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;700&family=Outfit:wght@400;700&family=Montserrat:wght@400;700&family=Space+Grotesk:wght@400;700&family=Quicksand:wght@400;700&family=Lexend:wght@400;700&family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
     <style>
         * {
             margin: 0;
@@ -20,39 +20,7 @@
             box-sizing: border-box;
         }
         body {
-            font-family: 'Inter', sans-serif;
-        }
-        /* Dark scrollbar */
-        .dark ::-webkit-scrollbar,
-        .dark::-webkit-scrollbar {
-            width: 6px;
-        }
-        .dark ::-webkit-scrollbar-track,
-        .dark::-webkit-scrollbar-track {
-            background: #1e293b;
-        }
-        .dark ::-webkit-scrollbar-thumb,
-        .dark::-webkit-scrollbar-thumb {
-            background: #475569;
-            border-radius: 10px;
-        }
-        .dark ::-webkit-scrollbar-thumb:hover,
-        .dark::-webkit-scrollbar-thumb:hover {
-            background: #64748b;
-        }
-        /* Light scrollbar */
-        ::-webkit-scrollbar {
-            width: 6px;
-        }
-        ::-webkit-scrollbar-track {
-            background: #f1f5f9;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #cbd5e1;
-            border-radius: 10px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: #94a3b8;
+            font-family: var(--theme-font, 'Inter'), sans-serif;
         }
         /* Glass shimmer keyframe */
         @keyframes shimmer {
@@ -73,37 +41,8 @@
             background-size: 200% 100%;
             animation: shimmer 2s infinite;
         }
-        /* Dark glass */
-        .dark .glass {
-            background: rgba(30, 41, 59, 0.6);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border: 1px solid rgba(148, 163, 184, 0.1);
-        }
-        .dark .glass-card {
-            background: rgba(30, 41, 59, 0.5);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border: 1px solid rgba(148, 163, 184, 0.08);
-        }
-        /* Light glass */
-        .glass {
-            background: rgba(255, 255, 255, 0.7);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border: 1px solid rgba(148, 163, 184, 0.2);
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-        }
-        .glass-card {
-            background: rgba(255, 255, 255, 0.6);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border: 1px solid rgba(148, 163, 184, 0.15);
-            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
-        }
     </style>
 
-<link rel="stylesheet" href="/index.css">
 <script type="importmap">
 {
   "imports": {
@@ -117,7 +56,8 @@
   }
 }
 </script>
-  <script type="module" crossorigin src="/assets/index-QRhF8TtR.js"></script>
+  <script type="module" crossorigin src="/assets/index-BvFJcoNB.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/index-BXMkc4Bb.css">
 </head>
 <body>
     <div id="root"></div>

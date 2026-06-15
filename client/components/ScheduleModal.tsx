@@ -249,10 +249,10 @@ const ScheduleModal: React.FC<Props> = ({ isOpen, onClose, schedule }) => {
   const currentType = form.transaction_type || TransactionType.EXPENSE;
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/40 dark:bg-black/60 backdrop-blur-sm">
-      <div className="bg-white dark:bg-slate-900 w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden border border-slate-200 dark:border-slate-700/50 animate-in fade-in zoom-in-95 duration-200">
+    <div className="fixed inset-0 z-[60] overflow-y-auto bg-black/40 dark:bg-black/60 backdrop-blur-sm flex flex-col items-center p-4">
+      <div className="my-auto bg-white dark:bg-slate-900 w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden border border-slate-200 dark:border-slate-700/50 animate-in fade-in zoom-in-95 duration-200 flex flex-col max-h-[calc(100dvh-2rem)] sm:max-h-[calc(100dvh-4rem)]">
         {/* Header */}
-        <div className={`px-6 py-4 flex items-center justify-between bg-gradient-to-r ${typeColors[currentType as keyof typeof typeColors]} text-white`}>
+        <div className={`px-6 py-4 flex items-center justify-between bg-gradient-to-r ${typeColors[currentType as keyof typeof typeColors]} text-white shrink-0`}>
           <div className="flex items-center gap-3">
             <div className="p-2 bg-white/20 rounded-xl">
               <Clock className="w-5 h-5" />
@@ -264,7 +264,8 @@ const ScheduleModal: React.FC<Props> = ({ isOpen, onClose, schedule }) => {
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-6 max-h-[85vh] overflow-y-auto custom-scrollbar">
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
+          <div className="p-6 space-y-6 overflow-y-auto custom-scrollbar flex-1">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-4">
               <div className="space-y-1.5">
@@ -596,7 +597,9 @@ const ScheduleModal: React.FC<Props> = ({ isOpen, onClose, schedule }) => {
             </div>
           </div>
 
-          <div className="pt-4 flex gap-3">
+          </div>
+
+          <div className="p-6 pt-4 flex gap-3 border-t border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 shrink-0">
             <button
               type="button"
               onClick={onClose}

@@ -470,11 +470,11 @@ const Groups: React.FC = () => {
 
       {/* Add / Edit Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 overflow-y-auto flex flex-col items-center p-4">
           <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setIsModalOpen(false)} />
-          <div className="bg-white dark:bg-slate-900 w-full max-w-lg rounded-3xl overflow-hidden shadow-2xl relative border border-slate-200 dark:border-slate-800 z-10 animate-in zoom-in-95 duration-200">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-lg rounded-3xl overflow-hidden shadow-2xl border border-slate-200 dark:border-slate-800 z-10 animate-in zoom-in-95 duration-200 flex flex-col max-h-[calc(100dvh-2rem)] sm:max-h-[calc(100dvh-4rem)] relative my-auto">
             {/* Modal Header */}
-            <div className="flex items-center justify-between p-6 border-b border-slate-100 dark:border-slate-800">
+            <div className="flex items-center justify-between p-6 border-b border-slate-100 dark:border-slate-800 shrink-0">
               <h3 className="text-lg font-black text-slate-850 dark:text-white">
                 {editingGroup ? 'Edit Group Settings' : 'Create Custom Group'}
               </h3>
@@ -484,7 +484,8 @@ const Groups: React.FC = () => {
             </div>
 
             {/* Modal Form */}
-            <form onSubmit={handleSave} className="p-6 space-y-4">
+            <form onSubmit={handleSave} className="flex flex-col flex-1 overflow-hidden">
+              <div className="p-6 space-y-4 overflow-y-auto custom-scrollbar flex-1">
               <div className="space-y-1">
                 <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Group Name</label>
                 <input
@@ -728,8 +729,10 @@ const Groups: React.FC = () => {
                 </div>
               </div>
 
+              </div>
+
               {/* Form Actions */}
-              <div className="pt-4 flex gap-3 border-t border-slate-100 dark:border-slate-800">
+              <div className="p-6 pt-4 flex gap-3 border-t border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 shrink-0">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}

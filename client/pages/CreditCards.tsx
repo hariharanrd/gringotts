@@ -406,9 +406,9 @@ const CreditCards: React.FC = () => {
 
       {/* Card Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-[2.5rem] shadow-2xl overflow-hidden border border-slate-200 dark:border-slate-800 animate-in zoom-in-95 duration-200">
-            <div className="p-8 pb-4 flex justify-between items-center border-b border-slate-100 dark:border-slate-800">
+        <div className="fixed inset-0 z-[60] overflow-y-auto bg-black/60 backdrop-blur-sm flex flex-col items-center p-4">
+          <div className="my-auto bg-white dark:bg-slate-900 w-full max-w-md rounded-2xl shadow-2xl overflow-hidden border border-slate-200 dark:border-slate-800 animate-in zoom-in-95 duration-200 flex flex-col max-h-[calc(100dvh-2rem)] sm:max-h-[calc(100dvh-4rem)]">
+            <div className="p-8 pb-4 flex justify-between items-center border-b border-slate-100 dark:border-slate-800 shrink-0">
               <div>
                 <h3 className="text-xl font-black text-slate-900 dark:text-white tracking-tight">{editingCard ? 'Edit Credit Card' : 'Add New Card'}</h3>
                 <p className="text-xs font-medium text-slate-500 mt-1">Provide your card details for tracking.</p>
@@ -418,7 +418,8 @@ const CreditCards: React.FC = () => {
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="p-8 space-y-5">
+            <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
+              <div className="p-8 space-y-5 overflow-y-auto custom-scrollbar flex-1">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Card Nickname</label>
@@ -509,7 +510,9 @@ const CreditCards: React.FC = () => {
                 <p className="text-[10px] text-slate-400 italic text-center">We'll warn you once total card utilization crosses this percentage of your limit.</p>
               </div>
 
-              <div className="pt-6 flex gap-3">
+              </div>
+
+              <div className="p-8 pt-4 flex gap-3 border-t border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 shrink-0">
                 <button
                   type="button"
                   onClick={handleCloseModal}

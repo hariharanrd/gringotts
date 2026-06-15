@@ -103,9 +103,9 @@ const DeleteModal: React.FC<{
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl shadow-2xl p-6 border border-rose-500/20 animate-in zoom-in-95 duration-200">
-        <div className="flex items-start gap-4 mb-5">
+    <div className="fixed inset-0 z-50 overflow-y-auto flex flex-col items-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="my-auto flex flex-col w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl shadow-2xl p-6 border border-rose-500/20 animate-in zoom-in-95 duration-200 max-h-[calc(100dvh-2rem)] sm:max-h-[calc(100dvh-4rem)]">
+        <div className="flex items-start gap-4 mb-5 shrink-0">
           <div className="w-11 h-11 rounded-xl bg-rose-500/10 flex items-center justify-center shrink-0">
             <AlertTriangle className="w-5 h-5 text-rose-500" />
           </div>
@@ -117,34 +117,36 @@ const DeleteModal: React.FC<{
           </div>
         </div>
 
-        <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">
-          Enter your current password to confirm
-        </label>
-        <div className="relative">
-          <input
-            type={showPw ? 'text' : 'password'}
-            value={password}
-            onChange={e => setPassword(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && handleDelete()}
-            placeholder="Current password"
-            className="w-full px-4 py-2.5 pr-11 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-rose-500/50"
-          />
-          <button
-            type="button"
-            onClick={() => setShowPw(v => !v)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
-          >
-            {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-          </button>
+        <div className="overflow-y-auto flex-1 pr-1 pb-1">
+          <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">
+            Enter your current password to confirm
+          </label>
+          <div className="relative">
+            <input
+              type={showPw ? 'text' : 'password'}
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleDelete()}
+              placeholder="Current password"
+              className="w-full px-4 py-2.5 pr-11 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-rose-500/50"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPw(v => !v)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+            >
+              {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+            </button>
+          </div>
+
+          {error && (
+            <p className="mt-2 text-xs text-rose-500 flex items-center gap-1.5">
+              <AlertTriangle className="w-3 h-3 shrink-0" />{error}
+            </p>
+          )}
         </div>
 
-        {error && (
-          <p className="mt-2 text-xs text-rose-500 flex items-center gap-1.5">
-            <AlertTriangle className="w-3 h-3 shrink-0" />{error}
-          </p>
-        )}
-
-        <div className="flex gap-3 mt-5">
+        <div className="flex gap-3 pt-4 border-t border-slate-100 dark:border-slate-800/60 bg-white dark:bg-slate-900 shrink-0 mt-auto">
           <button
             onClick={onClose}
             className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all"

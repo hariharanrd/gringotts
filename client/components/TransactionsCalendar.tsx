@@ -90,15 +90,24 @@ export const TransactionsCalendar: React.FC<TransactionsCalendarProps> = ({
         ...filters
       ];
 
-      if (currentTab && currentTab !== 'all') {
-        requestFilters.push({
-          field: 'type',
-          condition: 'eq',
-          value: currentTab.toUpperCase()
-        });
+      let res;
+      switch (currentTab) {
+        case 'expense':
+          res = await api.getExpenses(1, requestFilters, 'DESC', 3000);
+          break;
+        case 'income':
+          res = await api.getIncomes(1, requestFilters, 'DESC', 3000);
+          break;
+        case 'saving':
+          res = await api.getSavings(1, requestFilters, 'DESC', 3000);
+          break;
+        case 'revolving':
+          res = await api.getRevolvings(1, requestFilters, 'DESC', 3000);
+          break;
+        default:
+          res = await api.getTransactions(1, requestFilters, 'DESC', 3000);
+          break;
       }
-
-      const res = await api.getTransactions(1, requestFilters, 'DESC', 3000);
       setTransactions(res.data);
     } catch (e) {
       console.error("Failed to fetch calendar transactions", e);
@@ -620,9 +629,9 @@ export const TransactionsCalendar: React.FC<TransactionsCalendarProps> = ({
 
       {/* Modal Overlay for Selected Day */}
       {selectedDay && selectedDayData && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md animate-in fade-in">
-          <div className="bg-white dark:bg-slate-900 w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden border border-slate-200 dark:border-slate-800 animate-in zoom-in-95 duration-200 flex flex-col max-h-[85vh]">
-            <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/20">
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-md animate-in fade-in flex flex-col items-center p-4">
+          <div className="my-auto bg-white dark:bg-slate-900 w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden border border-slate-200 dark:border-slate-800 animate-in zoom-in-95 duration-200 flex flex-col max-h-[calc(100dvh-2rem)] sm:max-h-[calc(100dvh-4rem)]">
+            <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/20 shrink-0">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-cyan-500/10 text-cyan-500 rounded-xl">
                   <CalendarIcon className="w-5 h-5" />
