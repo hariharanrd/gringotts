@@ -431,9 +431,9 @@ const GoalModal: React.FC<GoalModalProps> = ({ isOpen, onClose, onSaved, editGoa
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-full sm:max-w-lg bg-white dark:bg-slate-900 rounded-t-3xl sm:rounded-3xl shadow-2xl max-h-[90vh] overflow-y-auto animate-in slide-in-from-bottom-4 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-300">
+    <div className="fixed inset-0 z-50 overflow-y-auto flex flex-col items-center p-4">
+      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative my-auto w-full sm:max-w-lg bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-h-[calc(100dvh-2rem)] sm:max-h-[calc(100dvh-4rem)] overflow-y-auto animate-in slide-in-from-bottom-4 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-300">
         {/* Header */}
         <div className="sticky top-0 z-10 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl px-6 py-4 flex items-center justify-between border-b border-slate-200 dark:border-slate-700/50">
           <h2 className="text-lg font-bold text-slate-900 dark:text-white">
@@ -750,9 +750,9 @@ const GoalDetailModal: React.FC<GoalDetailModalProps> = ({ goal, onClose }) => {
   const refillNeeded = Math.max(0, refillTarget - goal.current_amount);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center animate-in fade-in duration-200">
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-full sm:max-w-2xl bg-white dark:bg-slate-900 rounded-t-3xl sm:rounded-3xl shadow-2xl max-h-[85vh] overflow-y-auto animate-in slide-in-from-bottom-4 duration-300">
+    <div className="fixed inset-0 z-50 overflow-y-auto flex flex-col items-center p-4">
+      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative my-auto w-full sm:max-w-2xl bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-h-[calc(100dvh-2rem)] sm:max-h-[calc(100dvh-4rem)] overflow-y-auto animate-in slide-in-from-bottom-4 duration-300">
         {/* Header */}
         <div className="sticky top-0 z-10 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl px-6 py-4 flex items-center justify-between border-b border-slate-200 dark:border-slate-800/50">
           <div className="flex items-center gap-3">

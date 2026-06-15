@@ -57,16 +57,17 @@ const ImportModal: React.FC<ImportModalProps> = ({ isOpen, onClose, onSuccess })
   };
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/40 dark:bg-black/60 backdrop-blur-sm">
-      <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-2xl shadow-2xl shadow-black/20 dark:shadow-black/40 overflow-hidden border border-slate-200 dark:border-slate-700/50">
-        <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-700/50 flex items-center justify-between">
+    <div className="fixed inset-0 z-[60] overflow-y-auto bg-black/40 dark:bg-black/60 backdrop-blur-sm flex flex-col items-center p-4">
+      <div className="my-auto bg-white dark:bg-slate-900 w-full max-w-md rounded-2xl shadow-2xl shadow-black/20 dark:shadow-black/40 overflow-hidden border border-slate-200 dark:border-slate-700/50 flex flex-col max-h-[calc(100dvh-2rem)] sm:max-h-[calc(100dvh-4rem)]">
+        <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-700/50 flex items-center justify-between shrink-0">
           <h3 className="text-lg font-bold text-slate-900 dark:text-white">Import Statement</h3>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-700 dark:hover:text-white transition-colors p-1 hover:bg-slate-100 dark:hover:bg-slate-700/50 rounded-lg">
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-5">
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
+          <div className="p-6 space-y-5 overflow-y-auto custom-scrollbar flex-1">
           <div className="space-y-1.5">
             <label className="text-sm font-medium text-slate-600 dark:text-slate-300">Statement Source</label>
             <select
@@ -106,7 +107,9 @@ const ImportModal: React.FC<ImportModalProps> = ({ isOpen, onClose, onSuccess })
             </div>
           </div>
 
-          <div className="pt-2 flex gap-3">
+          </div>
+
+          <div className="p-6 pt-4 flex gap-3 border-t border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 shrink-0">
             <button
               type="button"
               onClick={onClose}

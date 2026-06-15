@@ -265,10 +265,10 @@ export const LoanDetailModal: React.FC<LoanDetailModalProps> = ({ loan, onClose,
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center animate-in fade-in duration-200">
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
+    <div className="fixed inset-0 z-50 overflow-y-auto flex flex-col items-center p-4">
+      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
       
-      <div className="relative w-full sm:max-w-3xl bg-white dark:bg-slate-900 rounded-t-3xl sm:rounded-3xl shadow-2xl max-h-[85vh] overflow-hidden flex flex-col animate-in slide-in-from-bottom-4 duration-300">
+      <div className="relative my-auto w-full sm:max-w-3xl bg-white dark:bg-slate-900 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[calc(100dvh-2rem)] sm:max-h-[calc(100dvh-4rem)] animate-in slide-in-from-bottom-4 duration-300">
         
         {/* Header */}
         <div className="sticky top-0 z-10 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl px-6 py-4 flex items-center justify-between border-b border-slate-200 dark:border-slate-800/50">
@@ -327,7 +327,7 @@ export const LoanDetailModal: React.FC<LoanDetailModalProps> = ({ loan, onClose,
         </div>
 
         {/* Scrollable Tab Panel Body */}
-        <div className="flex-1 overflow-y-auto p-6 min-h-[40vh]">
+        <div className="flex-1 overflow-y-auto p-6 min-h-0">
           
           {/* TAB 1: OVERVIEW */}
           {activeTab === 'overview' && (

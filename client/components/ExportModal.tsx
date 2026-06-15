@@ -71,11 +71,11 @@ const ExportModal: React.FC<ExportModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/40 dark:bg-black/60 backdrop-blur-sm">
-      <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-2xl shadow-2xl shadow-black/20 dark:shadow-black/40 overflow-hidden border border-slate-200 dark:border-slate-700/50 animate-in fade-in zoom-in-95 duration-200">
+    <div className="fixed inset-0 z-[60] overflow-y-auto bg-black/40 dark:bg-black/60 backdrop-blur-sm flex flex-col items-center p-4">
+      <div className="my-auto bg-white dark:bg-slate-900 w-full max-w-md rounded-2xl shadow-2xl shadow-black/20 dark:shadow-black/40 overflow-hidden border border-slate-200 dark:border-slate-700/50 animate-in fade-in zoom-in-95 duration-200 flex flex-col max-h-[calc(100dvh-2rem)] sm:max-h-[calc(100dvh-4rem)]">
         
         {/* Header */}
-        <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-700/50 flex items-center justify-between bg-slate-50/50 dark:bg-slate-800/30">
+        <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-700/50 flex items-center justify-between bg-slate-50/50 dark:bg-slate-800/30 shrink-0">
           <div className="flex items-center gap-2">
             <div>
               <h3 className="text-lg font-bold text-slate-900 dark:text-white">Export Current View</h3>
@@ -88,7 +88,8 @@ const ExportModal: React.FC<ExportModalProps> = ({
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-5">
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
+          <div className="p-6 space-y-5 overflow-y-auto custom-scrollbar flex-1">
           
           {/* Format Selection */}
           <div className="space-y-2">
@@ -132,8 +133,10 @@ const ExportModal: React.FC<ExportModalProps> = ({
             </div>
           )}
 
+          </div>
+
           {/* Action Buttons */}
-          <div className="pt-2 flex gap-3">
+          <div className="p-6 pt-4 flex gap-3 border-t border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 shrink-0">
             <button
               type="button"
               onClick={onClose}
