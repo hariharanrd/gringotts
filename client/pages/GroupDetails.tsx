@@ -19,7 +19,8 @@ import {
   CartesianGrid,
   Cell,
   PieChart,
-  Pie
+  Pie,
+  Legend
 } from 'recharts';
 
 const PIE_COLORS = ['#06b6d4', '#10b981', '#8b5cf6', '#f43f5e', '#f59e0b', '#ec4899', '#14b8a6', '#a855f7'];
@@ -176,7 +177,21 @@ const GroupDetails: React.FC = () => {
   const fmt = (n: number) => `₹${Math.abs(n).toLocaleString('en-IN')}`;
 
   const categoryChartData = stats?.category_breakdown
-    ? Object.entries(stats.category_breakdown).map(([name, value]) => ({ name, value: value as number }))
+    ? Object.entries(stats.category_breakdown)
+        .map(([name, value]) => ({ name, value: value as number }))
+        .sort((a, b) => b.value - a.value)
+    : [];
+
+  const subcategoryChartData: { name: string; value: number }[] = stats?.has_subcategory_data
+    ? (Object.entries(stats.subcategory_breakdown) as [string, number][])
+        .map(([name, value]) => ({ name, value }))
+        .sort((a, b) => b.value - a.value)
+    : [];
+
+  const itemChartData: { name: string; value: number }[] = stats?.has_item_data
+    ? (Object.entries(stats.item_breakdown) as [string, number][])
+        .map(([name, value]) => ({ name, value }))
+        .sort((a, b) => b.value - a.value)
     : [];
 
   const getAmountColor = (t: Transaction) => {
@@ -311,14 +326,15 @@ const GroupDetails: React.FC = () => {
       {/* Main Grid: Charts & Transactions List */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Left Column: Stats & Breakdown */}
-        {(group.allows_expense ?? true) && (
-          <div className="lg:col-span-1 space-y-6">
+        <div className="lg:col-span-1 space-y-6">
+
+            {/* Category Breakdown Card */}
             <div className="glass-card rounded-2xl p-6">
               <div className="flex items-center gap-2 mb-4">
                 <BarChart3 className="w-5 h-5 text-cyan-500" />
                 <h3 className="text-sm font-black text-slate-850 dark:text-white uppercase tracking-wider">Category Breakdown</h3>
               </div>
-              
+
               <div className="h-[240px] w-full">
                 {categoryChartData.length > 0 ? (
                   <ResponsiveContainer width="100%" height="100%">
@@ -346,12 +362,14 @@ const GroupDetails: React.FC = () => {
                           color: 'var(--theme-text)',
                           fontSize: 11
                         }}
+                        itemStyle={{ color: 'var(--theme-text)' }}
+                        labelStyle={{ color: 'var(--theme-text)' }}
                       />
                     </PieChart>
                   </ResponsiveContainer>
                 ) : (
                   <div className="flex flex-col items-center justify-center h-full text-slate-400 dark:text-slate-555 text-xs">
-                    <p>No expense data in this group</p>
+                    <p>No category data in this group</p>
                   </div>
                 )}
               </div>
@@ -371,11 +389,158 @@ const GroupDetails: React.FC = () => {
                 </div>
               )}
             </div>
+
+            {/* Subcategory Breakdown Card — shown only when data exists */}
+            {subcategoryChartData.length > 0 && (
+              <div className="glass-card rounded-2xl p-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <BarChart3 className="w-5 h-5 text-violet-500" />
+                  <h3 className="text-sm font-black text-slate-850 dark:text-white uppercase tracking-wider">Subcategory Breakdown</h3>
+                </div>
+
+                <div style={{ height: Math.max(160, subcategoryChartData.length * 36) }} className="w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      layout="vertical"
+                      data={subcategoryChartData}
+                      margin={{ top: 0, right: 8, left: 0, bottom: 0 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.1)" horizontal={false} />
+                      <XAxis
+                        type="number"
+                        tick={{ fontSize: 10, fill: 'var(--theme-text-muted)' }}
+                        tickFormatter={(v: number) => `₹${(v / 1000).toFixed(0)}k`}
+                        axisLine={false}
+                        tickLine={false}
+                      />
+                      <YAxis
+                        type="category"
+                        dataKey="name"
+                        width={88}
+                        tick={{ fontSize: 10, fill: 'var(--theme-text-muted)' }}
+                        axisLine={false}
+                        tickLine={false}
+                      />
+                      <Tooltip
+                        formatter={(value: number) => fmt(value)}
+                        contentStyle={{
+                          borderRadius: '12px',
+                          border: '1px solid rgba(148,163,184,0.15)',
+                          backgroundColor: 'var(--theme-surface)',
+                          color: 'var(--theme-text)',
+                          fontSize: 11
+                        }}
+                        itemStyle={{ color: 'var(--theme-text)' }}
+                        labelStyle={{ color: 'var(--theme-text)' }}
+                        cursor={{ fill: 'rgba(139,92,246,0.06)' }}
+                      />
+                      <Bar dataKey="value" radius={[0, 6, 6, 0]} maxBarSize={18}>
+                        {subcategoryChartData.map((entry, index) => (
+                          <Cell key={`sc-cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+
+                <div className="mt-4 space-y-2 max-h-40 overflow-y-auto pr-1">
+                  {subcategoryChartData.map((item, idx) => (
+                    <div key={item.name} className="flex justify-between items-center text-xs font-semibold">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: PIE_COLORS[idx % PIE_COLORS.length] }}></span>
+                        <span className="text-slate-500 dark:text-slate-400 truncate">{item.name}</span>
+                      </div>
+                      <span className="text-slate-800 dark:text-slate-200 shrink-0 ml-2">{fmt(item.value)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Item Breakdown Card — shown only when data exists */}
+            {itemChartData.length > 0 && (
+              <div className="glass-card rounded-2xl p-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <BarChart3 className="w-5 h-5 text-amber-500" />
+                  <h3 className="text-sm font-black text-slate-850 dark:text-white uppercase tracking-wider">Item Breakdown</h3>
+                </div>
+
+                {/* Mini pie chart when ≤ 8 items */}
+                {itemChartData.length <= 8 && (
+                  <div className="h-[160px] w-full mb-2">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={itemChartData}
+                          dataKey="value"
+                          nameKey="name"
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={44}
+                          outerRadius={62}
+                          paddingAngle={3}
+                        >
+                          {itemChartData.map((entry, index) => (
+                            <Cell key={`item-cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip
+                          formatter={(value: number) => fmt(value)}
+                          contentStyle={{
+                            borderRadius: '12px',
+                            border: '1px solid rgba(148,163,184,0.15)',
+                            backgroundColor: 'var(--theme-surface)',
+                            color: 'var(--theme-text)',
+                            fontSize: 11
+                          }}
+                          itemStyle={{ color: 'var(--theme-text)' }}
+                          labelStyle={{ color: 'var(--theme-text)' }}
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
+
+                {/* Ranked item list */}
+                <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+                  {itemChartData.map((item, idx) => {
+                    const totalItems = itemChartData.reduce((s, i) => s + i.value, 0);
+                    const pct = totalItems > 0 ? Math.round((item.value / totalItems) * 100) : 0;
+                    return (
+                      <div key={item.name} className="space-y-1">
+                        <div className="flex justify-between items-center text-xs font-semibold">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span
+                              className="w-2.5 h-2.5 rounded-full shrink-0"
+                              style={{ backgroundColor: PIE_COLORS[idx % PIE_COLORS.length] }}
+                            />
+                            <span className="text-slate-600 dark:text-slate-350 truncate">{item.name}</span>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0 ml-2">
+                            <span className="text-slate-400 dark:text-slate-500 text-[10px]">{pct}%</span>
+                            <span className="text-slate-800 dark:text-slate-200">{fmt(item.value)}</span>
+                          </div>
+                        </div>
+                        <div className="h-1 w-full rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                          <div
+                            className="h-full rounded-full transition-all duration-500"
+                            style={{
+                              width: `${pct}%`,
+                              backgroundColor: PIE_COLORS[idx % PIE_COLORS.length]
+                            }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
           </div>
-        )}
 
         {/* Right Column: Transactions list */}
-        <div className={(group.allows_expense ?? true) ? "lg:col-span-2 space-y-6" : "lg:col-span-3 space-y-6"}>
+        <div className="lg:col-span-2 space-y-6">
           <div className="glass-card rounded-2xl p-6">
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-2">
@@ -401,7 +566,11 @@ const GroupDetails: React.FC = () => {
               {transactions.map(t => (
                 <div
                   key={t.id}
-                  className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-50/50 dark:bg-slate-950/20 border border-slate-100 dark:border-slate-850 hover:bg-slate-100/30 dark:hover:bg-slate-800/20 transition-all group/item"
+                  onClick={(e) => {
+                    if ((e.target as HTMLElement).closest('button')) return;
+                    navigate(`/transaction/${t.id}?type=${t.type}`);
+                  }}
+                  className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-50/50 dark:bg-slate-950/20 border border-slate-100 dark:border-slate-850 hover:bg-slate-100/30 dark:hover:bg-slate-800/20 transition-all group/item cursor-pointer"
                 >
                   <div className="flex items-center gap-3.5 min-w-0">
                     <CategoryIcon category={t.category} className="w-4 h-4" />

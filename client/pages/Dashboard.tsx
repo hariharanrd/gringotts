@@ -488,6 +488,8 @@ const Dashboard: React.FC = () => {
                     />
                     <Tooltip
                       contentStyle={tooltipStyle}
+                      itemStyle={{ color: theme === 'dark' ? '#e2e8f0' : '#1e293b' }}
+                      labelStyle={{ color: theme === 'dark' ? '#e2e8f0' : '#1e293b' }}
                       formatter={(value: number) => fmt(value)}
                       cursor={{ fill: theme === 'dark' ? 'rgba(148,163,184,0.04)' : 'rgba(148,163,184,0.1)' }}
                     />
@@ -523,6 +525,8 @@ const Dashboard: React.FC = () => {
                     />
                     <Tooltip
                       contentStyle={tooltipStyle}
+                      itemStyle={{ color: theme === 'dark' ? '#e2e8f0' : '#1e293b' }}
+                      labelStyle={{ color: theme === 'dark' ? '#e2e8f0' : '#1e293b' }}
                       formatter={(value: number) => fmt(value)}
                       cursor={{ fill: theme === 'dark' ? 'rgba(148,163,184,0.04)' : 'rgba(148,163,184,0.1)' }}
                     />

@@ -114,14 +114,21 @@ public class TransactionGroupService {
         double totalSavings = 0.0;
 
         Map<String, Double> categoryBreakdown = new HashMap<>();
+        Map<String, Double> subcategoryBreakdown = new HashMap<>();
+        Map<String, Double> itemBreakdown = new HashMap<>();
+        boolean hasSubcategoryData = false;
+        boolean hasItemData = false;
 
         for (Transaction t : transactions) {
             double val = t.getValue();
-            String categoryName = t.getCategory() != null ? t.getCategory().getName() : "Uncategorized";
+
+            if (t.getCategory() != null) {
+                String categoryName = t.getCategory().getName();
+                categoryBreakdown.put(categoryName, categoryBreakdown.getOrDefault(categoryName, 0.0) + val);
+            }
 
             if ("EXPENSE".equals(t.getType())) {
                 totalExpenses += val;
-                categoryBreakdown.put(categoryName, categoryBreakdown.getOrDefault(categoryName, 0.0) + val);
             } else if ("INCOME".equals(t.getType())) {
                 totalIncomes += val;
             } else if ("SAVING".equals(t.getType())) {
@@ -132,6 +139,19 @@ public class TransactionGroupService {
                     totalSavings += val;
                 }
             }
+
+            // Subcategory & Item breakdowns span all transaction types
+            if (t.getSubCategory() != null) {
+                hasSubcategoryData = true;
+                String subCategoryName = t.getSubCategory().getName();
+                subcategoryBreakdown.put(subCategoryName, subcategoryBreakdown.getOrDefault(subCategoryName, 0.0) + val);
+            }
+
+            if (t.getItem() != null) {
+                hasItemData = true;
+                String itemName = t.getItem().getName();
+                itemBreakdown.put(itemName, itemBreakdown.getOrDefault(itemName, 0.0) + val);
+            }
         }
 
         Map<String, Object> stats = new HashMap<>();
@@ -139,6 +159,10 @@ public class TransactionGroupService {
         stats.put("total_incomes", totalIncomes);
         stats.put("total_savings", totalSavings);
         stats.put("category_breakdown", categoryBreakdown);
+        stats.put("subcategory_breakdown", subcategoryBreakdown);
+        stats.put("item_breakdown", itemBreakdown);
+        stats.put("has_subcategory_data", hasSubcategoryData);
+        stats.put("has_item_data", hasItemData);
 
         return stats;
     }
