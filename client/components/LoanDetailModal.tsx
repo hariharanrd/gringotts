@@ -722,6 +722,8 @@ export const LoanDetailModal: React.FC<LoanDetailModalProps> = ({ loan, onClose,
                           borderRadius: '12px',
                           color: 'var(--theme-text)'
                         }}
+                        itemStyle={{ color: 'var(--theme-text)' }}
+                        labelStyle={{ color: 'var(--theme-text)' }}
                       />
                       <Area
                         type="monotone"
