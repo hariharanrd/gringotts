@@ -99,7 +99,7 @@ public class TransactionGroupService {
         User user = iamService.getCurrentUser();
         TransactionGroup group = transactionGroupRepository.findByIdAndUser(groupId, user)
                 .orElseThrow(() -> new IllegalArgumentException("Group not found or access denied"));
-        return transactionRepository.findByGroupAndUser(group, user);
+        return transactionRepository.findByGroupAndUserOrderByTransactionTimeDesc(group, user);
     }
 
     public Map<String, Object> getGroupStatistics(Long groupId) {
@@ -107,7 +107,7 @@ public class TransactionGroupService {
         TransactionGroup group = transactionGroupRepository.findByIdAndUser(groupId, user)
                 .orElseThrow(() -> new IllegalArgumentException("Group not found or access denied"));
 
-        List<Transaction> transactions = transactionRepository.findByGroupAndUser(group, user);
+        List<Transaction> transactions = transactionRepository.findByGroupAndUserOrderByTransactionTimeDesc(group, user);
 
         double totalExpenses = 0.0;
         double totalIncomes = 0.0;
