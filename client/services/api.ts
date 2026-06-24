@@ -875,6 +875,12 @@ export const api = {
     const response = await fetchWithCredentials(`${BASE_URL}/transaction-groups/${id}/statistics`);
     const result = await handleResponse(response);
     return result.data;
+  },
+
+  getTransactionGroupThumbnail: async (id: number): Promise<string> => {
+    const response = await fetchWithCredentials(`${BASE_URL}/transaction-groups/${id}/thumbnail`);
+    const result = await handleResponse(response);
+    return result.data;
   }
   // Transaction Groups API End
 };

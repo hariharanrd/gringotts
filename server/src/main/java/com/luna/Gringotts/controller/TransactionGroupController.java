@@ -68,4 +68,10 @@ public class TransactionGroupController {
         Map<String, Object> stats = transactionGroupService.getGroupStatistics(id);
         return ResponseEntity.ok(Map.of("data", stats, "status", "success"));
     }
+
+    @GetMapping("/transaction-groups/{id}/thumbnail")
+    public ResponseEntity<Map<String, Object>> getGroupThumbnail(@PathVariable Long id) {
+        String thumbnail = transactionGroupService.getGroupThumbnail(id);
+        return ResponseEntity.ok(Map.of("data", thumbnail != null ? thumbnail : "", "status", "success"));
+    }
 }

@@ -49,6 +49,7 @@ public class TransactionGroup {
     private boolean allowsRevolving = true;
 
     @Column(columnDefinition = "text")
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     private String thumbnail;
 
     @ManyToOne(fetch = FetchType.LAZY)

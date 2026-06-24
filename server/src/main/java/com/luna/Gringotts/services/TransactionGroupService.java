@@ -166,4 +166,11 @@ public class TransactionGroupService {
 
         return stats;
     }
+
+    public String getGroupThumbnail(Long groupId) {
+        User user = iamService.getCurrentUser();
+        return transactionGroupRepository.findByIdAndUser(groupId, user)
+                .map(TransactionGroup::getThumbnail)
+                .orElseThrow(() -> new IllegalArgumentException("Group not found or access denied"));
+    }
 }
