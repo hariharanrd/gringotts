@@ -9,6 +9,7 @@ import ConfirmationDialog from '../components/ConfirmationDialog';
 import { ICONS, ICON_NAMES } from '../components/icons';
 import { GROUP_COLORS } from './Groups';
 import TransactionModal from '../components/TransactionModal';
+import LazyGroupThumbnail from '../components/LazyGroupThumbnail';
 import {
   ResponsiveContainer,
   BarChart,
@@ -220,16 +221,7 @@ const GroupDetails: React.FC = () => {
   return (
     <div className="space-y-8 animate-in fade-in duration-300">
       {/* Group Thumbnail Cover Banner */}
-      {group.thumbnail && (
-        <div className="relative h-48 sm:h-64 w-full rounded-3xl overflow-hidden border border-slate-200/80 dark:border-slate-800/80 shadow-md">
-          <img
-            src={group.thumbnail}
-            alt={group.name}
-            className="w-full h-full object-cover"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-slate-900/60 to-transparent" />
-        </div>
-      )}
+      <LazyGroupThumbnail groupId={group.id} groupName={group.name} isBanner={true} />
 
       {/* Back & Actions Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-5">

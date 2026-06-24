@@ -6,6 +6,7 @@ import { TransactionGroup } from '../types';
 import { useToast } from '../components/ToastContext';
 import ConfirmationDialog from '../components/ConfirmationDialog';
 import { ICONS, ICON_NAMES } from '../components/icons';
+import LazyGroupThumbnail from '../components/LazyGroupThumbnail';
 
 const GROUP_TYPES = ['TRIP', 'EVENT', 'PROJECT', 'PERSONAL', 'CUSTOM'] as const;
 
@@ -256,22 +257,8 @@ const Groups: React.FC = () => {
                       onClick={() => handleCardClick(group)}
                       className="group relative bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl rounded-3xl border transition-all duration-300 hover:-translate-y-1 hover:shadow-xl cursor-pointer overflow-hidden border-slate-200 dark:border-slate-800/80"
                     >
-                      {/* Accent line or Thumbnail on top */}
-                      {group.thumbnail ? (
-                        <div className="h-28 w-full overflow-hidden relative">
-                          <img
-                            src={group.thumbnail}
-                            alt={group.name}
-                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                          />
-                          <div className="absolute inset-0 bg-gradient-to-t from-slate-900/30 to-transparent" />
-                        </div>
-                      ) : (
-                        <div
-                          className="h-1.5 w-full transition-all duration-300"
-                          style={{ backgroundColor: group.color || '#06b6d4' }}
-                        />
-                      )}
+                      {/* Lazy loaded Cover Banner */}
+                      <LazyGroupThumbnail groupId={group.id} groupName={group.name} isBanner={false} />
 
                       <div className="p-5 space-y-4">
                         {/* Title & Actions Row */}
@@ -385,22 +372,8 @@ const Groups: React.FC = () => {
                         onClick={() => handleCardClick(group)}
                         className="group relative bg-white/40 dark:bg-slate-900/40 backdrop-blur-xl rounded-3xl border border-slate-200 dark:border-slate-800 opacity-70 hover:opacity-100 hover:-translate-y-1 hover:shadow-lg transition-all duration-300 cursor-pointer overflow-hidden"
                       >
-                        {/* Accent line or Thumbnail on top */}
-                        {group.thumbnail ? (
-                          <div className="h-28 w-full overflow-hidden relative">
-                            <img
-                              src={group.thumbnail}
-                              alt={group.name}
-                              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                            />
-                            <div className="absolute inset-0 bg-gradient-to-t from-slate-900/30 to-transparent" />
-                          </div>
-                        ) : (
-                          <div
-                            className="h-1.5 w-full transition-all duration-300"
-                            style={{ backgroundColor: group.color || '#64748b' }}
-                          />
-                        )}
+                        {/* Lazy loaded Cover Banner */}
+                        <LazyGroupThumbnail groupId={group.id} groupName={group.name} isBanner={false} />
 
                         <div className="p-5 space-y-4">
                           {/* Title & Actions Row */}
