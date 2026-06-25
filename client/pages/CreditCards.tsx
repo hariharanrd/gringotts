@@ -208,43 +208,63 @@ const CreditCards: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {cards.map((card, index) => {
             const theme = CARD_THEMES[index % CARD_THEMES.length];
+            const isOverdue = card.smart_status?.type === 'overdue';
             return (
               <div
                 key={card.id}
-                className={`group relative flex flex-col ${theme.bg} rounded-[2.5rem] border transition-all duration-500 overflow-hidden shadow-sm hover:shadow-2xl hover:-translate-y-1 hover:scale-[1.01] ${card.smart_status?.type === 'overdue'
-                  ? 'border-rose-500 shadow-[0_0_30px_rgba(244,63,94,0.3)] ring-2 ring-rose-500/50'
-                  : card.threshold_exceeded
-                    ? 'border-rose-500/50 shadow-rose-500/10'
-                    : `${theme.border} hover:border-white/20`
-                  }`}
+                className={`group relative flex flex-col bg-white dark:bg-slate-900 border ${isOverdue ? 'border-rose-500 shadow-[0_0_20px_rgba(244,63,94,0.15)] ring-1 ring-rose-500/20' : 'border-slate-200 dark:border-slate-800/80 shadow-sm hover:shadow-xl'} rounded-3xl p-4 gap-4 transition-all duration-300 hover:-translate-y-1`}
               >
-                {card.smart_status?.type === 'overdue' && (
-                  <div className="absolute inset-0 bg-rose-500/5 animate-pulse pointer-events-none z-0" />
-                )}
-                {/* Background Textures */}
-                <div className={`absolute inset-0 ${theme.pattern} opacity-100`} />
-                <div className={`absolute inset-0 ${theme.overlay} opacity-100`} />
-
-                {/* Card Header */}
-                <div className="p-7 pb-5 relative z-10">
-                  <div className={`absolute top-0 right-0 w-64 h-64 bg-gradient-to-br transition-opacity duration-500 ${card.threshold_exceeded
-                    ? 'from-rose-500/20 to-pink-500/10'
-                    : 'from-white/10 to-transparent'
-                    } rounded-full blur-3xl -mr-20 -mt-20 group-hover:opacity-100 opacity-60`} />
-                  <div className="flex justify-between items-start relative">
-                    <div className="space-y-0.5">
-                      <span className="text-[9px] font-bold text-white/30 uppercase tracking-[0.25em] block">{card.issuer}</span>
-                      <h3 className="text-2xl font-black text-white tracking-tight">{card.nickname}</h3>
+                {/* Physical Credit Card Mockup */}
+                <div
+                  onClick={() => navigate(`/credit-cards/${card.id}`)}
+                  className={`cursor-pointer relative aspect-[1.586] w-full rounded-2xl ${theme.bg} border ${card.threshold_exceeded ? 'border-rose-500' : theme.border} shadow-md p-5 flex flex-col justify-between overflow-hidden text-white group/card`}
+                >
+                  {/* Background textures */}
+                  <div className={`absolute inset-0 ${theme.pattern} opacity-100`} />
+                  <div className={`absolute inset-0 ${theme.overlay} opacity-100`} />
+                  
+                  {/* Card Content */}
+                  <div className="relative z-10 flex flex-col h-full justify-between">
+                    {/* Top Row: Issuer & Logo */}
+                    <div className="flex justify-between items-center">
+                      <span className="text-[10px] font-black text-white/70 uppercase tracking-[0.2em]">{card.issuer}</span>
+                      <CardIcon className="w-5 h-5 text-white/70" />
                     </div>
-                    <div className="flex items-center">
-                      <button
-                        onClick={() => navigate(`/credit-cards/${card.id}`)}
-                        className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-white/10 text-white hover:bg-white/20 transition-all border border-white/10 group/expand shadow-lg shadow-black/20"
-                        title="Open detailed view"
-                      >
-                        <Maximize2 className="w-5 h-5 transition-transform group-hover/expand:scale-110" />
-                        <span className="text-xs font-black uppercase tracking-widest opacity-70 group-hover/expand:opacity-100">Details</span>
-                      </button>
+
+                    {/* Middle Row: Chip & Contactless */}
+                    <div className="flex items-center gap-3 my-2">
+                      <div className="w-8 h-6 rounded bg-gradient-to-br from-amber-200 via-yellow-400 to-amber-600 border border-amber-600/30 flex flex-col justify-between p-1 shadow-inner">
+                        <div className="flex justify-between w-full h-full opacity-60">
+                          <div className="w-[30%] h-full border-r border-amber-800/30" />
+                          <div className="w-[40%] h-full flex flex-col justify-between">
+                            <div className="w-full h-[30%] border-b border-amber-800/30" />
+                            <div className="w-full h-[30%] border-t border-amber-800/30" />
+                          </div>
+                          <div className="w-[30%] h-full border-l border-amber-800/30" />
+                        </div>
+                      </div>
+                      <svg className="w-3.5 h-3.5 text-white/50" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                        <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10" />
+                        <path d="M8.5 5a11.5 11.5 0 0 1 3 7 11.5 11.5 0 0 1-3 7" />
+                        <path d="M5 8a8.1 8.1 0 0 1 2 4 8.1 8.1 0 0 1-2 4" />
+                      </svg>
+                    </div>
+
+                    {/* Nickname */}
+                    <div className="space-y-0.5">
+                      <h3 className="text-lg font-black text-white tracking-tight uppercase leading-tight">{card.nickname}</h3>
+                    </div>
+
+                    {/* Bottom Row: Current Balance & Details Link */}
+                    <div className="flex justify-between items-end pt-2 border-t border-white/10 mt-1">
+                      <div>
+                        <span className="text-[7px] font-bold text-white/40 uppercase tracking-widest block">Outstanding</span>
+                        <span className="text-xs font-black text-white">₹{card.total_outstanding?.toLocaleString()}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 text-white hover:bg-white/20 transition-all border border-white/10 shadow-md group-hover/card:scale-105">
+                        <Maximize2 className="w-3.5 h-3.5" />
+                        <span className="text-[9px] font-black uppercase tracking-widest opacity-80">Details</span>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -267,7 +287,7 @@ const CreditCards: React.FC = () => {
                   const bannerConfig = {
                     overdue: {
                       bg: 'bg-rose-500',
-                      ring: 'ring-2 ring-rose-400/60',
+                      ring: 'ring-1 ring-rose-400/40',
                       textColor: 'text-white',
                       subColor: 'text-rose-100',
                       icon: AlertTriangle,
@@ -275,25 +295,25 @@ const CreditCards: React.FC = () => {
                     },
                     pending: {
                       bg: 'bg-gradient-to-r from-amber-500 to-orange-500',
-                      ring: 'ring-2 ring-amber-400/40 shadow-lg shadow-amber-500/20',
+                      ring: 'ring-1 ring-amber-400/30 shadow-sm',
                       textColor: 'text-white',
                       subColor: 'text-amber-100',
                       icon: History,
                       pulse: false,
                     },
                     paid: {
-                      bg: 'bg-emerald-500/10 border border-emerald-500/20',
+                      bg: 'bg-emerald-500/10 border border-emerald-500/20 dark:bg-emerald-500/5',
                       ring: '',
-                      textColor: 'text-emerald-400',
-                      subColor: 'text-emerald-400/60',
+                      textColor: 'text-emerald-600 dark:text-emerald-400',
+                      subColor: 'text-emerald-600/60 dark:text-emerald-400/60',
                       icon: ShieldCheck,
                       pulse: false,
                     },
                     next: {
-                      bg: 'bg-white/5 border border-white/10',
+                      bg: 'bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800',
                       ring: '',
-                      textColor: 'text-white/50',
-                      subColor: 'text-white/30',
+                      textColor: 'text-slate-600 dark:text-slate-400',
+                      subColor: 'text-slate-400/70 dark:text-slate-500',
                       icon: Calendar,
                       pulse: false,
                     },
@@ -309,20 +329,20 @@ const CreditCards: React.FC = () => {
                       : null;
 
                   return (
-                    <div className={`mx-5 mb-4 px-5 py-4 rounded-2xl ${cfg.bg} ${cfg.ring} relative z-10 ${cfg.pulse ? 'animate-pulse' : ''}`}>
+                    <div className={`px-4 py-3 rounded-xl ${cfg.bg} ${cfg.ring} relative z-10 ${cfg.pulse ? 'animate-pulse' : ''}`}>
                       <div className="flex items-center justify-between gap-3">
                         <div className="flex items-center gap-3 min-w-0">
-                          <div className={`shrink-0 p-2 rounded-xl ${status.type === 'overdue' ? 'bg-white/20' : 'bg-white/5'}`}>
-                            <BannerIcon className={`w-5 h-5 ${cfg.textColor}`} />
+                          <div className={`shrink-0 p-1.5 rounded-lg ${status.type === 'overdue' ? 'bg-white/20' : 'bg-black/5 dark:bg-white/5'}`}>
+                            <BannerIcon className={`w-4 h-4 ${cfg.textColor}`} />
                           </div>
                           <div className="min-w-0">
-                            <p className={`text-[11px] font-black uppercase tracking-widest ${cfg.subColor}`}>
+                            <p className={`text-[9px] font-black uppercase tracking-widest ${cfg.subColor}`}>
                               {status.type === 'overdue' ? 'Action Required' : status.type === 'pending' ? 'Bill Due' : status.type === 'paid' ? 'Bill Status' : 'Next Billing'}
                             </p>
-                            <p className={`text-sm font-black ${cfg.textColor} leading-tight`}>
+                            <p className={`text-xs font-black ${cfg.textColor} leading-tight`}>
                               {status.label}
                               {status.due_date && (
-                                <span className="block text-[10px] opacity-80 mt-0.5">
+                                <span className="block text-[9px] opacity-80 mt-0.5">
                                   Due by: {new Date(status.due_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
                                 </span>
                               )}
@@ -331,10 +351,10 @@ const CreditCards: React.FC = () => {
                         </div>
                         {amountStr && (
                           <div className="text-right shrink-0">
-                            <p className={`text-[10px] font-bold uppercase tracking-widest ${cfg.subColor}`}>
+                            <p className={`text-[8px] font-bold uppercase tracking-widest ${cfg.subColor}`}>
                               {status.amount ? 'Amount Due' : 'On'}
                             </p>
-                            <p className={`text-xl font-black tabular-nums ${cfg.textColor}`}>
+                            <p className={`text-base font-black tabular-nums ${cfg.textColor}`}>
                               {amountStr}
                             </p>
                           </div>
@@ -344,34 +364,30 @@ const CreditCards: React.FC = () => {
                   );
                 })()}
 
-                {/* Stats Row */}
-                <div className="px-8 pb-5 relative z-10">
-                  <div className="flex justify-between items-end gap-4">
-                    {/* Outstanding */}
-                    <div>
-                      <span className="text-[9px] font-bold text-white/30 uppercase tracking-widest block mb-0.5">Total Outstanding</span>
-                      <span className={`text-lg font-black tabular-nums ${(card.total_outstanding ?? 0) > 0 ? 'text-white' : 'text-white/30'}`}>
-                        ₹{card.total_outstanding?.toLocaleString('en-IN') || '0'}
-                      </span>
-                    </div>
-                    {/* Limit info */}
-                    <div className="text-right">
-                      <span className="text-[9px] font-bold text-white/30 uppercase tracking-widest block mb-0.5">Limit</span>
-                      <span className="text-lg font-black text-white/60 tabular-nums">₹{card.credit_limit.toLocaleString('en-IN')}</span>
-                    </div>
+                {/* Stats Summary Box */}
+                <div className="grid grid-cols-2 gap-3 px-1 py-1">
+                  <div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800/40 rounded-xl p-3 flex flex-col justify-center gap-0.5">
+                    <span className="text-[8px] font-bold text-slate-400 uppercase tracking-wider">Credit Limit</span>
+                    <span className="text-sm font-black text-slate-900 dark:text-white">₹{card.credit_limit.toLocaleString('en-IN')}</span>
+                  </div>
+                  <div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800/40 rounded-xl p-3 flex flex-col justify-center gap-0.5">
+                    <span className="text-[8px] font-bold text-slate-400 uppercase tracking-wider">Available Limit</span>
+                    <span className="text-sm font-black text-slate-900 dark:text-white">
+                      ₹{(card.credit_limit - (card.total_outstanding || 0)).toLocaleString('en-IN')}
+                    </span>
                   </div>
                 </div>
 
-                {/* Utilization Bar */}
-                <div className="px-8 pb-6 space-y-2 relative z-10">
-                  <div className="flex justify-between text-[10px] font-bold uppercase tracking-wider">
-                    <span className="text-white/30">Card Utilization</span>
-                    <span className={card.threshold_exceeded ? 'text-rose-400' : 'text-white/40'}>
+                {/* Utilization Progress Bar */}
+                <div className="px-1 space-y-1.5">
+                  <div className="flex justify-between text-[9px] font-bold uppercase tracking-wider">
+                    <span className="text-slate-400">Card Utilization</span>
+                    <span className={card.threshold_exceeded ? 'text-rose-500' : 'text-slate-500'}>
                       {card.utilization_percent}%
-                      {card.threshold_exceeded && ' · ⚠ Limit Breached'}
+                      {card.threshold_exceeded && ' · Breached'}
                     </span>
                   </div>
-                  <div className="h-2 bg-black/20 rounded-full overflow-hidden border border-white/5">
+                  <div className="h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden border border-slate-200/10 dark:border-white/5">
                     <div
                       className={`h-full rounded-full transition-all duration-1000 ease-out ${card.threshold_exceeded
                         ? 'bg-gradient-to-r from-rose-500 to-pink-500 shadow-[0_0_10px_rgba(244,63,94,0.5)]'
@@ -380,23 +396,24 @@ const CreditCards: React.FC = () => {
                       style={{ width: `${Math.min(100, card.utilization_percent || 0)}%` }}
                     />
                   </div>
-                  {/* Card Management Bar - subtle and at the bottom */}
-                  <div className="mt-auto relative z-10 border-t border-white/5 bg-black/10 flex justify-end p-3 px-6 gap-2 opacity-100 md:opacity-40 md:group-hover:opacity-100 transition-opacity">
-                    <button
-                      onClick={() => handleOpenModal(card)}
-                      className="p-2 rounded-xl text-white/40 hover:text-white hover:bg-white/10 transition-all flex items-center gap-2"
-                    >
-                      <Edit2 className="w-3.5 h-3.5" />
-                      <span className="text-[10px] font-bold uppercase tracking-widest">Edit Card</span>
-                    </button>
-                    <button
-                      onClick={() => setDeleteTarget(card.id!)}
-                      className="p-2 rounded-xl text-white/40 hover:text-rose-400 hover:bg-rose-500/10 transition-all flex items-center gap-2"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                      <span className="text-[10px] font-bold uppercase tracking-widest">Delete</span>
-                    </button>
-                  </div>
+                </div>
+
+                {/* Action Buttons Row */}
+                <div className="flex justify-end gap-2 border-t border-slate-100 dark:border-slate-800/60 pt-3 mt-1">
+                  <button
+                    onClick={() => handleOpenModal(card)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all border border-slate-200/50 dark:border-slate-700/50"
+                  >
+                    <Edit2 className="w-3.5 h-3.5" />
+                    <span className="text-[9px] font-black uppercase tracking-widest">Edit</span>
+                  </button>
+                  <button
+                    onClick={() => setDeleteTarget(card.id!)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-500/5 dark:bg-rose-500/10 text-rose-500 hover:bg-rose-500 hover:text-white transition-all border border-rose-500/10"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span className="text-[9px] font-black uppercase tracking-widest">Delete</span>
+                  </button>
                 </div>
               </div>
             );
