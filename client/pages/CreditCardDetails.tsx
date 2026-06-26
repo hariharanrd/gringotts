@@ -13,7 +13,8 @@ import {
   ExternalLink,
   PieChart as PieChartIcon,
   BarChart3,
-  RefreshCw
+  RefreshCw,
+  CreditCard as CreditCardIcon
 } from 'lucide-react';
 import {
   BarChart,
@@ -276,89 +277,123 @@ const CreditCardDetails: React.FC = () => {
         </button>
       </div>
 
-      {/* Premium Hero Card */}
-      <div className={`relative overflow-hidden rounded-[2rem] ${theme.bg} border ${card.threshold_exceeded ? 'border-rose-500' : theme.border} shadow-lg`}>
-        <div className={`absolute inset-0 ${theme.pattern} opacity-100`} />
-        <div className={`absolute inset-0 ${theme.overlay} opacity-100`} />
+      {/* Premium Hero Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+        {/* Physical Credit Card Mockup */}
+        <div className="col-span-1 lg:col-span-5 flex justify-center">
+          <div className={`relative aspect-[1.586] w-full max-w-[340px] md:max-w-sm rounded-2xl ${theme.bg} border ${card.threshold_exceeded ? 'border-rose-500' : theme.border} shadow-2xl p-5 md:p-6 flex flex-col justify-between overflow-hidden text-white group`}>
+            {/* Background patterns */}
+            <div className={`absolute inset-0 ${theme.pattern} opacity-100`} />
+            <div className={`absolute inset-0 ${theme.overlay} opacity-100`} />
+            
+            {/* Card Content */}
+            <div className="relative z-10 flex flex-col h-full justify-between">
+              {/* Top Row: Issuer & Logo */}
+              <div className="flex justify-between items-center">
+                <span className="text-[10px] font-black text-white/70 uppercase tracking-[0.2em]">{card.issuer}</span>
+                <CreditCardIcon className="w-5 h-5 text-white/70" />
+              </div>
 
-        <div className="relative z-10 p-8 md:p-10 space-y-8">
-          {/* Status Row */}
-          <div className="flex items-center justify-end gap-2">
-            <span className="px-2.5 py-1 bg-white/10 backdrop-blur-md rounded-full text-[9px] font-black text-white uppercase tracking-widest border border-white/10">
-              Bill: {card.billing_date}{getOrdinalSuffix(card.billing_date)}
-            </span>
-            <div className="flex items-center gap-3">
-              <div className="px-2.5 py-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-full shadow-sm flex items-center gap-3">
-                <div className="w-4 h-4 rounded-full bg-cyan-500/10 flex items-center justify-center">
-                  <Wallet className="w-2 h-2 text-cyan-500" />
+              {/* Middle Row: Chip & Contactless */}
+              <div className="flex items-center gap-3 my-2">
+                <div className="w-9 h-7 rounded bg-gradient-to-br from-amber-200 via-yellow-400 to-amber-600 border border-amber-600/30 flex flex-col justify-between p-1.5 shadow-inner">
+                  <div className="flex justify-between w-full h-full opacity-60">
+                    <div className="w-[30%] h-full border-r border-amber-800/30" />
+                    <div className="w-[40%] h-full flex flex-col justify-between">
+                      <div className="w-full h-[30%] border-b border-amber-800/30" />
+                      <div className="w-full h-[30%] border-t border-amber-800/30" />
+                    </div>
+                    <div className="w-[30%] h-full border-l border-amber-800/30" />
+                  </div>
                 </div>
-                <div className="flex items-baseline gap-2">
-                  <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Outstanding</span>
-                  <span className="text-xs font-black text-slate-900 dark:text-white tabular-nums">₹{card.total_outstanding?.toLocaleString()}</span>
+                <svg className="w-4 h-4 text-white/50" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                  <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10" />
+                  <path d="M8.5 5a11.5 11.5 0 0 1 3 7 11.5 11.5 0 0 1-3 7" />
+                  <path d="M5 8a8.1 8.1 0 0 1 2 4 8.1 8.1 0 0 1-2 4" />
+                </svg>
+              </div>
+
+              {/* Nickname */}
+              <div className="space-y-0.5">
+                <h3 className="text-2xl font-black text-white tracking-tight uppercase leading-tight">{card.nickname}</h3>
+              </div>
+
+              {/* Bottom Row: Current Balance & Bill Cycle */}
+              <div className="flex justify-between items-end pt-2 border-t border-white/10 mt-2">
+                <div>
+                  <span className="text-[7px] font-bold text-white/40 uppercase tracking-widest block">Outstanding</span>
+                  <span className="text-sm font-black text-white">₹{card.total_outstanding?.toLocaleString()}</span>
+                </div>
+                <div className="text-right">
+                  <span className="text-[7px] font-bold text-white/40 uppercase tracking-widest block">Billing cycle</span>
+                  <span className="text-[9px] font-black text-white uppercase">{card.billing_date}{getOrdinalSuffix(card.billing_date)} Every Month</span>
                 </div>
               </div>
             </div>
           </div>
+        </div>
 
-          <div className="flex flex-col md:flex-row gap-8 md:items-center">
-            <div className="flex-1 space-y-6">
-              <div className="space-y-1">
-                <span className="text-[10px] font-black text-white/40 uppercase tracking-[0.3em] leading-none block">{card.issuer}</span>
-                <h2 className="text-4xl font-black text-white tracking-tighter">{card.nickname}</h2>
-              </div>
-
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
-                <div className="space-y-0.5">
-                  <span className="text-[9px] font-bold text-white/30 uppercase tracking-widest block">Limit</span>
-                  <div className="text-lg font-black text-white">₹{card.credit_limit.toLocaleString()}</div>
-                </div>
-                <div className="space-y-0.5">
-                  <span className="text-[9px] font-bold text-white/30 uppercase tracking-widest block">Available</span>
-                  <div className="text-lg font-black text-white">₹{(card.credit_limit - (card.total_outstanding || 0)).toLocaleString()}</div>
-                </div>
-                <div className="space-y-0.5">
-                  <span className="text-[9px] font-bold text-white/30 uppercase tracking-widest block">Status</span>
-                  {(() => {
-                    const status = card.smart_status;
-                    if (!status) return null;
-                    const config = getStatusConfig(status.type);
-                    const StatusIcon = config.icon;
-                    return (
-                      <div className="flex flex-col items-start gap-1.5">
-                        <div className={`flex items-center gap-2 px-3 py-1.5 rounded-xl ${status.type === 'overdue' ? 'bg-rose-500 text-white animate-pulse shadow-lg shadow-rose-500/30' : status.type === 'pending' ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/20' : config.color} text-sm font-black transition-all`}>
-                          <StatusIcon className={`w-3.5 h-3.5 ${status.type === 'overdue' || status.type === 'pending' ? 'text-white' : ''}`} />
-                          {status.label}
-                          {status.amount ? `: ₹${status.amount.toLocaleString()}` : status.date ? `: ${status.date}${getOrdinalSuffix(status.date)}` : ''}
-                        </div>
-                        {status.due_date && (
-                          <span className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em] ml-1">
-                            Due: {new Date(status.due_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
-                          </span>
-                        )}
-                      </div>
-                    );
-                  })()}
-                </div>
-              </div>
+        {/* Stats Dashboard */}
+        <div className="col-span-1 lg:col-span-7 flex flex-col justify-between gap-4">
+          <div className="grid grid-cols-2 gap-3 flex-grow">
+            {/* Stat Box: Limit */}
+            <div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800/50 rounded-2xl p-4 flex flex-col justify-center gap-0.5">
+              <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Credit Limit</span>
+              <span className="text-base font-black text-slate-900 dark:text-white">₹{card.credit_limit.toLocaleString()}</span>
+            </div>
+            
+            {/* Stat Box: Available */}
+            <div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800/50 rounded-2xl p-4 flex flex-col justify-center gap-0.5">
+              <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Available Limit</span>
+              <span className="text-base font-black text-slate-900 dark:text-white">₹{(card.credit_limit - (card.total_outstanding || 0)).toLocaleString()}</span>
             </div>
 
-            <div className="w-full md:w-72 p-6 rounded-[2rem] bg-black/20 backdrop-blur-3xl border border-white/5 shadow-inner">
-              <div className="flex justify-between items-center mb-4">
-                <span className="text-[9px] font-black text-white/40 uppercase tracking-widest">Card Utilization</span>
-                <span className={`text-base font-black ${card.threshold_exceeded ? 'text-rose-400' : 'text-cyan-400'}`}>{card.utilization_percent}%</span>
-              </div>
-              <div className="h-2.5 bg-black/20 rounded-full overflow-hidden p-0.5 border border-white/5 mb-3">
-                <div
-                  className={`h-full rounded-full transition-all duration-1000 ${card.threshold_exceeded ? 'bg-gradient-to-r from-rose-500 to-pink-500' : 'bg-gradient-to-r from-cyan-400 to-blue-500'}`}
-                  style={{ width: `${Math.min(100, card.utilization_percent || 0)}%` }}
-                />
-              </div>
-              <p className="text-[9px] text-white/30 font-medium text-center leading-relaxed">
-                {card.threshold_exceeded
-                  ? "Crossing safety threshold."
-                  : `Secure & within limits.`}
-              </p>
+            {/* Stat Box: Smart Status */}
+            <div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800/50 rounded-2xl p-4 flex flex-col justify-center gap-0.5">
+              <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Smart Status</span>
+              {(() => {
+                const status = card.smart_status;
+                if (!status) return <span className="text-xs text-slate-400 font-bold">No Bills</span>;
+                const config = getStatusConfig(status.type);
+                const StatusIcon = config.icon;
+                return (
+                  <div className="flex flex-col gap-0.5">
+                    <div className="flex items-center gap-1.5 text-xs font-black text-slate-900 dark:text-white">
+                      <StatusIcon className={`w-3.5 h-3.5 ${status.type === 'overdue' ? 'text-rose-500 animate-pulse' : status.type === 'pending' ? 'text-amber-500' : 'text-emerald-400'}`} />
+                      <span>{status.label}</span>
+                    </div>
+                    {status.due_date && (
+                      <span className="text-[8px] font-bold text-slate-400 uppercase tracking-wide">
+                        Due: {new Date(status.due_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                      </span>
+                    )}
+                  </div>
+                );
+              })()}
             </div>
+
+            {/* Stat Box: Billing Date & Info */}
+            <div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800/50 rounded-2xl p-4 flex flex-col justify-center gap-0.5">
+              <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Billing Date</span>
+              <span className="text-base font-black text-slate-900 dark:text-white">{card.billing_date}{getOrdinalSuffix(card.billing_date)}</span>
+            </div>
+          </div>
+
+          {/* Utilization Card */}
+          <div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800/50 rounded-2xl p-4">
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider">Card Utilization</span>
+              <span className={`text-xs font-black ${card.threshold_exceeded ? 'text-rose-500' : 'text-cyan-500'}`}>{card.utilization_percent}%</span>
+            </div>
+            <div className="h-2 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden p-0.5 border border-slate-300/10 dark:border-white/5 mb-1.5">
+              <div
+                className={`h-full rounded-full transition-all duration-1000 ${card.threshold_exceeded ? 'bg-gradient-to-r from-rose-500 to-pink-500' : 'bg-gradient-to-r from-cyan-400 to-blue-500'}`}
+                style={{ width: `${Math.min(100, card.utilization_percent || 0)}%` }}
+              />
+            </div>
+            <p className="text-[9px] text-slate-400/80 font-bold leading-none">
+              {card.threshold_exceeded ? "Crossing safety threshold." : "Secure & within limits."}
+            </p>
           </div>
         </div>
       </div>
@@ -418,40 +453,40 @@ const CreditCardDetails: React.FC = () => {
                 return (
                   <div
                     key={bill.id}
-                    className={`group relative bg-white dark:bg-slate-900 rounded-[2rem] border transition-all duration-300 ${isOverdue
+                    className={`group relative bg-white dark:bg-slate-900 rounded-2xl md:rounded-[2rem] border transition-all duration-300 ${isOverdue
                       ? 'border-rose-500 ring-2 ring-rose-500/20 shadow-[0_0_20px_rgba(244,63,94,0.15)] animate-pulse-subtle'
                       : isUnbilled
                         ? 'border-slate-200 dark:border-slate-800'
                         : 'border-cyan-500/30 ring-1 ring-cyan-500/10 shadow-lg'
                       }`}
                   >
-                    <div className="p-6 md:p-8 flex flex-col md:flex-row md:items-center gap-8">
+                    <div className="p-4 md:p-6 flex flex-col md:flex-row md:items-center gap-4 md:gap-6 lg:gap-8">
                       {/* Month Indicator */}
-                      <div className="flex items-center gap-4 min-w-[200px]">
-                        <div className={`w-14 h-14 rounded-2xl flex flex-col items-center justify-center ${isUnbilled ? 'bg-slate-100 dark:bg-slate-800 text-slate-500' : 'bg-cyan-500 text-white'}`}>
-                          <span className="text-[10px] font-black uppercase tracking-widest leading-none mb-1">{bill.billing_year}</span>
-                          <span className="text-lg font-black leading-none">{getMonthName(bill.billing_month).substring(0, 3)}</span>
+                      <div className="flex items-center gap-3 md:gap-4 min-w-0 md:min-w-[180px]">
+                        <div className={`w-11 h-11 md:w-14 md:h-14 rounded-xl md:rounded-2xl flex flex-col items-center justify-center flex-shrink-0 ${isUnbilled ? 'bg-slate-100 dark:bg-slate-800 text-slate-500' : 'bg-cyan-500 text-white'}`}>
+                          <span className="text-[8px] md:text-[10px] font-black uppercase tracking-widest leading-none mb-0.5 md:mb-1">{bill.billing_year}</span>
+                          <span className="text-sm md:text-lg font-black leading-none">{getMonthName(bill.billing_month).substring(0, 3)}</span>
                         </div>
                         <div>
-                          <div className="flex items-center gap-2">
-                            <h4 className="text-lg font-black text-slate-900 dark:text-white">{getMonthName(bill.billing_month)}</h4>
+                          <div className="flex items-center flex-wrap gap-1.5 md:gap-2">
+                            <h4 className="text-base md:text-lg font-black text-slate-900 dark:text-white leading-tight">{getMonthName(bill.billing_month)}</h4>
                             {isUnbilled ? (
-                              <span className="px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 text-[9px] font-black uppercase tracking-widest border border-slate-200 dark:border-slate-700">Unbilled</span>
+                              <span className="px-1.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 text-[8px] md:text-[9px] font-black uppercase tracking-widest border border-slate-200 dark:border-slate-700">Unbilled</span>
                             ) : (
                               bill.payment_status !== 'PAID' && (
-                                <span className="px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-500 text-[9px] font-black uppercase tracking-widest">Active Statement</span>
+                                <span className="px-1.5 py-0.5 rounded-full bg-cyan-500/10 text-cyan-500 text-[8px] md:text-[9px] font-black uppercase tracking-widest animate-pulse">Active</span>
                               )
                             )}
                           </div>
-                          <div className="flex items-center gap-3 mt-1">
-                            <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest inline-block ${getStatusColor(bill.payment_status)}`}>
+                          <div className="flex items-center gap-2 md:gap-3 mt-1">
+                            <span className={`px-2 py-0.5 rounded-full text-[8px] md:text-[9px] font-black uppercase tracking-widest inline-block ${getStatusColor(bill.payment_status)}`}>
                               {bill.payment_status.replace('_', ' ')}
                             </span>
                             <button
                               onClick={() => handleViewTransactions(bill)}
-                              className="flex items-center gap-1.5 text-[9px] font-black text-cyan-600 hover:text-cyan-700 uppercase tracking-widest transition-colors group/link"
+                              className="flex items-center gap-1 text-[8px] md:text-[9px] font-black text-cyan-600 hover:text-cyan-700 uppercase tracking-widest transition-colors group/link"
                             >
-                              <span>View Transactions</span>
+                              <span>Transactions</span>
                               <ExternalLink className="w-2.5 h-2.5 transition-transform group-hover/link:translate-x-0.5 group-hover/link:-translate-y-0.5" />
                             </button>
                           </div>
@@ -459,30 +494,30 @@ const CreditCardDetails: React.FC = () => {
                       </div>
 
                       {/* Stats Section */}
-                      <div className="flex-1 flex flex-wrap items-center gap-x-10 gap-y-6 md:pl-8 md:border-l border-slate-100 dark:border-slate-800">
-                        <div className="min-w-[100px]">
-                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Bill Amount</span>
-                          <span className="text-base font-black text-slate-900 dark:text-white">₹{bill.amount_due.toLocaleString()}</span>
+                      <div className="flex-1 grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-3 sm:gap-x-8 sm:gap-y-4 md:pl-6 md:border-l border-slate-100 dark:border-slate-800/60">
+                        <div className="min-w-0 sm:min-w-[90px]">
+                          <span className="text-[8px] md:text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5 md:mb-1">Bill Amount</span>
+                          <span className="text-sm md:text-base font-black text-slate-900 dark:text-white">₹{bill.amount_due.toLocaleString()}</span>
                         </div>
-                        <div className="min-w-[80px]">
-                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Paid</span>
-                          <span className="text-base font-black text-emerald-500">₹{bill.amount_paid.toLocaleString()}</span>
+                        <div className="min-w-0 sm:min-w-[80px]">
+                          <span className="text-[8px] md:text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5 md:mb-1">Paid</span>
+                          <span className="text-sm md:text-base font-black text-emerald-500">₹{bill.amount_paid.toLocaleString()}</span>
                         </div>
-                        <div className="min-w-[100px]">
-                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Outstanding</span>
-                          <span className={`text-base font-black ${unpaidAmount > 0 ? 'text-rose-500' : 'text-slate-400'}`}>₹{unpaidAmount.toLocaleString()}</span>
+                        <div className="min-w-0 sm:min-w-[90px]">
+                          <span className="text-[8px] md:text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5 md:mb-1">Outstanding</span>
+                          <span className={`text-sm md:text-base font-black ${unpaidAmount > 0 ? 'text-rose-500' : 'text-slate-400'}`}>₹{unpaidAmount.toLocaleString()}</span>
                         </div>
-                        <div className="min-w-[100px]">
-                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Status</span>
-                          <div className="flex items-center gap-2 mt-1">
+                        <div className="min-w-0 sm:min-w-[90px]">
+                          <span className="text-[8px] md:text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5 md:mb-1">Status</span>
+                          <div className="flex items-center gap-1.5 mt-0.5 md:mt-1">
                             {bill.payment_status === 'PAID' ? (
-                              <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
                             ) : isOverdue ? (
-                              <AlertTriangle className="w-4 h-4 text-rose-500" />
+                              <AlertTriangle className="w-3.5 h-3.5 text-rose-500 animate-pulse" />
                             ) : (
-                              <Clock className="w-4 h-4 text-amber-500" />
+                              <Clock className="w-3.5 h-3.5 text-amber-500" />
                             )}
-                            <span className={`text-xs font-bold ${bill.payment_status === 'PAID' ? 'text-emerald-500' : isOverdue ? 'text-rose-500' : 'text-amber-500'}`}>
+                            <span className={`text-[10px] md:text-xs font-bold ${bill.payment_status === 'PAID' ? 'text-emerald-500' : isOverdue ? 'text-rose-500' : 'text-amber-500'}`}>
                               {bill.payment_status === 'PAID' ? 'Settled' : isOverdue ? 'Overdue' : 'Pending'}
                             </span>
                           </div>
@@ -490,15 +525,15 @@ const CreditCardDetails: React.FC = () => {
                       </div>
 
                       {/* Actions */}
-                      <div className="flex flex-col gap-3 min-w-[220px]">
+                      <div className="w-full md:w-auto md:min-w-[210px] flex-shrink-0">
                         {bill.payment_status !== 'PAID' && !isUnbilled ? (
-                          <div className="space-y-3">
+                          <div className="space-y-2">
                             <div className="flex items-center gap-2">
-                              <div className="relative flex-1">
-                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-black text-[10px]">₹</span>
+                              <div className="relative flex-grow">
+                                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 font-black text-[10px]">₹</span>
                                 <input
                                   type="number"
-                                  className="w-full pl-7 pr-3 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-900 dark:text-white focus:ring-1 focus:ring-cyan-500/40 outline-none transition-all"
+                                  className="w-full pl-6 pr-2 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-900 dark:text-white focus:ring-1 focus:ring-cyan-500/40 outline-none transition-all"
                                   placeholder="Amount"
                                   value={settleAmounts[bill.id!] || ''}
                                   onChange={(e) => setSettleAmounts(prev => ({ ...prev, [bill.id!]: e.target.value }))}
@@ -510,7 +545,7 @@ const CreditCardDetails: React.FC = () => {
                                   if (val > 0) handleUpdatePayment(bill.id!, val);
                                   else showToast("Enter a valid amount", 'warning');
                                 }}
-                                className="px-4 py-2.5 bg-cyan-500 hover:bg-cyan-600 text-white text-[10px] font-black rounded-xl transition-all shadow-lg shadow-cyan-500/20 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="px-3 py-2 bg-cyan-500 hover:bg-cyan-600 text-white text-[10px] font-black rounded-xl transition-all shadow-lg shadow-cyan-500/20 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
                                 disabled={!settleAmounts[bill.id!]}
                               >
                                 Settle
@@ -518,22 +553,22 @@ const CreditCardDetails: React.FC = () => {
                             </div>
                             <button
                               onClick={() => handleUpdatePayment(bill.id!, bill.amount_due)}
-                              className="w-full py-2.5 bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-[10px] font-black rounded-xl transition-all hover:opacity-90 active:scale-[0.98] shadow-md border border-slate-200 dark:border-slate-700"
+                              className="w-full py-2 bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-[10px] font-black rounded-xl transition-all hover:opacity-90 active:scale-[0.98] shadow-sm border border-slate-200 dark:border-slate-700"
                             >
                               Full Settle (₹{bill.amount_due.toLocaleString()})
                             </button>
                           </div>
                         ) : isUnbilled ? (
-                          <div className="px-6 py-5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 rounded-2xl flex flex-col items-center justify-center text-center">
-                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Next Statement</span>
-                            <span className="text-[9px] font-medium text-slate-400 leading-tight">Cycle active. Bill not generated yet.</span>
+                          <div className="px-4 py-3 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 rounded-xl flex flex-col items-center justify-center text-center">
+                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider mb-0.5">Next Statement</span>
+                            <span className="text-[8px] font-medium text-slate-400 leading-tight">Cycle active. Bill not generated.</span>
                           </div>
                         ) : (
-                          <div className="flex flex-col items-center justify-center gap-1.5 px-6 py-5 rounded-2xl bg-emerald-500/5 border border-emerald-500/10">
-                            <div className="w-8 h-8 rounded-full bg-emerald-500/10 flex items-center justify-center">
-                              <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                          <div className="flex flex-col items-center justify-center gap-1.5 px-4 py-3 rounded-xl bg-emerald-500/5 border border-emerald-500/10">
+                            <div className="w-6 h-6 rounded-full bg-emerald-500/10 flex items-center justify-center">
+                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
                             </div>
-                            <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">Fully Settled</span>
+                            <span className="text-[9px] font-black text-emerald-500 uppercase tracking-widest">Fully Settled</span>
                           </div>
                         )}
                       </div>
