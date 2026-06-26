@@ -205,35 +205,57 @@ const CreditCards: React.FC = () => {
           </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {cards.map((card, index) => {
             const theme = CARD_THEMES[index % CARD_THEMES.length];
             const isOverdue = card.smart_status?.type === 'overdue';
             return (
               <div
                 key={card.id}
-                className={`group relative flex flex-col bg-white dark:bg-slate-900 border ${isOverdue ? 'border-rose-500 shadow-[0_0_20px_rgba(244,63,94,0.15)] ring-1 ring-rose-500/20' : 'border-slate-200 dark:border-slate-800/80 shadow-sm hover:shadow-xl'} rounded-3xl p-4 gap-4 transition-all duration-300 hover:-translate-y-1`}
+                onClick={() => navigate(`/credit-cards/${card.id}`)}
+                className={`group relative aspect-[1.586] w-full max-w-[380px] mx-auto rounded-2xl md:rounded-[1.75rem] ${theme.bg} border ${card.threshold_exceeded ? 'border-rose-500' : theme.border} shadow-lg hover:shadow-2xl transition-all duration-500 overflow-hidden text-white flex flex-col justify-between p-5 md:p-6 cursor-pointer`}
               >
-                {/* Physical Credit Card Mockup */}
-                <div
-                  onClick={() => navigate(`/credit-cards/${card.id}`)}
-                  className={`cursor-pointer relative aspect-[1.586] w-full rounded-2xl ${theme.bg} border ${card.threshold_exceeded ? 'border-rose-500' : theme.border} shadow-md p-5 flex flex-col justify-between overflow-hidden text-white group/card`}
-                >
-                  {/* Background textures */}
-                  <div className={`absolute inset-0 ${theme.pattern} opacity-100`} />
-                  <div className={`absolute inset-0 ${theme.overlay} opacity-100`} />
-                  
-                  {/* Card Content */}
-                  <div className="relative z-10 flex flex-col h-full justify-between">
-                    {/* Top Row: Issuer & Logo */}
-                    <div className="flex justify-between items-center">
-                      <span className="text-[10px] font-black text-white/70 uppercase tracking-[0.2em]">{card.issuer}</span>
-                      <CardIcon className="w-5 h-5 text-white/70" />
-                    </div>
+                {/* Background textures */}
+                <div className={`absolute inset-0 ${theme.pattern} opacity-100`} />
+                <div className={`absolute inset-0 ${theme.overlay} opacity-100`} />
+                {isOverdue && (
+                  <div className="absolute inset-0 bg-rose-500/5 animate-pulse pointer-events-none z-0" />
+                )}
 
-                    {/* Middle Row: Chip & Contactless */}
-                    <div className="flex items-center gap-3 my-2">
-                      <div className="w-8 h-6 rounded bg-gradient-to-br from-amber-200 via-yellow-400 to-amber-600 border border-amber-600/30 flex flex-col justify-between p-1 shadow-inner">
+                {/* Card Content Container */}
+                <div className="relative z-10 flex flex-col h-full justify-between">
+                  {/* Top Row: Issuer/Nickname & Status Badge */}
+                  <div className="flex justify-between items-start">
+                    <div className="space-y-0.5">
+                      <span className="text-[8px] font-bold text-white/40 uppercase tracking-[0.2em] block">{card.issuer}</span>
+                      <h3 className="text-base md:text-lg font-black text-white tracking-tight uppercase leading-none">{card.nickname}</h3>
+                    </div>
+                    
+                    {/* Status Badge */}
+                    {card.smart_status && (() => {
+                      const status = card.smart_status;
+                      const statusConfig = {
+                        overdue: { bg: 'bg-rose-500/20 border-rose-500/30 text-rose-300', icon: AlertTriangle },
+                        pending: { bg: 'bg-amber-500/20 border-amber-500/30 text-amber-300', icon: History },
+                        paid: { bg: 'bg-emerald-500/20 border-emerald-500/30 text-emerald-300', icon: ShieldCheck },
+                        next: { bg: 'bg-white/10 border-white/10 text-white/70', icon: Calendar }
+                      };
+                      const cfg = statusConfig[status.type] ?? statusConfig.next;
+                      const StatusIcon = cfg.icon;
+                      return (
+                        <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border ${cfg.bg} text-[8px] font-bold uppercase tracking-wider`}>
+                          <StatusIcon className="w-3.5 h-3.5" />
+                          <span>{status.label}</span>
+                        </div>
+                      );
+                    })()}
+                  </div>
+
+                  {/* Middle Row: Chip & Contactless & Utilization */}
+                  <div className="flex items-center justify-between gap-4 my-2">
+                    <div className="flex items-center gap-3">
+                      {/* Chip */}
+                      <div className="w-8 h-6 rounded bg-gradient-to-br from-amber-200 via-yellow-400 to-amber-600 border border-amber-600/30 flex flex-col justify-between p-1 shadow-inner flex-shrink-0">
                         <div className="flex justify-between w-full h-full opacity-60">
                           <div className="w-[30%] h-full border-r border-amber-800/30" />
                           <div className="w-[40%] h-full flex flex-col justify-between">
@@ -243,177 +265,97 @@ const CreditCards: React.FC = () => {
                           <div className="w-[30%] h-full border-l border-amber-800/30" />
                         </div>
                       </div>
-                      <svg className="w-3.5 h-3.5 text-white/50" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                      {/* Contactless waves */}
+                      <svg className="w-3.5 h-3.5 text-white/40 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
                         <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10" />
                         <path d="M8.5 5a11.5 11.5 0 0 1 3 7 11.5 11.5 0 0 1-3 7" />
                         <path d="M5 8a8.1 8.1 0 0 1 2 4 8.1 8.1 0 0 1-2 4" />
                       </svg>
                     </div>
 
-                    {/* Nickname */}
-                    <div className="space-y-0.5">
-                      <h3 className="text-lg font-black text-white tracking-tight uppercase leading-tight">{card.nickname}</h3>
-                    </div>
-
-                    {/* Bottom Row: Current Balance & Details Link */}
-                    <div className="flex justify-between items-end pt-2 border-t border-white/10 mt-1">
-                      <div>
-                        <span className="text-[7px] font-bold text-white/40 uppercase tracking-widest block">Outstanding</span>
-                        <span className="text-xs font-black text-white">₹{card.total_outstanding?.toLocaleString()}</span>
+                    {/* Utilization Progress */}
+                    <div className="flex-grow max-w-[140px] md:max-w-[180px] space-y-1">
+                      <div className="flex justify-between text-[8px] font-bold uppercase tracking-wider text-white/50">
+                        <span>Utilization</span>
+                        <span className={card.threshold_exceeded ? 'text-rose-400' : 'text-cyan-400'}>{card.utilization_percent}%</span>
                       </div>
-                      <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 text-white hover:bg-white/20 transition-all border border-white/10 shadow-md group-hover/card:scale-105">
-                        <Maximize2 className="w-3.5 h-3.5" />
-                        <span className="text-[9px] font-black uppercase tracking-widest opacity-80">Details</span>
+                      <div className="h-1.5 bg-black/30 rounded-full overflow-hidden p-0.5 border border-white/5">
+                        <div
+                          className={`h-full rounded-full transition-all duration-1000 ${card.threshold_exceeded ? 'bg-gradient-to-r from-rose-500 to-pink-500 shadow-[0_0_8px_rgba(244,63,94,0.4)]' : 'bg-gradient-to-r from-cyan-400 to-blue-500 shadow-[0_0_8px_rgba(6,182,212,0.3)]'}`}
+                          style={{ width: `${Math.min(100, card.utilization_percent || 0)}%` }}
+                        />
                       </div>
                     </div>
                   </div>
-                </div>
 
-                {/* Action Banner — the #1 thing users need to see */}
-                {(() => {
-                  const status = card.smart_status;
-                  if (!status) return null;
-
-                  const ordinalSuffix = (day: number) => {
-                    if (day > 3 && day < 21) return 'th';
-                    switch (day % 10) {
-                      case 1: return 'st';
-                      case 2: return 'nd';
-                      case 3: return 'rd';
-                      default: return 'th';
-                    }
-                  };
-
-                  const bannerConfig = {
-                    overdue: {
-                      bg: 'bg-rose-500',
-                      ring: 'ring-1 ring-rose-400/40',
-                      textColor: 'text-white',
-                      subColor: 'text-rose-100',
-                      icon: AlertTriangle,
-                      pulse: true,
-                    },
-                    pending: {
-                      bg: 'bg-gradient-to-r from-amber-500 to-orange-500',
-                      ring: 'ring-1 ring-amber-400/30 shadow-sm',
-                      textColor: 'text-white',
-                      subColor: 'text-amber-100',
-                      icon: History,
-                      pulse: false,
-                    },
-                    paid: {
-                      bg: 'bg-emerald-500/10 border border-emerald-500/20 dark:bg-emerald-500/5',
-                      ring: '',
-                      textColor: 'text-emerald-600 dark:text-emerald-400',
-                      subColor: 'text-emerald-600/60 dark:text-emerald-400/60',
-                      icon: ShieldCheck,
-                      pulse: false,
-                    },
-                    next: {
-                      bg: 'bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800',
-                      ring: '',
-                      textColor: 'text-slate-600 dark:text-slate-400',
-                      subColor: 'text-slate-400/70 dark:text-slate-500',
-                      icon: Calendar,
-                      pulse: false,
-                    },
-                  };
-
-                  const cfg = bannerConfig[status.type] ?? bannerConfig.next;
-                  const BannerIcon = cfg.icon;
-
-                  const amountStr = status.amount
-                    ? `₹${status.amount.toLocaleString('en-IN')}`
-                    : status.date
-                      ? `${status.date}${ordinalSuffix(status.date)}`
-                      : null;
-
-                  return (
-                    <div className={`px-4 py-3 rounded-xl ${cfg.bg} ${cfg.ring} relative z-10 ${cfg.pulse ? 'animate-pulse' : ''}`}>
-                      <div className="flex items-center justify-between gap-3">
-                        <div className="flex items-center gap-3 min-w-0">
-                          <div className={`shrink-0 p-1.5 rounded-lg ${status.type === 'overdue' ? 'bg-white/20' : 'bg-black/5 dark:bg-white/5'}`}>
-                            <BannerIcon className={`w-4 h-4 ${cfg.textColor}`} />
-                          </div>
-                          <div className="min-w-0">
-                            <p className={`text-[9px] font-black uppercase tracking-widest ${cfg.subColor}`}>
-                              {status.type === 'overdue' ? 'Action Required' : status.type === 'pending' ? 'Bill Due' : status.type === 'paid' ? 'Bill Status' : 'Next Billing'}
-                            </p>
-                            <p className={`text-xs font-black ${cfg.textColor} leading-tight`}>
-                              {status.label}
-                              {status.due_date && (
-                                <span className="block text-[9px] opacity-80 mt-0.5">
-                                  Due by: {new Date(status.due_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
-                                </span>
-                              )}
-                            </p>
-                          </div>
-                        </div>
-                        {amountStr && (
-                          <div className="text-right shrink-0">
-                            <p className={`text-[8px] font-bold uppercase tracking-widest ${cfg.subColor}`}>
-                              {status.amount ? 'Amount Due' : 'On'}
-                            </p>
-                            <p className={`text-base font-black tabular-nums ${cfg.textColor}`}>
-                              {amountStr}
-                            </p>
-                          </div>
+                  {/* Bill Due Info Row (If applicable) */}
+                  {card.smart_status && (card.smart_status.amount || card.smart_status.due_date) ? (
+                    <div className="bg-black/15 border border-white/5 rounded-xl px-3 py-1.5 flex items-center justify-between gap-2 text-[9px] font-medium leading-none">
+                      <span className="text-white/50 uppercase tracking-wider">
+                        {card.smart_status.type === 'overdue' ? 'Overdue amount' : 'Current Due'}
+                      </span>
+                      <div className="flex items-baseline gap-2">
+                        {card.smart_status.amount && (
+                          <span className="text-[11px] font-black text-white">₹{card.smart_status.amount.toLocaleString('en-IN')}</span>
+                        )}
+                        {card.smart_status.due_date && (
+                          <span className="text-[8px] text-white/50">
+                            by {new Date(card.smart_status.due_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                          </span>
                         )}
                       </div>
                     </div>
-                  );
-                })()}
+                  ) : (
+                    <div className="h-[21px]" /> /* alignment placeholder */
+                  )}
 
-                {/* Stats Summary Box */}
-                <div className="grid grid-cols-2 gap-3 px-1 py-1">
-                  <div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800/40 rounded-xl p-3 flex flex-col justify-center gap-0.5">
-                    <span className="text-[8px] font-bold text-slate-400 uppercase tracking-wider">Credit Limit</span>
-                    <span className="text-sm font-black text-slate-900 dark:text-white">₹{card.credit_limit.toLocaleString('en-IN')}</span>
-                  </div>
-                  <div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800/40 rounded-xl p-3 flex flex-col justify-center gap-0.5">
-                    <span className="text-[8px] font-bold text-slate-400 uppercase tracking-wider">Available Limit</span>
-                    <span className="text-sm font-black text-slate-900 dark:text-white">
-                      ₹{(card.credit_limit - (card.total_outstanding || 0)).toLocaleString('en-IN')}
-                    </span>
-                  </div>
-                </div>
+                  {/* Bottom Row: Outstanding, Limit, & Actions */}
+                  <div className="flex justify-between items-end border-t border-white/10 pt-2.5 mt-1.5">
+                    <div className="flex gap-4 md:gap-6">
+                      <div>
+                        <span className="text-[7px] font-bold text-white/40 uppercase tracking-widest block">Outstanding</span>
+                        <span className="text-xs md:text-sm font-black text-white">₹{card.total_outstanding?.toLocaleString('en-IN')}</span>
+                      </div>
+                      <div>
+                        <span className="text-[7px] font-bold text-white/40 uppercase tracking-widest block">Limit</span>
+                        <span className="text-xs md:text-sm font-bold text-white/70">₹{card.credit_limit.toLocaleString('en-IN')}</span>
+                      </div>
+                    </div>
 
-                {/* Utilization Progress Bar */}
-                <div className="px-1 space-y-1.5">
-                  <div className="flex justify-between text-[9px] font-bold uppercase tracking-wider">
-                    <span className="text-slate-400">Card Utilization</span>
-                    <span className={card.threshold_exceeded ? 'text-rose-500' : 'text-slate-500'}>
-                      {card.utilization_percent}%
-                      {card.threshold_exceeded && ' · Breached'}
-                    </span>
+                    {/* Card Actions */}
+                    <div className="flex items-center gap-1.5 z-20">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/credit-cards/${card.id}`);
+                        }}
+                        className="p-1.5 rounded-lg bg-white/10 text-white hover:bg-white/20 border border-white/10 shadow transition-all active:scale-90"
+                        title="Details"
+                      >
+                        <Maximize2 className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleOpenModal(card);
+                        }}
+                        className="p-1.5 rounded-lg bg-white/10 text-white hover:bg-white/20 border border-white/10 shadow transition-all active:scale-90"
+                        title="Edit"
+                      >
+                        <Edit2 className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDeleteTarget(card.id!);
+                        }}
+                        className="p-1.5 rounded-lg bg-rose-500/20 text-rose-300 hover:bg-rose-500 hover:text-white border border-rose-500/20 shadow transition-all active:scale-90"
+                        title="Delete"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </div>
-                  <div className="h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden border border-slate-200/10 dark:border-white/5">
-                    <div
-                      className={`h-full rounded-full transition-all duration-1000 ease-out ${card.threshold_exceeded
-                        ? 'bg-gradient-to-r from-rose-500 to-pink-500 shadow-[0_0_10px_rgba(244,63,94,0.5)]'
-                        : 'bg-gradient-to-r from-cyan-400 to-blue-500 shadow-[0_0_10px_rgba(6,182,212,0.3)]'
-                        }`}
-                      style={{ width: `${Math.min(100, card.utilization_percent || 0)}%` }}
-                    />
-                  </div>
-                </div>
-
-                {/* Action Buttons Row */}
-                <div className="flex justify-end gap-2 border-t border-slate-100 dark:border-slate-800/60 pt-3 mt-1">
-                  <button
-                    onClick={() => handleOpenModal(card)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all border border-slate-200/50 dark:border-slate-700/50"
-                  >
-                    <Edit2 className="w-3.5 h-3.5" />
-                    <span className="text-[9px] font-black uppercase tracking-widest">Edit</span>
-                  </button>
-                  <button
-                    onClick={() => setDeleteTarget(card.id!)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-500/5 dark:bg-rose-500/10 text-rose-500 hover:bg-rose-500 hover:text-white transition-all border border-rose-500/10"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                    <span className="text-[9px] font-black uppercase tracking-widest">Delete</span>
-                  </button>
                 </div>
               </div>
             );
