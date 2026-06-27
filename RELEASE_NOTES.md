@@ -1,4 +1,20 @@
 # 🚀 Release Notes
+## [June 27, 2026] Quick Filters and Searchable Lookups
+### Context-Sensitive Quick Filters & Custom Filter Presets
+- **Quick Filter Bar**: Added a horizontally scrollable strip of filter pills right above the transactions table (All, Expense, Income, Saving, Revolving).
+- **Context-Sensitive System Presets**: Automatically displays relevant filters (e.g. *This Month*, *This Year*, *Last 30 Days*, Savings direction: *In/Out*, Revolving status/direction: *Active/Settled*, *Given/Received*).
+- **Custom Preset Creation**: Users can save any advanced filter criteria combination as a custom quick filter preset with a personalized name.
+- **Sync & Cloud Persistence**: Saved presets sync instantly to the backend's user preferences database, persisting settings across different devices.
+- **Management Center**: Added a "Quick Filters" sub-tab in *Settings → Vault Configuration* to rename or delete saved custom filter combinations per tab view.
+
+### Searchable Lookup Filters & Subcategory Scroll Fix
+- **Searchable Select**: Category, Sub-Category, Item, and Credit Card lookup dropdowns in the Advanced Filters are now fully searchable.
+- **Debounced Backend Queries**: Typing in the search input triggers live, debounced database queries on the backend for categories, subcategories, and items.
+- **Infinite Scroll Nesting Fix**: Bound the infinite scroll observer to the dropdown's viewport container, resolving parent overflow clipping bugs that truncated list loading.
+
+## [June 26, 2026] Credit Cards UI Revamp
+Redesigned Credit cards view with card mockup and responsive layout for mobile and desktop views
+
 ## [June 12, 2026] Transaction Groups, Allowed Type Constraints & Custom Cover Images
 
 This release introduces **Transaction Groups** to logically organize transactions for projects, trips, or events, along with allowed transaction type metadata validations, custom cover image uploads, and seamless transaction creation directly from group views.

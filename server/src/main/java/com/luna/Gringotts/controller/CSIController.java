@@ -27,10 +27,17 @@ public class CSIController {
 
     @GetMapping("/categories")
     public ResponseEntity<Map<String, Object>> getCategories(@RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "50") int size, @RequestParam(required = false) String type) {
+            @RequestParam(defaultValue = "50") int size, @RequestParam(required = false) String type,
+            @RequestParam(required = false) String search) {
         Pageable pageable = PageRequest.of(page, size);
         Page<Category> categories;
-        if (type != null && !type.isEmpty()) {
+        if (search != null && !search.isEmpty()) {
+            if (type != null && !type.isEmpty()) {
+                categories = CSIService.getCategoriesByTypeAndSearch(type, search, pageable);
+            } else {
+                categories = CSIService.getCategoriesBySearch(search, pageable);
+            }
+        } else if (type != null && !type.isEmpty()) {
             categories = CSIService.getCategoriesByType(type, pageable);
         } else {
             categories = CSIService.getCategories(pageable);
@@ -79,10 +86,17 @@ public class CSIController {
 
     @GetMapping("/subcategories/all")
     public ResponseEntity<Map<String, Object>> getAllUserSubCategories(@RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "50") int size, @RequestParam(required = false) String type) {
+            @RequestParam(defaultValue = "50") int size, @RequestParam(required = false) String type,
+            @RequestParam(required = false) String search) {
         Pageable pageable = PageRequest.of(page, size);
         Page<SubCategory> result;
-        if (type != null && !type.isEmpty()) {
+        if (search != null && !search.isEmpty()) {
+            if (type != null && !type.isEmpty()) {
+                result = CSIService.getSubCategoriesByTypeAndSearch(type, search, pageable);
+            } else {
+                result = CSIService.getAllUserSubCategoriesBySearch(search, pageable);
+            }
+        } else if (type != null && !type.isEmpty()) {
             result = CSIService.getSubCategoriesByType(type, pageable);
         } else {
             result = CSIService.getAllUserSubCategories(pageable);
@@ -97,10 +111,17 @@ public class CSIController {
 
     @GetMapping("/items/all")
     public ResponseEntity<Map<String, Object>> getAllUserItems(@RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "50") int size, @RequestParam(required = false) String type) {
+            @RequestParam(defaultValue = "50") int size, @RequestParam(required = false) String type,
+            @RequestParam(required = false) String search) {
         Pageable pageable = PageRequest.of(page, size);
         Page<Item> result;
-        if (type != null && !type.isEmpty()) {
+        if (search != null && !search.isEmpty()) {
+            if (type != null && !type.isEmpty()) {
+                result = CSIService.getItemsByTypeAndSearch(type, search, pageable);
+            } else {
+                result = CSIService.getAllUserItemsBySearch(search, pageable);
+            }
+        } else if (type != null && !type.isEmpty()) {
             result = CSIService.getItemsByType(type, pageable);
         } else {
             result = CSIService.getAllUserItems(pageable);

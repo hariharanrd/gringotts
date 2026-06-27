@@ -149,16 +149,40 @@ public class CSIService {
         return subCategoryRepository.findByCategoryUserOrderByNameAsc(iamService.getCurrentUser(), pageable);
     }
 
+    public Page<SubCategory> getAllUserSubCategoriesBySearch(String search, Pageable pageable) {
+        return subCategoryRepository.findByCategoryUserAndNameContainingIgnoreCaseOrderByNameAsc(iamService.getCurrentUser(), search, pageable);
+    }
+
     public Page<SubCategory> getSubCategoriesByType(String type, Pageable pageable) {
         return subCategoryRepository.findByCategoryTypeAndCategoryUserOrderByNameAsc(type, iamService.getCurrentUser(), pageable);
+    }
+
+    public Page<SubCategory> getSubCategoriesByTypeAndSearch(String type, String search, Pageable pageable) {
+        return subCategoryRepository.findByCategoryTypeAndCategoryUserAndNameContainingIgnoreCaseOrderByNameAsc(type, iamService.getCurrentUser(), search, pageable);
     }
 
     public Page<Item> getAllUserItems(Pageable pageable) {
         return itemRepository.findBySubCategoryCategoryUserOrderByNameAsc(iamService.getCurrentUser(), pageable);
     }
 
+    public Page<Item> getAllUserItemsBySearch(String search, Pageable pageable) {
+        return itemRepository.findBySubCategoryCategoryUserAndNameContainingIgnoreCaseOrderByNameAsc(iamService.getCurrentUser(), search, pageable);
+    }
+
     public Page<Item> getItemsByType(String type, Pageable pageable) {
         return itemRepository.findBySubCategoryCategoryTypeAndSubCategoryCategoryUserOrderByNameAsc(type, iamService.getCurrentUser(), pageable);
+    }
+
+    public Page<Item> getItemsByTypeAndSearch(String type, String search, Pageable pageable) {
+        return itemRepository.findBySubCategoryCategoryTypeAndSubCategoryCategoryUserAndNameContainingIgnoreCaseOrderByNameAsc(type, iamService.getCurrentUser(), search, pageable);
+    }
+
+    public Page<Category> getCategoriesBySearch(String search, Pageable pageable) {
+        return categoryRepository.findByUserAndNameContainingIgnoreCaseOrderByTypeAscNameAsc(iamService.getCurrentUser(), search, pageable);
+    }
+
+    public Page<Category> getCategoriesByTypeAndSearch(String type, String search, Pageable pageable) {
+        return categoryRepository.findByTypeAndUserAndNameContainingIgnoreCaseOrderByNameAsc(type, iamService.getCurrentUser(), search, pageable);
     }
 
     @Cacheable(value = "categoryById", key = "#id")

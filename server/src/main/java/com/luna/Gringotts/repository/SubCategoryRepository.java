@@ -12,7 +12,11 @@ public interface SubCategoryRepository extends JpaRepository<SubCategory, Long> 
 
     Page<SubCategory> findByCategoryUserOrderByNameAsc(com.luna.Gringotts.records.User user, org.springframework.data.domain.Pageable pageable);
 
+    Page<SubCategory> findByCategoryUserAndNameContainingIgnoreCaseOrderByNameAsc(com.luna.Gringotts.records.User user, String name, org.springframework.data.domain.Pageable pageable);
+
     Page<SubCategory> findByCategoryTypeAndCategoryUserOrderByNameAsc(String type, com.luna.Gringotts.records.User user, org.springframework.data.domain.Pageable pageable);
+
+    Page<SubCategory> findByCategoryTypeAndCategoryUserAndNameContainingIgnoreCaseOrderByNameAsc(String type, com.luna.Gringotts.records.User user, String name, org.springframework.data.domain.Pageable pageable);
 
     boolean existsByCategoryId(Long categoryId);
 }

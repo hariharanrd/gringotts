@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Filter, X, Plus } from 'lucide-react';
+import { Filter, X, Plus, FolderHeart } from 'lucide-react';
+import { loadUserQuickFilters, saveUserQuickFilters } from '../services/quickFilters';
 
 export interface FilterCriteria {
   field: string;
@@ -13,51 +14,98 @@ export interface FilterFieldDef {
   value: string;
   type?: 'string' | 'number' | 'date' | 'boolean';
   options?: { label: string; value: string }[];
-  fetchOptions?: (page: number) => Promise<{ data: { label: string; value: string }[], hasMore: boolean }>;
+  fetchOptions?: (page: number, search?: string) => Promise<{ data: { label: string; value: string }[], hasMore: boolean }>;
 }
 
-const InfiniteSelect = ({ fetchOptions, value, label, onChange }: { fetchOptions: (page: number) => Promise<{ data: { label: string; value: string }[], hasMore: boolean }>, value: string, label?: string, onChange: (val: string, label: string) => void }) => {
+const InfiniteSelect = ({ fetchOptions, value, label, onChange }: { fetchOptions: (page: number, search?: string) => Promise<{ data: { label: string; value: string }[], hasMore: boolean }>, value: string, label?: string, onChange: (val: string, label: string) => void }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [options, setOptions] = useState<{ label: string; value: string }[]>([]);
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
   const [loading, setLoading] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const observerTarget = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const dropdownListRef = useRef<HTMLDivElement>(null);
 
+  // Debounce search term
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  // Reset state when dropdown closes
+  useEffect(() => {
+    if (!isOpen) {
+      setSearchTerm('');
+      setDebouncedSearch('');
+      setPage(0);
+      setOptions([]);
+      setHasMore(true);
+    }
+  }, [isOpen]);
+
+  // Reset page and options when debouncedSearch changes
   useEffect(() => {
     if (!isOpen) return;
+    setPage(0);
+    setOptions([]);
+    setHasMore(true);
+  }, [debouncedSearch]);
+
+  // Load options
+  useEffect(() => {
+    if (!isOpen) return;
+
+    let active = true;
     const loadOptions = async () => {
-      if (loading || !hasMore) return;
       setLoading(true);
       try {
-        const res = await fetchOptions(page);
+        const res = await fetchOptions(page, debouncedSearch);
+        if (!active) return;
         setOptions(prev => {
-          const newOpts = res.data.filter(d => !prev.find(p => p.value === d.value));
-          return [...prev, ...newOpts];
+          const base = page === 0 ? [] : prev;
+          const newOpts = res.data.filter(d => !base.find(p => p.value === d.value));
+          return [...base, ...newOpts];
         });
         setHasMore(res.hasMore);
       } catch (e) {
-        setHasMore(false);
+        if (active) setHasMore(false);
       }
       setLoading(false);
     };
     loadOptions();
-  }, [page, isOpen]);
 
+    return () => {
+      active = false;
+    };
+  }, [page, debouncedSearch, isOpen]);
+
+  // Intersection Observer bound to the scroll container
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen || !dropdownListRef.current) return;
+
     const observer = new IntersectionObserver(
       entries => {
-        if (entries[0].isIntersecting && hasMore && !loading) {
+        if (entries[0].isIntersecting && hasMore && !loading && options.length > 0) {
           setPage(p => p + 1);
         }
       },
-      { threshold: 0.1 }
+      {
+        root: dropdownListRef.current,
+        threshold: 0.1
+      }
     );
-    if (observerTarget.current) observer.observe(observerTarget.current);
+
+    if (observerTarget.current) {
+      observer.observe(observerTarget.current);
+    }
+
     return () => observer.disconnect();
-  }, [hasMore, loading, isOpen]);
+  }, [hasMore, loading, isOpen, options.length]);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -69,7 +117,7 @@ const InfiniteSelect = ({ fetchOptions, value, label, onChange }: { fetchOptions
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const selectedLabel = options.find(o => o.value === value)?.label || value || 'Select Value...';
+  const displayLabel = label || options.find(o => o.value === value)?.label || value || 'Select Value...';
 
   return (
     <div className="relative flex-1" ref={containerRef}>
@@ -78,27 +126,49 @@ const InfiniteSelect = ({ fetchOptions, value, label, onChange }: { fetchOptions
         className="w-full text-left text-sm sm:text-xs px-3 py-2 sm:py-1.5 rounded-lg bg-white dark:bg-slate-800 border shadow-sm border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-cyan-500/50 outline-none dark:text-slate-200"
         onClick={() => setIsOpen(!isOpen)}
       >
-        <span className="block truncate text-slate-700 dark:text-slate-200">{label || options.find(o => o.value === value)?.label || value || 'Select Value...'}</span>
+        <span className="block truncate text-slate-700 dark:text-slate-200">{displayLabel}</span>
       </button>
       {isOpen && (
-        <div className="absolute z-[60] w-full mt-1 max-h-48 overflow-y-auto bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg">
-          <div
-            className="px-3 py-2 text-sm sm:text-xs hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer text-slate-500 dark:text-slate-400"
-            onClick={() => { onChange('', ''); setIsOpen(false); }}
-          >
-            Select Value...
+        <div className="absolute z-[60] w-full mt-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg flex flex-col max-h-56">
+          <div className="p-2 border-b border-slate-100 dark:border-slate-700/50">
+            <input
+              type="text"
+              className="w-full text-xs px-2.5 py-1.5 rounded-md bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 focus:ring-1 focus:ring-cyan-500 outline-none dark:text-slate-200"
+              placeholder="Search..."
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+              autoFocus
+            />
           </div>
-          {options.map(opt => (
+          <div
+            ref={dropdownListRef}
+            className="overflow-y-auto flex-1 max-h-40"
+          >
             <div
-              key={opt.value}
-              className="px-3 py-2 text-sm sm:text-xs hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer text-slate-700 dark:text-slate-200"
-              onClick={() => { onChange(opt.value, opt.label); setIsOpen(false); }}
+              className="px-3 py-2 text-sm sm:text-xs hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer text-slate-500 dark:text-slate-400"
+              onClick={() => { onChange('', ''); setIsOpen(false); }}
             >
-              {opt.label}
+              Select Value...
             </div>
-          ))}
-          {loading && <div className="px-3 py-2 text-sm text-slate-500">Loading...</div>}
-          <div ref={observerTarget} className="h-1" />
+            {options.map(opt => (
+              <div
+                key={opt.value}
+                className={`px-3 py-2 text-sm sm:text-xs hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer ${
+                  opt.value === value
+                    ? 'bg-cyan-500/10 dark:bg-cyan-500/20 text-cyan-600 dark:text-cyan-400 font-semibold'
+                    : 'text-slate-700 dark:text-slate-200'
+                }`}
+                onClick={() => { onChange(opt.value, opt.label); setIsOpen(false); }}
+              >
+                {opt.label}
+              </div>
+            ))}
+            {options.length === 0 && !loading && (
+              <div className="px-3 py-4 text-xs text-slate-400 text-center italic">No results found</div>
+            )}
+            {loading && <div className="px-3 py-2 text-xs text-slate-400 text-center">Loading...</div>}
+            <div ref={observerTarget} className="h-1" />
+          </div>
         </div>
       )}
     </div>
@@ -109,6 +179,8 @@ interface FilterMenuProps {
   activeFilters: FilterCriteria[];
   onApplyFilters: (filters: FilterCriteria[]) => void;
   availableFields: FilterFieldDef[];
+  tab?: string;
+  onQuickFilterSaved?: () => void;
 }
 
 export const FilterChips: React.FC<{
@@ -155,10 +227,35 @@ export const FilterChips: React.FC<{
   );
 };
 
-export const FilterMenu: React.FC<FilterMenuProps> = ({ activeFilters, onApplyFilters, availableFields }) => {
+export const FilterMenu: React.FC<FilterMenuProps> = ({ activeFilters, onApplyFilters, availableFields, tab, onQuickFilterSaved }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [draftFilters, setDraftFilters] = useState<FilterCriteria[]>([]);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const [isSavingQf, setIsSavingQf] = useState(false);
+  const [qfName, setQfName] = useState('');
+
+  const handleSaveQuickFilter = async () => {
+    if (!qfName.trim() || !tab) return;
+    try {
+      const existing = loadUserQuickFilters(tab);
+      const newQf = {
+        id: `user-${Date.now()}`,
+        label: qfName.trim(),
+        tab,
+        isSystem: false,
+        filters: draftFilters.filter(f => f.value.trim() !== '')
+      };
+      await saveUserQuickFilters(tab, [...existing, newQf]);
+      setIsSavingQf(false);
+      setQfName('');
+      window.dispatchEvent(new CustomEvent('quick-filters-changed'));
+      if (onQuickFilterSaved) {
+        onQuickFilterSaved();
+      }
+    } catch (err) {
+      console.error("Failed to save quick filter", err);
+    }
+  };
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -176,6 +273,8 @@ export const FilterMenu: React.FC<FilterMenuProps> = ({ activeFilters, onApplyFi
 
   const handleOpen = () => {
     setDraftFilters([...activeFilters]);
+    setIsSavingQf(false);
+    setQfName('');
     setIsOpen(true);
   };
 
@@ -350,6 +449,7 @@ export const FilterMenu: React.FC<FilterMenuProps> = ({ activeFilters, onApplyFi
                       if (fieldDef?.fetchOptions && filter.condition === 'eq') {
                         return (
                           <InfiniteSelect
+                            key={filter.field}
                             fetchOptions={fieldDef.fetchOptions}
                             value={filter.value}
                             label={filter.label}
@@ -429,29 +529,74 @@ export const FilterMenu: React.FC<FilterMenuProps> = ({ activeFilters, onApplyFi
               )}
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-3 pt-6 border-t border-slate-100 dark:border-slate-700/50 mt-auto">
-              <button
-                onClick={addFilter}
-                className="flex items-center justify-center gap-2 py-2.5 px-4 text-xs font-bold text-cyan-600 bg-cyan-500/10 hover:bg-cyan-500/20 dark:text-cyan-400 rounded-xl transition-all w-full sm:w-auto uppercase tracking-widest active:scale-95"
-              >
-                <Plus className="w-4 h-4" /> Add Rule
-              </button>
-
-              <div className="flex gap-3 sm:ml-auto w-full sm:w-auto">
-                <button
-                  onClick={clear}
-                  className="flex-1 sm:flex-none px-6 py-2.5 text-xs font-bold text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors uppercase tracking-widest"
-                >
-                  Clear All
-                </button>
-                <button
-                  onClick={apply}
-                  className="flex-[2] sm:flex-none px-8 py-2.5 text-xs font-bold bg-gradient-to-r from-cyan-600 to-blue-600 text-white rounded-xl hover:from-cyan-500 hover:to-blue-500 transition-all shadow-lg shadow-cyan-500/20 active:scale-95 uppercase tracking-widest"
-                >
-                  Apply Filters
-                </button>
+            {isSavingQf ? (
+              <div className="flex flex-col sm:flex-row items-center gap-3 pt-6 border-t border-slate-100 dark:border-slate-700/50 mt-auto animate-in slide-in-from-bottom-2">
+                <input
+                  type="text"
+                  placeholder="Quick Filter Name..."
+                  value={qfName}
+                  onChange={e => setQfName(e.target.value)}
+                  className="w-full sm:flex-1 text-xs px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 outline-none focus:ring-2 focus:ring-cyan-500/30 dark:text-slate-200 font-medium"
+                  maxLength={25}
+                  autoFocus
+                />
+                <div className="flex gap-3 justify-end w-full sm:w-auto shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => { setIsSavingQf(false); setQfName(''); }}
+                    className="px-4 py-2 text-xs font-bold text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 uppercase tracking-widest"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSaveQuickFilter}
+                    disabled={!qfName.trim()}
+                    className="px-6 py-2 text-xs font-bold bg-cyan-500 text-white rounded-xl shadow-lg shadow-cyan-500/20 hover:bg-cyan-600 disabled:opacity-50 transition-all uppercase tracking-widest"
+                  >
+                    Save
+                  </button>
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="flex flex-col sm:flex-row gap-3 pt-6 border-t border-slate-100 dark:border-slate-700/50 mt-auto justify-between items-center">
+                <div className="flex items-center gap-2 w-full sm:w-auto">
+                  <button
+                    type="button"
+                    onClick={addFilter}
+                    className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 py-2.5 px-3 text-xs font-bold text-cyan-600 bg-cyan-500/10 hover:bg-cyan-500/20 dark:text-cyan-400 rounded-xl transition-all uppercase tracking-widest active:scale-95"
+                  >
+                    <Plus className="w-3.5 h-3.5" /> Add Rule
+                  </button>
+                  {tab && draftFilters.some(f => f.value.trim() !== '') && (
+                    <button
+                      type="button"
+                      onClick={() => setIsSavingQf(true)}
+                      className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 py-2.5 px-3 text-xs font-bold text-rose-600 bg-rose-500/10 hover:bg-rose-500/20 dark:text-rose-400 rounded-xl transition-all uppercase tracking-widest active:scale-95 whitespace-nowrap"
+                    >
+                      <FolderHeart className="w-3.5 h-3.5" /> Save Filter
+                    </button>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-3 sm:ml-auto w-full sm:w-auto">
+                  <button
+                    type="button"
+                    onClick={clear}
+                    className="flex-1 sm:flex-none px-3 py-2.5 text-xs font-bold text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors uppercase tracking-widest text-center"
+                  >
+                    Clear All
+                  </button>
+                  <button
+                    type="button"
+                    onClick={apply}
+                    className="flex-[2] sm:flex-none px-5 py-2.5 text-xs font-bold bg-gradient-to-r from-cyan-600 to-blue-600 text-white rounded-xl hover:from-cyan-500 hover:to-blue-500 transition-all shadow-lg shadow-cyan-500/20 active:scale-95 uppercase tracking-widest text-center"
+                  >
+                    Apply Filters
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </>
       )}
