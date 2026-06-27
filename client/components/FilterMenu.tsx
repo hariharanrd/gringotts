@@ -62,10 +62,8 @@ const InfiniteSelect = ({ fetchOptions, value, label, onChange }: { fetchOptions
     let active = true;
     const loadOptions = async () => {
       setLoading(true);
-      console.log("[InfiniteSelect] Fetching options...", { page, debouncedSearch, isOpen });
       try {
         const res = await fetchOptions(page, debouncedSearch);
-        console.log("[InfiniteSelect] Fetch completed.", { active, page, debouncedSearch, dataCount: res.data.length });
         if (!active) return;
         setOptions(prev => {
           const base = page === 0 ? [] : prev;
@@ -74,7 +72,6 @@ const InfiniteSelect = ({ fetchOptions, value, label, onChange }: { fetchOptions
         });
         setHasMore(res.hasMore);
       } catch (e) {
-        console.error("[InfiniteSelect] Fetch failed:", e);
         if (active) setHasMore(false);
       }
       setLoading(false);
@@ -82,7 +79,6 @@ const InfiniteSelect = ({ fetchOptions, value, label, onChange }: { fetchOptions
     loadOptions();
 
     return () => {
-      console.log("[InfiniteSelect] Effect cleanup.", { page, debouncedSearch });
       active = false;
     };
   }, [page, debouncedSearch, isOpen]);

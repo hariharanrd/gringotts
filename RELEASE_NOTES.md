@@ -1,4 +1,12 @@
 # 🚀 Release Notes
+## [June 27, 2026] Searchable Lookup Filters & Subcategory Scroll Fix
+- **Searchable Select**: Category, Sub-Category, Item, and Credit Card lookup dropdowns in the Advanced Filters are now fully searchable.
+- **Debounced Backend Queries**: Typing in the search input triggers live, debounced database queries on the backend for categories, subcategories, and items.
+- **Infinite Scroll Nesting Fix**: Bound the infinite scroll observer to the dropdown's viewport container, resolving parent overflow clipping bugs that truncated list loading.
+
+## [June 26, 2026] Credit Cards UI Revamp
+Redesigned Credit cards view with card mockup and responsive layout for mobile and desktop views
+
 ## [June 12, 2026] Transaction Groups, Allowed Type Constraints & Custom Cover Images
 
 This release introduces **Transaction Groups** to logically organize transactions for projects, trips, or events, along with allowed transaction type metadata validations, custom cover image uploads, and seamless transaction creation directly from group views.
