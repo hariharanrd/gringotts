@@ -534,31 +534,31 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
   };
 
   const getAvailableFields = () => {
-    const baseFields: { label: string; value: string; type: 'string' | 'number' | 'date' | 'boolean'; options?: { label: string, value: string }[]; fetchOptions?: (page: number) => Promise<{ data: { label: string; value: string }[], hasMore: boolean }> }[] = [
+    const baseFields: { label: string; value: string; type: 'string' | 'number' | 'date' | 'boolean'; options?: { label: string, value: string }[]; fetchOptions?: (page: number, search?: string) => Promise<{ data: { label: string; value: string }[], hasMore: boolean }> }[] = [
       { label: 'Date', value: 'transaction_time', type: 'date' },
       { label: 'Description', value: 'description', type: 'string' },
       { label: 'Amount', value: 'value', type: 'number' },
       {
         label: 'Category', value: 'category.id', type: 'number',
-        fetchOptions: async (page) => {
+        fetchOptions: async (page, search) => {
           const type = currentTab !== 'all' ? currentTab.toUpperCase() : undefined;
-          const res = await api.getCategoriesPaginated(page, type);
+          const res = await api.getCategoriesPaginated(page, type, search);
           return { data: res.data.map(c => ({ label: c.name, value: c.id.toString() })), hasMore: res.has_more };
         }
       },
       {
         label: 'Sub-Category', value: 'subcategory.id', type: 'number',
-        fetchOptions: async (page) => {
+        fetchOptions: async (page, search) => {
           const type = currentTab !== 'all' ? currentTab.toUpperCase() : undefined;
-          const res = await api.getAllSubCategoriesPaginated(page, type);
+          const res = await api.getAllSubCategoriesPaginated(page, type, search);
           return { data: res.data.map(sc => ({ label: sc.name, value: sc.id.toString() })), hasMore: res.has_more };
         }
       },
       {
         label: 'Item', value: 'item.id', type: 'number',
-        fetchOptions: async (page) => {
+        fetchOptions: async (page, search) => {
           const type = currentTab !== 'all' ? currentTab.toUpperCase() : undefined;
-          const res = await api.getAllItemsPaginated(page, type);
+          const res = await api.getAllItemsPaginated(page, type, search);
           return { data: res.data.map(i => ({ label: i.name, value: i.id.toString() })), hasMore: res.has_more };
         }
       },
@@ -571,9 +571,11 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
     });
     baseFields.push({
       label: 'Credit Card', value: 'credit_card.id', type: 'number',
-      fetchOptions: async (page) => {
+      fetchOptions: async (page, search) => {
         const res = await api.getCreditCards();
-        return { data: res.data.map(c => ({ label: c.nickname, value: c.id!.toString() })), hasMore: false };
+        const data = res.data.map(c => ({ label: c.nickname, value: c.id!.toString() }));
+        const filtered = search ? data.filter(d => d.label.toLowerCase().includes(search.toLowerCase())) : data;
+        return { data: filtered, hasMore: false };
       }
     });
 

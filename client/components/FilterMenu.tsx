@@ -13,51 +13,102 @@ export interface FilterFieldDef {
   value: string;
   type?: 'string' | 'number' | 'date' | 'boolean';
   options?: { label: string; value: string }[];
-  fetchOptions?: (page: number) => Promise<{ data: { label: string; value: string }[], hasMore: boolean }>;
+  fetchOptions?: (page: number, search?: string) => Promise<{ data: { label: string; value: string }[], hasMore: boolean }>;
 }
 
-const InfiniteSelect = ({ fetchOptions, value, label, onChange }: { fetchOptions: (page: number) => Promise<{ data: { label: string; value: string }[], hasMore: boolean }>, value: string, label?: string, onChange: (val: string, label: string) => void }) => {
+const InfiniteSelect = ({ fetchOptions, value, label, onChange }: { fetchOptions: (page: number, search?: string) => Promise<{ data: { label: string; value: string }[], hasMore: boolean }>, value: string, label?: string, onChange: (val: string, label: string) => void }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [options, setOptions] = useState<{ label: string; value: string }[]>([]);
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
   const [loading, setLoading] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const observerTarget = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const dropdownListRef = useRef<HTMLDivElement>(null);
 
+  // Debounce search term
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  // Reset state when dropdown closes
+  useEffect(() => {
+    if (!isOpen) {
+      setSearchTerm('');
+      setDebouncedSearch('');
+      setPage(0);
+      setOptions([]);
+      setHasMore(true);
+    }
+  }, [isOpen]);
+
+  // Reset page and options when debouncedSearch changes
   useEffect(() => {
     if (!isOpen) return;
+    setPage(0);
+    setOptions([]);
+    setHasMore(true);
+  }, [debouncedSearch]);
+
+  // Load options
+  useEffect(() => {
+    if (!isOpen) return;
+
+    let active = true;
     const loadOptions = async () => {
-      if (loading || !hasMore) return;
       setLoading(true);
+      console.log("[InfiniteSelect] Fetching options...", { page, debouncedSearch, isOpen });
       try {
-        const res = await fetchOptions(page);
+        const res = await fetchOptions(page, debouncedSearch);
+        console.log("[InfiniteSelect] Fetch completed.", { active, page, debouncedSearch, dataCount: res.data.length });
+        if (!active) return;
         setOptions(prev => {
-          const newOpts = res.data.filter(d => !prev.find(p => p.value === d.value));
-          return [...prev, ...newOpts];
+          const base = page === 0 ? [] : prev;
+          const newOpts = res.data.filter(d => !base.find(p => p.value === d.value));
+          return [...base, ...newOpts];
         });
         setHasMore(res.hasMore);
       } catch (e) {
-        setHasMore(false);
+        console.error("[InfiniteSelect] Fetch failed:", e);
+        if (active) setHasMore(false);
       }
       setLoading(false);
     };
     loadOptions();
-  }, [page, isOpen]);
 
+    return () => {
+      console.log("[InfiniteSelect] Effect cleanup.", { page, debouncedSearch });
+      active = false;
+    };
+  }, [page, debouncedSearch, isOpen]);
+
+  // Intersection Observer bound to the scroll container
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen || !dropdownListRef.current) return;
+
     const observer = new IntersectionObserver(
       entries => {
-        if (entries[0].isIntersecting && hasMore && !loading) {
+        if (entries[0].isIntersecting && hasMore && !loading && options.length > 0) {
           setPage(p => p + 1);
         }
       },
-      { threshold: 0.1 }
+      {
+        root: dropdownListRef.current,
+        threshold: 0.1
+      }
     );
-    if (observerTarget.current) observer.observe(observerTarget.current);
+
+    if (observerTarget.current) {
+      observer.observe(observerTarget.current);
+    }
+
     return () => observer.disconnect();
-  }, [hasMore, loading, isOpen]);
+  }, [hasMore, loading, isOpen, options.length]);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -69,7 +120,7 @@ const InfiniteSelect = ({ fetchOptions, value, label, onChange }: { fetchOptions
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const selectedLabel = options.find(o => o.value === value)?.label || value || 'Select Value...';
+  const displayLabel = label || options.find(o => o.value === value)?.label || value || 'Select Value...';
 
   return (
     <div className="relative flex-1" ref={containerRef}>
@@ -78,27 +129,49 @@ const InfiniteSelect = ({ fetchOptions, value, label, onChange }: { fetchOptions
         className="w-full text-left text-sm sm:text-xs px-3 py-2 sm:py-1.5 rounded-lg bg-white dark:bg-slate-800 border shadow-sm border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-cyan-500/50 outline-none dark:text-slate-200"
         onClick={() => setIsOpen(!isOpen)}
       >
-        <span className="block truncate text-slate-700 dark:text-slate-200">{label || options.find(o => o.value === value)?.label || value || 'Select Value...'}</span>
+        <span className="block truncate text-slate-700 dark:text-slate-200">{displayLabel}</span>
       </button>
       {isOpen && (
-        <div className="absolute z-[60] w-full mt-1 max-h-48 overflow-y-auto bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg">
-          <div
-            className="px-3 py-2 text-sm sm:text-xs hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer text-slate-500 dark:text-slate-400"
-            onClick={() => { onChange('', ''); setIsOpen(false); }}
-          >
-            Select Value...
+        <div className="absolute z-[60] w-full mt-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg flex flex-col max-h-56">
+          <div className="p-2 border-b border-slate-100 dark:border-slate-700/50">
+            <input
+              type="text"
+              className="w-full text-xs px-2.5 py-1.5 rounded-md bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 focus:ring-1 focus:ring-cyan-500 outline-none dark:text-slate-200"
+              placeholder="Search..."
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+              autoFocus
+            />
           </div>
-          {options.map(opt => (
+          <div
+            ref={dropdownListRef}
+            className="overflow-y-auto flex-1 max-h-40"
+          >
             <div
-              key={opt.value}
-              className="px-3 py-2 text-sm sm:text-xs hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer text-slate-700 dark:text-slate-200"
-              onClick={() => { onChange(opt.value, opt.label); setIsOpen(false); }}
+              className="px-3 py-2 text-sm sm:text-xs hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer text-slate-500 dark:text-slate-400"
+              onClick={() => { onChange('', ''); setIsOpen(false); }}
             >
-              {opt.label}
+              Select Value...
             </div>
-          ))}
-          {loading && <div className="px-3 py-2 text-sm text-slate-500">Loading...</div>}
-          <div ref={observerTarget} className="h-1" />
+            {options.map(opt => (
+              <div
+                key={opt.value}
+                className={`px-3 py-2 text-sm sm:text-xs hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer ${
+                  opt.value === value
+                    ? 'bg-cyan-500/10 dark:bg-cyan-500/20 text-cyan-600 dark:text-cyan-400 font-semibold'
+                    : 'text-slate-700 dark:text-slate-200'
+                }`}
+                onClick={() => { onChange(opt.value, opt.label); setIsOpen(false); }}
+              >
+                {opt.label}
+              </div>
+            ))}
+            {options.length === 0 && !loading && (
+              <div className="px-3 py-4 text-xs text-slate-400 text-center italic">No results found</div>
+            )}
+            {loading && <div className="px-3 py-2 text-xs text-slate-400 text-center">Loading...</div>}
+            <div ref={observerTarget} className="h-1" />
+          </div>
         </div>
       )}
     </div>
@@ -350,6 +423,7 @@ export const FilterMenu: React.FC<FilterMenuProps> = ({ activeFilters, onApplyFi
                       if (fieldDef?.fetchOptions && filter.condition === 'eq') {
                         return (
                           <InfiniteSelect
+                            key={filter.field}
                             fetchOptions={fieldDef.fetchOptions}
                             value={filter.value}
                             label={filter.label}

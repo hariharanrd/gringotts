@@ -13,6 +13,8 @@ import java.util.List;
 public interface CategoryRepository extends JpaRepository<Category, Long> {
     Page<Category> findByUserOrderByTypeAscNameAsc(User user, Pageable pageable);
     Page<Category> findByTypeAndUserOrderByNameAsc(String type, User user, Pageable pageable);
+    Page<Category> findByUserAndNameContainingIgnoreCaseOrderByTypeAscNameAsc(User user, String name, Pageable pageable);
+    Page<Category> findByTypeAndUserAndNameContainingIgnoreCaseOrderByNameAsc(String type, User user, String name, Pageable pageable);
     List<Category> findAllByUser(User user);
     void deleteByUser(User user);
 }
