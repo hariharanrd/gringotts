@@ -5,19 +5,21 @@ import { api } from '../services/api';
 import { useToast } from '../components/ToastContext';
 import { useTheme, THEME_LIBRARY, ThemeId } from '../components/ThemeContext';
 import {
-  User, KeyRound, Trash2, Camera, Save, Eye, EyeOff, AlertTriangle, X, Check, Palette, Sun, Moon, ChevronDown, Loader2, Info, RefreshCcw, Globe, Monitor, LogOut, QrCode, Copy, CheckCircle2, Lock, Tag, Upload, Download, FileSpreadsheet, FileText, Layers, Plus, Pencil
+  User, KeyRound, Trash2, Camera, Save, Eye, EyeOff, AlertTriangle, X, Check, Palette, Sun, Moon, ChevronDown, Loader2, Info, RefreshCcw, Globe, Monitor, LogOut, QrCode, Copy, CheckCircle2, Lock, Tag, Upload, Download, FileSpreadsheet, FileText, Layers, Plus, Pencil, FolderHeart
 } from 'lucide-react';
 import Configuration from './Configuration';
 import { UserSession } from '../types';
 import { personalizationSync } from '../services/personalizationSync';
 import { getUserTimeZone, getTimezoneOffset } from '../services/dateUtils';
+import { loadUserQuickFilters, saveUserQuickFilters } from '../services/quickFilters';
+import { QuickFilter } from '../types';
 
 interface SettingsProps {
   onProfileUpdate: () => void;
   onImportSuccess: () => void;
 }
 
-type Section = 'profile' | 'security' | 'sessions' | 'account' | 'preferences' | 'categories' | 'import' | 'export' | 'appearance';
+type Section = 'profile' | 'security' | 'sessions' | 'account' | 'preferences' | 'categories' | 'import' | 'export' | 'appearance' | 'quick_filters';
 
 const SETTINGS_GROUPS = [
   {
@@ -35,6 +37,7 @@ const SETTINGS_GROUPS = [
     items: [
        { id: 'appearance' as Section, label: 'Appearance', icon: Palette },
       { id: 'categories' as Section, label: 'Categories & Items', icon: Tag },
+      { id: 'quick_filters' as Section, label: 'Quick Filters', icon: FolderHeart },
       { id: 'import' as Section, label: 'Import Statement', icon: Download },
       { id: 'export' as Section, label: 'Export Data', icon: Upload }
      
@@ -265,6 +268,59 @@ const Settings: React.FC<SettingsProps> = ({ onProfileUpdate, onImportSuccess })
 
   // Danger section
   const [showDeleteModal, setDeleteModal] = useState(false);
+
+  // Quick Filters section state
+  const [qfMap, setQfMap] = useState<Record<string, QuickFilter[]>>({});
+  const [editingQfId, setEditingQfId] = useState<string | null>(null);
+  const [editingQfName, setEditingQfName] = useState('');
+  const [selectedQfTab, setSelectedQfTab] = useState<string>('all');
+
+  const loadAllQuickFilters = () => {
+    const tabs = ['all', 'expense', 'income', 'saving', 'revolving'];
+    const map: Record<string, QuickFilter[]> = {};
+    tabs.forEach(t => {
+      map[t] = loadUserQuickFilters(t);
+    });
+    setQfMap(map);
+  };
+
+  useEffect(() => {
+    if (section === 'quick_filters') {
+      loadAllQuickFilters();
+    }
+  }, [section]);
+
+  const handleRenameQf = async (tab: string, qfId: string) => {
+    if (!editingQfName.trim()) return;
+    const tabFilters = qfMap[tab] || [];
+    const updated = tabFilters.map(qf => {
+      if (qf.id === qfId) {
+        return { ...qf, label: editingQfName.trim() };
+      }
+      return qf;
+    });
+    
+    await saveUserQuickFilters(tab, updated);
+    setEditingQfId(null);
+    setEditingQfName('');
+    loadAllQuickFilters();
+    showToast('Quick filter renamed successfully', 'success');
+    window.dispatchEvent(new CustomEvent('quick-filters-changed'));
+  };
+
+  const handleDeleteQf = async (tab: string, qfId: string, label: string) => {
+    if (!window.confirm(`Are you sure you want to delete the quick filter "${label}"?`)) {
+      return;
+    }
+    const tabFilters = qfMap[tab] || [];
+    const updated = tabFilters.filter(qf => qf.id !== qfId);
+    
+    await saveUserQuickFilters(tab, updated);
+    loadAllQuickFilters();
+    showToast('Quick filter deleted successfully', 'success');
+    window.dispatchEvent(new CustomEvent('quick-filters-changed'));
+  };
+
   const [menuOpen, setMenuOpen] = useState(false);
 
   // Preferences section
@@ -1587,6 +1643,170 @@ const Settings: React.FC<SettingsProps> = ({ onProfileUpdate, onImportSuccess })
                 <p className="text-xs text-slate-400 mt-0.5">Manage transaction categories, sub-categories, and specific items.</p>
               </div>
               <Configuration isPanel={true} />
+            </div>
+          )}
+
+          {/* ─ Quick Filters ─ */}
+          {section === 'quick_filters' && (
+            <div className="bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700/50 rounded-2xl p-6 space-y-6">
+              <div>
+                <h2 className="text-base font-semibold text-slate-900 dark:text-white">Quick Filters</h2>
+                <p className="text-xs text-slate-400 mt-0.5">Manage your user-defined custom quick filters for each transaction tab.</p>
+              </div>
+
+              {/* Sub-Tab Selector */}
+              <div className="flex border-b border-slate-100 dark:border-slate-800/80 gap-4 overflow-x-auto pb-px">
+                {['all', 'expense', 'income', 'saving', 'revolving'].map(t => (
+                  <button
+                    key={t}
+                    onClick={() => {
+                      setSelectedQfTab(t);
+                      setEditingQfId(null);
+                    }}
+                    className={`pb-3 text-xs font-bold uppercase tracking-wider transition-all relative whitespace-nowrap ${
+                      selectedQfTab === t
+                        ? 'text-cyan-500'
+                        : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'
+                    }`}
+                  >
+                    {t === 'all' ? 'All Transactions' : `${t}s`}
+                    {selectedQfTab === t && (
+                      <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-cyan-500 rounded-full" />
+                    )}
+                  </button>
+                ))}
+              </div>
+
+              {/* List of Custom Filters for Selected Tab */}
+              <div className="space-y-3">
+                {(!qfMap[selectedQfTab] || qfMap[selectedQfTab].length === 0) ? (
+                  <div className="flex flex-col items-center justify-center py-10 text-center text-slate-500 dark:text-slate-400 border border-dashed border-slate-200 dark:border-slate-800 rounded-2xl">
+                    <FolderHeart className="w-8 h-8 opacity-30 mb-2 text-rose-500" />
+                    <p className="text-sm font-medium">No custom quick filters saved</p>
+                    <p className="text-xs text-slate-400 mt-1 max-w-xs">
+                      You can save quick filters directly from the Transaction List view's Advanced Filters panel.
+                    </p>
+                  </div>
+                ) : (
+                  qfMap[selectedQfTab].map(qf => {
+                    const isEditing = editingQfId === qf.id;
+
+                    const getFieldLabel = (field: string) => {
+                      switch (field) {
+                        case 'transaction_time': return 'Date';
+                        case 'description': return 'Description';
+                        case 'value': return 'Amount';
+                        case 'category.id': return 'Category';
+                        case 'subcategory.id': return 'Sub-Category';
+                        case 'item.id': return 'Item';
+                        case 'notes': return 'Notes';
+                        case 'payment_mode': return 'Payment Mode';
+                        case 'credit_card.id': return 'Credit Card';
+                        case 'is_in': return 'Direction';
+                        case 'is_give': return 'Direction';
+                        case 'closed': return 'Status';
+                        default: return field;
+                      }
+                    };
+
+                    const getConditionLabel = (cond: string) => {
+                      switch (cond) {
+                        case 'eq': return 'equals';
+                        case 'like': return 'contains';
+                        case 'gt': return 'after';
+                        case 'ge': return 'on or after';
+                        case 'lt': return 'before';
+                        case 'le': return 'on or before';
+                        default: return cond;
+                      }
+                    };
+
+                    return (
+                      <div
+                        key={qf.id}
+                        className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 bg-slate-50/50 dark:bg-slate-900/40 border border-slate-100 dark:border-slate-800/80 rounded-2xl gap-4 hover:shadow-sm transition-all"
+                      >
+                        <div className="space-y-1.5 flex-1 min-w-0 w-full">
+                          {isEditing ? (
+                            <div className="flex items-center gap-2 max-w-sm">
+                              <input
+                                type="text"
+                                value={editingQfName}
+                                onChange={e => setEditingQfName(e.target.value)}
+                                className="text-xs px-3 py-1.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none focus:ring-1 focus:ring-cyan-500 w-full dark:text-white"
+                                autoFocus
+                                maxLength={25}
+                              />
+                              <button
+                                onClick={() => handleRenameQf(selectedQfTab, qf.id)}
+                                disabled={!editingQfName.trim()}
+                                className="px-3 py-1.5 bg-cyan-500 text-white rounded-lg text-[10px] font-bold uppercase hover:bg-cyan-600 disabled:opacity-50 transition-all shrink-0"
+                              >
+                                Save
+                              </button>
+                              <button
+                                onClick={() => { setEditingQfId(null); setEditingQfName(''); }}
+                                className="px-2 py-1.5 text-[10px] font-bold text-slate-500 uppercase hover:text-slate-700 dark:hover:text-slate-300 shrink-0"
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-bold text-slate-900 dark:text-white truncate">
+                                {qf.label}
+                              </span>
+                            </div>
+                          )}
+
+                          {/* Condition Chips */}
+                          <div className="flex flex-wrap gap-1.5">
+                            {qf.filters.map((filter, index) => (
+                              <span
+                                key={index}
+                                className="inline-flex items-center px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-[10px] text-slate-600 dark:text-slate-400 font-bold"
+                              >
+                                <span className="text-[8px] uppercase text-slate-400 mr-1">
+                                  {getFieldLabel(filter.field)}
+                                </span>
+                                <span className="text-[8px] lowercase text-slate-400 font-normal mr-1">
+                                  {getConditionLabel(filter.condition)}
+                                </span>
+                                <span className="text-cyan-600 dark:text-cyan-400 truncate max-w-[120px]">
+                                  "{filter.label || filter.value}"
+                                </span>
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Actions */}
+                        {!isEditing && (
+                          <div className="flex items-center gap-1.5 shrink-0 self-end sm:self-auto">
+                            <button
+                              onClick={() => {
+                                setEditingQfId(qf.id);
+                                setEditingQfName(qf.label);
+                              }}
+                              className="p-1.5 text-slate-400 hover:text-cyan-500 hover:bg-cyan-500/10 rounded-lg transition-all"
+                              title="Rename Filter"
+                            >
+                              <Pencil className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteQf(selectedQfTab, qf.id, qf.label)}
+                              className="p-1.5 text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 rounded-lg transition-all"
+                              title="Delete Filter"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })
+                )}
+              </div>
             </div>
           )}
 

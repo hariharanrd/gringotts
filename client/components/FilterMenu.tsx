@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Filter, X, Plus } from 'lucide-react';
+import { Filter, X, Plus, FolderHeart } from 'lucide-react';
+import { loadUserQuickFilters, saveUserQuickFilters } from '../services/quickFilters';
 
 export interface FilterCriteria {
   field: string;
@@ -178,6 +179,8 @@ interface FilterMenuProps {
   activeFilters: FilterCriteria[];
   onApplyFilters: (filters: FilterCriteria[]) => void;
   availableFields: FilterFieldDef[];
+  tab?: string;
+  onQuickFilterSaved?: () => void;
 }
 
 export const FilterChips: React.FC<{
@@ -224,10 +227,35 @@ export const FilterChips: React.FC<{
   );
 };
 
-export const FilterMenu: React.FC<FilterMenuProps> = ({ activeFilters, onApplyFilters, availableFields }) => {
+export const FilterMenu: React.FC<FilterMenuProps> = ({ activeFilters, onApplyFilters, availableFields, tab, onQuickFilterSaved }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [draftFilters, setDraftFilters] = useState<FilterCriteria[]>([]);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const [isSavingQf, setIsSavingQf] = useState(false);
+  const [qfName, setQfName] = useState('');
+
+  const handleSaveQuickFilter = async () => {
+    if (!qfName.trim() || !tab) return;
+    try {
+      const existing = loadUserQuickFilters(tab);
+      const newQf = {
+        id: `user-${Date.now()}`,
+        label: qfName.trim(),
+        tab,
+        isSystem: false,
+        filters: draftFilters.filter(f => f.value.trim() !== '')
+      };
+      await saveUserQuickFilters(tab, [...existing, newQf]);
+      setIsSavingQf(false);
+      setQfName('');
+      window.dispatchEvent(new CustomEvent('quick-filters-changed'));
+      if (onQuickFilterSaved) {
+        onQuickFilterSaved();
+      }
+    } catch (err) {
+      console.error("Failed to save quick filter", err);
+    }
+  };
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -245,6 +273,8 @@ export const FilterMenu: React.FC<FilterMenuProps> = ({ activeFilters, onApplyFi
 
   const handleOpen = () => {
     setDraftFilters([...activeFilters]);
+    setIsSavingQf(false);
+    setQfName('');
     setIsOpen(true);
   };
 
@@ -499,29 +529,74 @@ export const FilterMenu: React.FC<FilterMenuProps> = ({ activeFilters, onApplyFi
               )}
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-3 pt-6 border-t border-slate-100 dark:border-slate-700/50 mt-auto">
-              <button
-                onClick={addFilter}
-                className="flex items-center justify-center gap-2 py-2.5 px-4 text-xs font-bold text-cyan-600 bg-cyan-500/10 hover:bg-cyan-500/20 dark:text-cyan-400 rounded-xl transition-all w-full sm:w-auto uppercase tracking-widest active:scale-95"
-              >
-                <Plus className="w-4 h-4" /> Add Rule
-              </button>
-
-              <div className="flex gap-3 sm:ml-auto w-full sm:w-auto">
-                <button
-                  onClick={clear}
-                  className="flex-1 sm:flex-none px-6 py-2.5 text-xs font-bold text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors uppercase tracking-widest"
-                >
-                  Clear All
-                </button>
-                <button
-                  onClick={apply}
-                  className="flex-[2] sm:flex-none px-8 py-2.5 text-xs font-bold bg-gradient-to-r from-cyan-600 to-blue-600 text-white rounded-xl hover:from-cyan-500 hover:to-blue-500 transition-all shadow-lg shadow-cyan-500/20 active:scale-95 uppercase tracking-widest"
-                >
-                  Apply Filters
-                </button>
+            {isSavingQf ? (
+              <div className="flex flex-col sm:flex-row items-center gap-3 pt-6 border-t border-slate-100 dark:border-slate-700/50 mt-auto animate-in slide-in-from-bottom-2">
+                <input
+                  type="text"
+                  placeholder="Quick Filter Name..."
+                  value={qfName}
+                  onChange={e => setQfName(e.target.value)}
+                  className="w-full sm:flex-1 text-xs px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 outline-none focus:ring-2 focus:ring-cyan-500/30 dark:text-slate-200 font-medium"
+                  maxLength={25}
+                  autoFocus
+                />
+                <div className="flex gap-3 justify-end w-full sm:w-auto shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => { setIsSavingQf(false); setQfName(''); }}
+                    className="px-4 py-2 text-xs font-bold text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 uppercase tracking-widest"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSaveQuickFilter}
+                    disabled={!qfName.trim()}
+                    className="px-6 py-2 text-xs font-bold bg-cyan-500 text-white rounded-xl shadow-lg shadow-cyan-500/20 hover:bg-cyan-600 disabled:opacity-50 transition-all uppercase tracking-widest"
+                  >
+                    Save
+                  </button>
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="flex flex-col sm:flex-row gap-3 pt-6 border-t border-slate-100 dark:border-slate-700/50 mt-auto justify-between items-center">
+                <div className="flex items-center gap-2 w-full sm:w-auto">
+                  <button
+                    type="button"
+                    onClick={addFilter}
+                    className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 py-2.5 px-3 text-xs font-bold text-cyan-600 bg-cyan-500/10 hover:bg-cyan-500/20 dark:text-cyan-400 rounded-xl transition-all uppercase tracking-widest active:scale-95"
+                  >
+                    <Plus className="w-3.5 h-3.5" /> Add Rule
+                  </button>
+                  {tab && draftFilters.some(f => f.value.trim() !== '') && (
+                    <button
+                      type="button"
+                      onClick={() => setIsSavingQf(true)}
+                      className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 py-2.5 px-3 text-xs font-bold text-rose-600 bg-rose-500/10 hover:bg-rose-500/20 dark:text-rose-400 rounded-xl transition-all uppercase tracking-widest active:scale-95 whitespace-nowrap"
+                    >
+                      <FolderHeart className="w-3.5 h-3.5" /> Save Filter
+                    </button>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-3 sm:ml-auto w-full sm:w-auto">
+                  <button
+                    type="button"
+                    onClick={clear}
+                    className="flex-1 sm:flex-none px-3 py-2.5 text-xs font-bold text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors uppercase tracking-widest text-center"
+                  >
+                    Clear All
+                  </button>
+                  <button
+                    type="button"
+                    onClick={apply}
+                    className="flex-[2] sm:flex-none px-5 py-2.5 text-xs font-bold bg-gradient-to-r from-cyan-600 to-blue-600 text-white rounded-xl hover:from-cyan-500 hover:to-blue-500 transition-all shadow-lg shadow-cyan-500/20 active:scale-95 uppercase tracking-widest text-center"
+                  >
+                    Apply Filters
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </>
       )}

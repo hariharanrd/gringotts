@@ -317,3 +317,18 @@ export interface Loan {
   expense_item?: Item;
 }
 
+export interface QuickFilter {
+  id: string;
+  label: string;
+  icon?: string;
+  tab: string;
+  isSystem: boolean;
+  filters: {
+    field: string;
+    condition: string;
+    value: string;
+    label?: string;
+  }[];
+}
+
+

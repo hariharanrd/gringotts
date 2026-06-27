@@ -44,6 +44,7 @@ export const personalizationSync = {
     if (category === 'FILTERS' && key === 'DASHBOARD_RANGE') return 'dashboard_range';
     if (category === 'UI' && key === 'TIMEZONE') return 'gringotts-timezone';
     if (category === 'COLUMNS') return `gringotts_columns_${key.toLowerCase()}`;
+    if (category === 'QUICK_FILTERS') return `gringotts_quick_filters_${key.toLowerCase()}`;
     return null;
   },
 
@@ -57,6 +58,9 @@ export const personalizationSync = {
     if (storageKey === 'gringotts-timezone') return { category: 'UI', key: 'TIMEZONE' };
     if (storageKey.startsWith('gringotts_columns_')) {
       return { category: 'COLUMNS', key: storageKey.replace('gringotts_columns_', '').toUpperCase() };
+    }
+    if (storageKey.startsWith('gringotts_quick_filters_')) {
+      return { category: 'QUICK_FILTERS', key: storageKey.replace('gringotts_quick_filters_', '').toUpperCase() };
     }
     return null;
   }

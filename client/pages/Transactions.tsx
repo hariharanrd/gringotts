@@ -30,6 +30,7 @@ import Pagination from '../components/Pagination';
 import { CustomSelect } from '../components/CustomSelect';
 import { TableSkeleton } from '../components/Skeleton';
 import { FilterMenu, FilterCriteria, FilterChips } from '../components/FilterMenu';
+import { QuickFilterBar } from '../components/QuickFilterBar';
 import ConfirmationDialog from '../components/ConfirmationDialog';
 import CategoryIcon from '../components/CategoryIcon';
 import ExportModal from '../components/ExportModal';
@@ -732,6 +733,7 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
             activeFilters={filters}
             availableFields={getAvailableFields()}
             onApplyFilters={(f) => { updateFilters(f); setCurrentPage(1); }}
+            tab={currentTab}
           />
 
           {/* Action Utilities Group */}
@@ -809,6 +811,15 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
           )}
         </div>
       </div>
+
+      <QuickFilterBar
+        tab={currentTab}
+        activeFilters={filters}
+        onApply={(f) => {
+          updateFilters(f);
+          setCurrentPage(1);
+        }}
+      />
 
       {filters.length > 0 && (
         <div className="flex flex-wrap items-center gap-2 p-1.5 px-3 bg-slate-50/50 dark:bg-slate-900/30 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800/50 animate-in fade-in slide-in-from-top-1">
