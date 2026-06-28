@@ -37,7 +37,9 @@ jobs:
         run: npm ci
         working-directory: ./client
       - name: Build project
-        run: npm run build
+        run: |
+          npm run build
+          echo '{"sha":"${{ github.sha }}","run_id":"${{ github.run_id }}","run_attempt":"${{ github.run_attempt }}"}' > dist/deploy-info.json
         working-directory: ./client
       - uses: FirebaseExtended/action-hosting-deploy@v0
         continue-on-error: true
