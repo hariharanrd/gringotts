@@ -10,6 +10,7 @@ import com.luna.Gringotts.records.Income;
 import com.luna.Gringotts.records.Saving;
 import com.luna.Gringotts.records.Revolving;
 import com.luna.Gringotts.records.Transaction;
+import com.luna.Gringotts.records.User;
 import com.luna.Gringotts.records.TimeRange;
 import com.luna.Gringotts.services.TransactionService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,6 +28,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.ArrayList;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -44,6 +46,15 @@ public class TransactionController {
 
     @Autowired
     private com.luna.Gringotts.services.ExportService exportService;
+
+    @Autowired
+    private com.luna.Gringotts.services.ImportService importService;
+
+    @Autowired
+    private com.luna.Gringotts.repository.ImportJobRepository importJobRepository;
+
+    @Autowired
+    private com.luna.Gringotts.services.IAMService iamService;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -347,5 +358,55 @@ public class TransactionController {
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body(Map.of("status", "error", "message", "Failed to parse file: " + e.getMessage()));
         }
+    }
+
+    @PostMapping("/transactions/import/preview")
+    public ResponseEntity<Map<String, Object>> previewImportFile(@RequestParam("file") MultipartFile file) {
+        try {
+            Map<String, Object> preview = importService.previewFile(file);
+            return ResponseEntity.ok(Map.of("data", preview));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("status", "error", "message", e.getMessage()));
+        }
+    }
+
+    @PostMapping("/transactions/import")
+    public ResponseEntity<Map<String, Object>> submitImport(
+            @RequestParam("file") MultipartFile file,
+            @RequestParam("strategy") String strategy,
+            @RequestParam("columnMapping") String columnMappingJson) {
+        try {
+            User user = iamService.getCurrentUser();
+            if (user == null) {
+                return ResponseEntity.status(403).build();
+            }
+            com.luna.Gringotts.records.ImportJob job = importService.submitImportJob(file, strategy, columnMappingJson, user);
+            return ResponseEntity.ok(Map.of("data", Map.of("job_id", job.getId(), "status", job.getStatus().name())));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("status", "error", "message", e.getMessage()));
+        }
+    }
+
+    @GetMapping("/transactions/import/{jobId}/status")
+    public ResponseEntity<Map<String, Object>> getImportStatus(@PathVariable Long jobId) {
+        User user = iamService.getCurrentUser();
+        if (user == null) {
+            return ResponseEntity.status(403).build();
+        }
+        Optional<com.luna.Gringotts.records.ImportJob> jobOpt = importJobRepository.findByIdAndUser(jobId, user);
+        if (jobOpt.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(Map.of("data", jobOpt.get()));
+    }
+
+    @GetMapping("/transactions/import/history")
+    public ResponseEntity<Map<String, Object>> getImportHistory() {
+        User user = iamService.getCurrentUser();
+        if (user == null) {
+            return ResponseEntity.status(403).build();
+        }
+        List<com.luna.Gringotts.records.ImportJob> history = importJobRepository.findByUserOrderByCreatedAtDesc(user);
+        return ResponseEntity.ok(Map.of("data", history, "total_count", history.size()));
     }
 }

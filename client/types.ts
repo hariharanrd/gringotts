@@ -331,4 +331,48 @@ export interface QuickFilter {
   }[];
 }
 
+export type ImportStrategy = 'CREATE_IF_MISSING' | 'STRICT';
+export type ImportJobStatus = 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED';
+
+export interface ImportColumnMapping {
+  date?: number;
+  type?: number;
+  description?: number;
+  amount?: number;
+  category?: number;
+  sub_category?: number;
+  item?: number;
+  payment_mode?: number;
+  notes?: number;
+  direction?: number;
+  status?: number;
+  reference_no?: number;
+  include_in_budget?: number;
+}
+
+export interface ImportPreviewResult {
+  detected_headers: string[];
+  suggested_mapping: ImportColumnMapping;
+}
+
+export interface ImportFailedRow {
+  row: number;
+  reason: string;
+}
+
+export interface ImportJob {
+  id: number;
+  file_name: string;
+  format: string;
+  strategy: ImportStrategy;
+  column_mapping: string;
+  status: ImportJobStatus;
+  imported_count: number;
+  failed_count: number;
+  failed_rows?: string; // JSON string representing ImportFailedRow[]
+  error_message?: string;
+  created_at: string;
+  completed_at?: string;
+}
+
 
