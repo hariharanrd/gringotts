@@ -23,7 +23,8 @@ import {
   Rows2,
   Rows4,
   Calendar as CalendarIcon,
-  List
+  List,
+  FolderClosed
 } from 'lucide-react';
 import { useToast } from '../components/ToastContext';
 import Pagination from '../components/Pagination';
@@ -955,12 +956,27 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
                               <CategoryIcon category={t.category} className={viewMode === 'compact' ? 'w-3.5 h-3.5' : 'w-4 h-4'} />
                               <div className="flex flex-col min-w-0 flex-1">
                                 <span className={`font-semibold text-slate-800 dark:text-slate-200 line-clamp-1 ${viewMode === 'compact' ? 'text-xs' : 'text-sm'}`}>{t.description}</span>
-                                {t.funding_goal && (
-                                  <div className={`flex items-center gap-1.5 ${viewMode === 'compact' ? 'mt-0' : 'mt-0.5'}`}>
-                                    <span className={`px-2 py-0.5 bg-violet-500/10 text-violet-500 dark:bg-violet-500/20 dark:text-violet-400 rounded-md flex items-center gap-1 border border-violet-500/20 ${viewMode === 'compact' ? 'text-[8px] font-black' : 'text-[9px] font-black'}`}>
-                                      <span>{t.funding_goal.icon || '🎯'}</span>
-                                      <span>{t.funding_goal.name}</span>
-                                    </span>
+                                {(t.funding_goal || (t.group && !visibleColumns.has('group'))) && (
+                                  <div className={`flex flex-wrap items-center gap-1.5 ${viewMode === 'compact' ? 'mt-0' : 'mt-0.5'}`}>
+                                    {t.funding_goal && (
+                                      <span className={`px-2 py-0.5 bg-violet-500/10 text-violet-500 dark:bg-violet-500/20 dark:text-violet-400 rounded-md flex items-center gap-1 border border-violet-500/20 ${viewMode === 'compact' ? 'text-[8px] font-black' : 'text-[9px] font-black'}`}>
+                                        <span>{t.funding_goal.icon || '🎯'}</span>
+                                        <span>{t.funding_goal.name}</span>
+                                      </span>
+                                    )}
+                                    {t.group && !visibleColumns.has('group') && (
+                                      <span
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          navigate(`/groups/${t.group.id}`);
+                                        }}
+                                        className={`px-2 py-0.5 rounded-md flex items-center gap-1 text-white hover:opacity-80 transition-opacity cursor-pointer shrink-0 ${viewMode === 'compact' ? 'text-[8px] font-black' : 'text-[9px] font-black'}`}
+                                        style={{ backgroundColor: t.group.color || '#06b6d4' }}
+                                      >
+                                        <FolderClosed className="w-2.5 h-2.5" />
+                                        <span>{t.group.name}</span>
+                                      </span>
+                                    )}
                                   </div>
                                 )}
                               </div>
@@ -1207,9 +1223,14 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
                         <div className="flex items-center gap-1.5">
                           {t.group ? (
                             <span
-                              className="px-2 py-0.5 text-[10px] font-bold rounded-lg text-white"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                navigate(`/groups/${t.group.id}`);
+                              }}
+                              className="px-2 py-0.5 text-[10px] font-bold rounded-lg text-white hover:opacity-80 transition-opacity cursor-pointer flex items-center gap-1"
                               style={{ backgroundColor: t.group.color || '#06b6d4' }}
                             >
+                              <FolderClosed className="w-2.5 h-2.5" />
                               {t.group.name}
                             </span>
                           ) : (
@@ -1310,12 +1331,25 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
                       </span>
                     </div>
 
-                    {((t as any).payment_mode || t.notes || t.funding_goal) && (
+                    {((t as any).payment_mode || t.notes || t.funding_goal || t.group) && (
                       <div className="pt-0.5 flex gap-2 flex-wrap animate-in fade-in duration-200">
                         {t.funding_goal && (
                           <span className="px-1.5 py-0.5 bg-violet-500/10 text-violet-500 dark:bg-violet-500/20 dark:text-violet-400 text-[9px] font-black rounded border border-violet-500/20 flex items-center gap-1">
                             <span>{t.funding_goal.icon || '🎯'}</span>
                             <span>{t.funding_goal.name}</span>
+                          </span>
+                        )}
+                        {t.group && (
+                          <span
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate(`/groups/${t.group.id}`);
+                            }}
+                            className="px-1.5 py-0.5 text-[9px] font-black rounded text-white flex items-center gap-1 hover:opacity-80 transition-opacity cursor-pointer"
+                            style={{ backgroundColor: t.group.color || '#06b6d4' }}
+                          >
+                            <FolderClosed className="w-2.5 h-2.5" />
+                            <span>{t.group.name}</span>
                           </span>
                         )}
                         {(t as any).payment_mode && (
