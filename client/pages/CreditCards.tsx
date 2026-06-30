@@ -207,7 +207,7 @@ const CreditCards: React.FC = () => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {cards.map((card, index) => {
-            const theme = CARD_THEMES[index % CARD_THEMES.length];
+            const theme = CARD_THEMES[(card.id ?? index) % CARD_THEMES.length];
             const isOverdue = card.smart_status?.type === 'overdue';
             return (
               <div

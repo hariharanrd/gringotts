@@ -1,5 +1,5 @@
 
-import { Transaction, Expense, Income, Saving, Revolving, Category, SubCategory, Item, TransactionType, Budget, BudgetUtilization, InvestmentGoal, CreditCard, CreditCardBill, TimeRange, Profile, Personalization, UserSession, Loan, LoanSimulation, LoanAmortizationRow, TransactionGroup } from '../types';
+import { Transaction, Expense, Income, Saving, Revolving, Category, SubCategory, Item, TransactionType, Budget, BudgetUtilization, InvestmentGoal, CreditCard, CreditCardBill, TimeRange, Profile, Personalization, UserSession, Loan, LoanSimulation, LoanAmortizationRow, TransactionGroup, ImportJob, ImportStrategy, ImportColumnMapping, ImportPreviewResult } from '../types';
 
 const BASE_URL = "/api/v1";
 
@@ -18,10 +18,13 @@ const getHeaders = () => {
 
 const fetchWithCredentials = async (url: string, options: RequestInit = {}) => {
   options.credentials = 'include';
-  options.headers = {
-    ...getHeaders(),
-    ...options.headers,
+  const headers: Record<string, string> = {
+    ...options.headers as Record<string, string>
   };
+  if (!(options.body instanceof FormData)) {
+    headers['Content-Type'] = headers['Content-Type'] || 'application/json';
+  }
+  options.headers = headers;
   return fetch(url, options);
 };
 
@@ -887,7 +890,45 @@ export const api = {
     const response = await fetchWithCredentials(`${BASE_URL}/transaction-groups/${id}/thumbnail`);
     const result = await handleResponse(response);
     return result.data;
+  },
+
+  previewImportFile: async (file: File): Promise<ImportPreviewResult> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await fetchWithCredentials(`${BASE_URL}/transactions/import/preview`, {
+      method: 'POST',
+      body: formData,
+    });
+    const result = await handleResponse(response);
+    return result.data;
+  },
+
+  submitImportJob: async (
+    file: File,
+    strategy: ImportStrategy,
+    columnMapping: ImportColumnMapping
+  ): Promise<{ job_id: number; status: string }> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('strategy', strategy);
+    formData.append('columnMapping', JSON.stringify(columnMapping));
+    const response = await fetchWithCredentials(`${BASE_URL}/transactions/import`, {
+      method: 'POST',
+      body: formData,
+    });
+    const result = await handleResponse(response);
+    return result.data;
+  },
+
+  getImportJobStatus: async (jobId: number): Promise<ImportJob> => {
+    const response = await fetchWithCredentials(`${BASE_URL}/transactions/import/${jobId}/status`);
+    const result = await handleResponse(response);
+    return result.data;
+  },
+
+  getImportHistory: async (): Promise<{ data: ImportJob[]; total_count: number }> => {
+    const response = await fetchWithCredentials(`${BASE_URL}/transactions/import/history`);
+    return handleResponse(response);
   }
   // Transaction Groups API End
 };
-

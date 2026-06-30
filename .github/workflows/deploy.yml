@@ -112,7 +112,9 @@ jobs:
         working-directory: ./client
 
       - name: Build project
-        run: npm run build
+        run: |
+          npm run build
+          echo '{"sha":"${{ github.sha }}","run_id":"${{ github.run_id }}","run_attempt":"${{ github.run_attempt }}"}' > dist/deploy-info.json
         working-directory: ./client
 
       - name: Deploy to Firebase Hosting

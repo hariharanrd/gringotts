@@ -5,14 +5,13 @@ import { api } from '../services/api';
 import { useToast } from '../components/ToastContext';
 import { useTheme, THEME_LIBRARY, ThemeId } from '../components/ThemeContext';
 import {
-  User, KeyRound, Trash2, Camera, Save, Eye, EyeOff, AlertTriangle, X, Check, Palette, Sun, Moon, ChevronDown, Loader2, Info, RefreshCcw, Globe, Monitor, LogOut, QrCode, Copy, CheckCircle2, Lock, Tag, Upload, Download, FileSpreadsheet, FileText, Layers, Plus, Pencil, FolderHeart
+  User, KeyRound, Trash2, Camera, Save, Eye, EyeOff, AlertTriangle, X, Check, Palette, Sun, Moon, ChevronDown, Loader2, Info, RefreshCcw, Globe, Monitor, LogOut, QrCode, Copy, CheckCircle2, Lock, Tag, Upload, Download, FileSpreadsheet, FileText, Layers, Plus, Pencil, FolderHeart, History
 } from 'lucide-react';
 import Configuration from './Configuration';
-import { UserSession } from '../types';
+import { UserSession, QuickFilter, ImportJob, ImportStrategy, ImportColumnMapping, ImportPreviewResult, ImportFailedRow } from '../types';
 import { personalizationSync } from '../services/personalizationSync';
 import { getUserTimeZone, getTimezoneOffset } from '../services/dateUtils';
 import { loadUserQuickFilters, saveUserQuickFilters } from '../services/quickFilters';
-import { QuickFilter } from '../types';
 
 interface SettingsProps {
   onProfileUpdate: () => void;
@@ -38,7 +37,7 @@ const SETTINGS_GROUPS = [
        { id: 'appearance' as Section, label: 'Appearance', icon: Palette },
       { id: 'categories' as Section, label: 'Categories & Items', icon: Tag },
       { id: 'quick_filters' as Section, label: 'Quick Filters', icon: FolderHeart },
-      { id: 'import' as Section, label: 'Import Statement', icon: Download },
+      { id: 'import' as Section, label: 'Import Transactions', icon: Download },
       { id: 'export' as Section, label: 'Export Data', icon: Upload }
      
     ]
@@ -336,6 +335,18 @@ const Settings: React.FC<SettingsProps> = ({ onProfileUpdate, onImportSuccess })
   const [importType, setImportType] = useState<string>('HDFC');
   const [importLoading, setImportLoading] = useState(false);
 
+  const [importSubTab, setImportSubTab] = useState<'statement' | 'csv_xls'>('statement');
+  const [csvFile, setCsvFile] = useState<File | null>(null);
+  const [csvPreview, setCsvPreview] = useState<ImportPreviewResult | null>(null);
+  const [csvPreviewLoading, setCsvPreviewLoading] = useState(false);
+  const [csvMapping, setCsvMapping] = useState<ImportColumnMapping>({});
+  const [csvStrategy, setCsvStrategy] = useState<ImportStrategy>('CREATE_IF_MISSING');
+  const [csvSubmitLoading, setCsvSubmitLoading] = useState(false);
+  const [importStep, setImportStep] = useState<1 | 2 | 3>(1);
+  const [importHistory, setImportHistory] = useState<ImportJob[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [expandedJobId, setExpandedJobId] = useState<number | null>(null);
+
   // --- Export States ---
   const [exportFormat, setExportFormat] = useState<'csv' | 'xlsx'>('xlsx');
   const [exportRangeType, setExportRangeType] = useState<'all' | 'custom'>('all');
@@ -378,6 +389,81 @@ const Settings: React.FC<SettingsProps> = ({ onProfileUpdate, onImportSuccess })
       showToast('Failed to import transactions', 'error');
     } finally {
       setImportLoading(false);
+    }
+  };
+
+  const fetchHistory = async () => {
+    try {
+      const res = await api.getImportHistory();
+      setImportHistory(res.data);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  useEffect(() => {
+    if (section === 'import') {
+      fetchHistory();
+    }
+  }, [section]);
+
+  useEffect(() => {
+    if (section !== 'import') return;
+    const hasActiveJobs = importHistory.some(j => j.status === 'PENDING' || j.status === 'PROCESSING');
+    if (!hasActiveJobs) return;
+
+    const interval = setInterval(() => {
+      api.getImportHistory()
+        .then(res => setImportHistory(res.data))
+        .catch(e => console.error("Polling history error", e));
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [importHistory, section]);
+
+  const handleCsvFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setCsvFile(file);
+      setCsvPreviewLoading(true);
+      try {
+        const preview = await api.previewImportFile(file);
+        setCsvPreview(preview);
+        setCsvMapping(preview.suggested_mapping);
+        setImportStep(2); // Go to mapping step
+      } catch (err: any) {
+        showToast(err.message || 'Failed to read headers from file', 'error');
+        setCsvFile(null);
+      } finally {
+        setCsvPreviewLoading(false);
+      }
+    }
+  };
+
+  const handleCsvImportSubmit = async () => {
+    if (!csvFile) {
+      showToast('Please select a file first', 'error');
+      return;
+    }
+    const required: (keyof ImportColumnMapping)[] = ['date', 'type', 'description', 'amount'];
+    const missing = required.filter(field => csvMapping[field] === undefined || csvMapping[field] === -1);
+    if (missing.length > 0) {
+      showToast(`Please map all required fields: ${missing.map(f => f.toUpperCase()).join(', ')}`, 'error');
+      return;
+    }
+
+    setCsvSubmitLoading(true);
+    try {
+      await api.submitImportJob(csvFile, csvStrategy, csvMapping);
+      showToast('Import job submitted successfully', 'success');
+      setCsvFile(null);
+      setCsvPreview(null);
+      setCsvMapping({});
+      setImportStep(1);
+      fetchHistory();
+    } catch (err: any) {
+      showToast(err.message || 'Failed to submit import job', 'error');
+    } finally {
+      setCsvSubmitLoading(false);
     }
   };
 
@@ -738,7 +824,7 @@ const Settings: React.FC<SettingsProps> = ({ onProfileUpdate, onImportSuccess })
   }
 
   return (
-    <div className="max-w-4xl mx-auto">
+    <div className="w-full animate-in fade-in duration-300">
       {/* Page header */}
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Account Settings</h1>
@@ -1812,66 +1898,496 @@ const Settings: React.FC<SettingsProps> = ({ onProfileUpdate, onImportSuccess })
 
           {/* ─ Import ─ */}
           {section === 'import' && (
-            <div className="bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700/50 rounded-2xl p-6 space-y-6 max-w-xl">
-              <div>
-                <h3 className="text-base font-bold text-slate-900 dark:text-white">Import Statement</h3>
-                <p className="text-xs text-slate-400 mt-0.5">Upload a bank statement in CSV or Excel format to bulk import transaction records.</p>
+            <div className="space-y-6 w-full">
+              {/* Header */}
+              <div className="bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700/50 rounded-2xl p-6">
+                <h3 className="text-lg font-bold text-slate-900 dark:text-white">Import Records</h3>
+                <p className="text-xs text-slate-400 mt-0.5">Bulk import transaction records from bank statements or CSV/XLSX spreadsheets.</p>
+
+                {/* Sub-tab pills */}
+                <div className="flex gap-2 mt-4 p-1 bg-slate-100 dark:bg-slate-800/80 rounded-xl w-fit">
+                  <button
+                    onClick={() => setImportSubTab('statement')}
+                    className={`px-4 py-2 text-sm font-semibold rounded-lg transition-all ${
+                      importSubTab === 'statement'
+                        ? 'bg-white dark:bg-slate-700 text-cyan-600 dark:text-cyan-400 shadow-sm'
+                        : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+                    }`}
+                  >
+                    Statement Parser
+                  </button>
+                  <button
+                    onClick={() => setImportSubTab('csv_xls')}
+                    className={`px-4 py-2 text-sm font-semibold rounded-lg transition-all ${
+                      importSubTab === 'csv_xls'
+                        ? 'bg-white dark:bg-slate-700 text-cyan-600 dark:text-cyan-400 shadow-sm'
+                        : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+                    }`}
+                  >
+                    CSV / Excel Spreadsheet
+                  </button>
+                </div>
               </div>
 
-              <form onSubmit={handleImportSubmit} className="space-y-5">
-                <div className="space-y-2">
-                  <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Statement Source</label>
-                  <select
-                    className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/60 rounded-xl focus:ring-2 focus:ring-cyan-500/40 outline-none text-slate-900 dark:text-white text-sm"
-                    value={importType}
-                    onChange={(e) => setImportType(e.target.value)}
-                  >
-                    <option value="HDFC">HDFC Bank</option>
-                    <option value="APayCC">Amazon Pay ICICI</option>
-                    <option value="HDFCCC">HDFC Credit Card</option>
-                  </select>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Statement File</label>
-                  <div className="relative border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-2xl p-8 text-center hover:bg-slate-50 dark:hover:bg-slate-800/20 hover:border-cyan-500/30 transition-all group cursor-pointer">
-                    <input
-                      type="file"
-                      accept=".csv, .xlsx, .xls"
-                      onChange={handleImportFileChange}
-                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                    />
-                    <div className="flex flex-col items-center gap-3 text-slate-400 dark:text-slate-500 group-hover:text-slate-600 dark:group-hover:text-slate-300 transition-colors">
-                      {importFile ? (
-                        <>
-                          <FileSpreadsheet className="w-10 h-10 text-emerald-500 dark:text-emerald-400" />
-                          <span className="text-sm font-semibold text-emerald-500 dark:text-emerald-400 break-all px-4">{importFile.name}</span>
-                        </>
-                      ) : (
-                        <>
-                          <Download className="w-10 h-10 text-slate-400 dark:text-slate-600 group-hover:scale-105 transition-transform" />
-                          <div>
-                            <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Click or drag file here</span>
-                            <p className="text-xs text-slate-400 mt-1">Supports CSV, XLSX, XLS files up to 10MB</p>
-                          </div>
-                        </>
-                      )}
+              {/* Sub-tab: Statement */}
+              {importSubTab === 'statement' && (
+                <div className="bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700/50 rounded-2xl p-6 space-y-5 max-w-xl animate-in fade-in duration-200">
+                  <form onSubmit={handleImportSubmit} className="space-y-5">
+                    <div className="space-y-2">
+                      <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Statement Source</label>
+                      <select
+                        className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/60 rounded-xl focus:ring-2 focus:ring-cyan-500/40 outline-none text-slate-900 dark:text-white text-sm"
+                        value={importType}
+                        onChange={(e) => setImportType(e.target.value)}
+                      >
+                        <option value="HDFC">HDFC Bank</option>
+                        <option value="APayCC">Amazon Pay ICICI</option>
+                        <option value="HDFCCC">HDFC Credit Card</option>
+                      </select>
                     </div>
+
+                    <div className="space-y-2">
+                      <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Statement File</label>
+                      <div className="relative border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-2xl p-8 text-center hover:bg-slate-50 dark:hover:bg-slate-800/20 hover:border-cyan-500/30 transition-all group cursor-pointer">
+                        <input
+                          type="file"
+                          accept=".csv, .xlsx, .xls"
+                          onChange={handleImportFileChange}
+                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                        />
+                        <div className="flex flex-col items-center gap-3 text-slate-400 dark:text-slate-500 group-hover:text-slate-600 dark:group-hover:text-slate-300 transition-colors">
+                          {importFile ? (
+                            <>
+                              <FileSpreadsheet className="w-10 h-10 text-emerald-500 dark:text-emerald-400" />
+                              <span className="text-sm font-semibold text-emerald-500 dark:text-emerald-400 break-all px-4">{importFile.name}</span>
+                            </>
+                          ) : (
+                            <>
+                              <Download className="w-10 h-10 text-slate-400 dark:text-slate-600 group-hover:scale-105 transition-transform" />
+                              <div>
+                                <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Click or drag file here</span>
+                                <p className="text-xs text-slate-400 mt-1">Supports CSV, XLSX, XLS files up to 10MB</p>
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={importLoading || !importFile}
+                      className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-semibold rounded-xl shadow-lg shadow-cyan-500/20 hover:brightness-105 active:scale-[0.99] transition-all disabled:opacity-50 disabled:scale-100"
+                    >
+                      {importLoading ? (
+                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      ) : (
+                        <>Import Statement</>
+                      )}
+                    </button>
+                  </form>
+                </div>
+              )}
+
+              {/* Sub-tab: CSV / XLS Wizard */}
+              {importSubTab === 'csv_xls' && (
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-in fade-in duration-200">
+                  {/* Left part: Wizard Card */}
+                  <div className="lg:col-span-2 bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700/50 rounded-2xl p-6 space-y-6">
+                    {/* Steps Indicator */}
+                    <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4">
+                      <div>
+                        <span className="text-xs font-bold uppercase tracking-wider text-cyan-600 dark:text-cyan-400">Step {importStep} of 3</span>
+                        <h4 className="text-base font-bold text-slate-900 dark:text-white mt-0.5">
+                          {importStep === 1 && "Upload File"}
+                          {importStep === 2 && "Map Spreadsheet Columns"}
+                          {importStep === 3 && "Import Configuration"}
+                        </h4>
+                      </div>
+                      <div className="flex gap-1">
+                        {[1, 2, 3].map((s) => (
+                          <div
+                            key={s}
+                            className={`h-1.5 w-8 rounded-full transition-all ${
+                              s === importStep
+                                ? 'bg-cyan-500 w-12'
+                                : s < importStep
+                                ? 'bg-emerald-500'
+                                : 'bg-slate-200 dark:bg-slate-800'
+                            }`}
+                          />
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Step 1: Upload File */}
+                    {importStep === 1 && (
+                      <div className="space-y-4">
+                        <div className="relative border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-2xl p-10 text-center hover:bg-slate-50 dark:hover:bg-slate-800/20 hover:border-cyan-500/30 transition-all group cursor-pointer">
+                          <input
+                            type="file"
+                            accept=".csv, .xlsx, .xls"
+                            onChange={handleCsvFileChange}
+                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                            disabled={csvPreviewLoading}
+                          />
+                          <div className="flex flex-col items-center gap-3 text-slate-400 dark:text-slate-500 group-hover:text-slate-600 dark:group-hover:text-slate-300 transition-colors">
+                            {csvPreviewLoading ? (
+                              <>
+                                <Loader2 className="w-10 h-10 text-cyan-500 animate-spin" />
+                                <span className="text-sm font-semibold text-cyan-500">Reading file headers...</span>
+                              </>
+                            ) : csvFile ? (
+                              <>
+                                <FileSpreadsheet className="w-10 h-10 text-emerald-500 dark:text-emerald-400" />
+                                <span className="text-sm font-semibold text-emerald-500 dark:text-emerald-400 break-all px-4">{csvFile.name}</span>
+                              </>
+                            ) : (
+                              <>
+                                <Upload className="w-10 h-10 text-slate-400 dark:text-slate-600 group-hover:scale-105 transition-transform" />
+                                <div>
+                                  <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Click or drag spreadsheet file</span>
+                                  <p className="text-xs text-slate-400 mt-1">Supports CSV, XLSX, XLS formats up to 10MB</p>
+                                </div>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Step 2: Column Mapper */}
+                    {importStep === 2 && csvPreview && (
+                      <div className="space-y-4">
+                        <p className="text-xs text-slate-400">Map Gringotts database fields to columns detected in your spreadsheet. Required fields must be mapped.</p>
+                        <div className="border border-slate-100 dark:border-slate-800/80 rounded-xl overflow-hidden max-h-96 overflow-y-auto custom-scrollbar">
+                          <table className="w-full text-left border-collapse text-sm">
+                            <thead>
+                              <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800">
+                                <th className="p-3 font-semibold text-slate-600 dark:text-slate-400">Gringotts Field</th>
+                                <th className="p-3 font-semibold text-slate-600 dark:text-slate-400">Your Column Header</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
+                              {[
+                                { key: 'date', label: 'Date', required: true },
+                                { key: 'type', label: 'Transaction Type', required: true },
+                                { key: 'description', label: 'Description', required: true },
+                                { key: 'amount', label: 'Amount', required: true },
+                                { key: 'category', label: 'Category', required: false },
+                                { key: 'sub_category', label: 'Sub-Category', required: false },
+                                { key: 'item', label: 'Item', required: false },
+                                { key: 'payment_mode', label: 'Payment Mode', required: false },
+                                { key: 'notes', label: 'Notes', required: false },
+                                { key: 'direction', label: 'Direction (Saving/Revolving)', required: false },
+                                { key: 'status', label: 'Status (Revolving)', required: false },
+                                { key: 'reference_no', label: 'Reference Number', required: false },
+                                { key: 'include_in_budget', label: 'Include in Budget', required: false }
+                              ].map((field) => {
+                                const currentMap = csvMapping[field.key as keyof ImportColumnMapping];
+                                return (
+                                  <tr key={field.key} className="hover:bg-slate-50/40 dark:hover:bg-slate-800/20">
+                                    <td className="p-3">
+                                      <div className="flex items-center gap-1.5">
+                                        <span className="font-semibold text-slate-700 dark:text-slate-300">{field.label}</span>
+                                        {field.required && <span className="text-rose-500 font-bold">*</span>}
+                                      </div>
+                                    </td>
+                                    <td className="p-3">
+                                      <select
+                                        className="w-full px-3 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg outline-none text-slate-900 dark:text-white text-xs focus:ring-1 focus:ring-cyan-500"
+                                        value={currentMap === undefined ? -1 : currentMap}
+                                        onChange={(e) => {
+                                          const val = parseInt(e.target.value);
+                                          setCsvMapping(prev => ({
+                                            ...prev,
+                                            [field.key]: val
+                                          }));
+                                        }}
+                                      >
+                                        <option value={-1}>[Do Not Map / Default]</option>
+                                        {csvPreview.detected_headers.map((hdr, idx) => (
+                                          <option key={idx} value={idx}>
+                                            Column {idx + 1}: {hdr || `(Blank)`}
+                                          </option>
+                                        ))}
+                                      </select>
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+
+                        {/* Navigation buttons */}
+                        <div className="flex justify-between pt-2">
+                          <button
+                            type="button"
+                            onClick={() => { setCsvFile(null); setCsvPreview(null); setImportStep(1); }}
+                            className="px-4 py-2 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/50 text-sm font-semibold transition-all"
+                          >
+                            Back
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const required: (keyof ImportColumnMapping)[] = ['date', 'type', 'description', 'amount'];
+                              const missing = required.filter(k => csvMapping[k] === undefined || csvMapping[k] === -1);
+                              if (missing.length > 0) {
+                                showToast(`Please map required fields: ${missing.map(f => f.toUpperCase()).join(', ')}`, 'error');
+                              } else {
+                                setImportStep(3);
+                              }
+                            }}
+                            className="px-5 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl text-sm font-semibold transition-all shadow-sm"
+                          >
+                            Continue
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Step 3: Strategy & Action */}
+                    {importStep === 3 && (
+                      <div className="space-y-5">
+                        <div className="space-y-3">
+                          <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Choose Missing Category / Item Strategy</label>
+                          <p className="text-xs text-slate-400">If a category, sub-category, or item name in your spreadsheet does not exist in your account, what should the system do?</p>
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2">
+                            {/* Strategy 1: Create & Import */}
+                            <button
+                              type="button"
+                              onClick={() => setCsvStrategy('CREATE_IF_MISSING')}
+                              className={`flex flex-col items-start text-left p-4 rounded-xl border-2 transition-all ${
+                                csvStrategy === 'CREATE_IF_MISSING'
+                                  ? 'border-emerald-500 bg-emerald-500/5 dark:bg-emerald-500/10 shadow-sm'
+                                  : 'border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/40'
+                              }`}
+                            >
+                              <div className="flex items-center gap-2 font-bold text-emerald-600 dark:text-emerald-400 text-sm">
+                                <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+                                Create & Import
+                              </div>
+                              <span className="text-xs text-slate-500 dark:text-slate-400 mt-2">
+                                Auto-create missing categories, sub-categories, or items, then successfully import the transaction row.
+                              </span>
+                            </button>
+
+                            {/* Strategy 2: Strict Mode */}
+                            <button
+                              type="button"
+                              onClick={() => setCsvStrategy('STRICT')}
+                              className={`flex flex-col items-start text-left p-4 rounded-xl border-2 transition-all ${
+                                csvStrategy === 'STRICT'
+                                  ? 'border-rose-500 bg-rose-500/5 dark:bg-rose-500/10 shadow-sm'
+                                  : 'border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/40'
+                              }`}
+                            >
+                              <div className="flex items-center gap-2 font-bold text-rose-600 dark:text-rose-400 text-sm">
+                                <div className="w-2.5 h-2.5 rounded-full bg-rose-500" />
+                                Strict Mode (Fail Rows)
+                              </div>
+                              <span className="text-xs text-slate-500 dark:text-slate-400 mt-2">
+                                Skip and fail any row with missing categories, sub-categories, or items, and report the errors after importing.
+                              </span>
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Navigation buttons */}
+                        <div className="flex justify-between pt-4 border-t border-slate-100 dark:border-slate-800">
+                          <button
+                            type="button"
+                            onClick={() => setImportStep(2)}
+                            className="px-4 py-2 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/50 text-sm font-semibold transition-all"
+                          >
+                            Back
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleCsvImportSubmit}
+                            disabled={csvSubmitLoading}
+                            className="flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-cyan-500 to-blue-600 text-white rounded-xl text-sm font-semibold transition-all shadow-lg shadow-cyan-500/20 disabled:opacity-50"
+                          >
+                            {csvSubmitLoading ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <>Submit Import Job</>
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Right part: Guidelines Info */}
+                  <div className="bg-slate-50 dark:bg-slate-900/30 border border-slate-200 dark:border-slate-700/40 rounded-2xl p-5 space-y-4 h-fit">
+                    <h5 className="font-bold text-slate-800 dark:text-slate-200 text-sm flex items-center gap-2">
+                      <Info className="w-4 h-4 text-cyan-500" />
+                      Import Guidelines
+                    </h5>
+                    <ul className="text-xs text-slate-500 dark:text-slate-400 space-y-2 list-disc list-inside pl-1">
+                      <li>Spreadsheets must have a header row first.</li>
+                      <li>Required columns: <strong>Date</strong>, <strong>Type</strong> (Expense/Income/Saving/Revolving), <strong>Description</strong>, and <strong>Amount</strong>.</li>
+                      <li>System will auto-mark imported transactions with an <code>IsImported</code> tag.</li>
+                      <li>ID and Imported fields are ignored.</li>
+                    </ul>
                   </div>
                 </div>
+              )}
 
-                <button
-                  type="submit"
-                  disabled={importLoading || !importFile}
-                  className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-semibold rounded-xl shadow-lg shadow-cyan-500/20 hover:brightness-105 active:scale-[0.99] transition-all disabled:opacity-50 disabled:scale-100"
-                >
-                  {importLoading ? (
-                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              {/* Import History table (only for CSV / XLS tab) */}
+              {importSubTab === 'csv_xls' && (
+                <div className="bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700/50 rounded-2xl p-6 space-y-4">
+                  <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+                    <div className="flex items-center gap-2">
+                      <History className="w-4.5 h-4.5 text-slate-400" />
+                      <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200">Import Log & History</h4>
+                    </div>
+                    {historyLoading && <Loader2 className="w-4 h-4 text-slate-400 animate-spin" />}
+                  </div>
+
+                  {importHistory.length === 0 ? (
+                    <div className="text-center py-6 text-slate-400 text-xs">
+                      No import jobs found. Upload a CSV or Excel file above to start.
+                    </div>
                   ) : (
-                    <>Import Statement</>
+                    <div className="divide-y divide-slate-100 dark:divide-slate-800/60 overflow-hidden border border-slate-100 dark:border-slate-800/80 rounded-xl">
+                      {importHistory.map((job) => {
+                        const isExpanded = expandedJobId === job.id;
+                        let failedRows: ImportFailedRow[] = [];
+                        if (job.failed_rows) {
+                          try {
+                            failedRows = JSON.parse(job.failed_rows);
+                          } catch (e) {
+                            console.error(e);
+                          }
+                        }
+
+                        return (
+                          <div key={job.id} className="bg-white dark:bg-slate-900/30">
+                            <div
+                              onClick={() => {
+                                if (job.status === 'COMPLETED' || job.status === 'FAILED') {
+                                  setExpandedJobId(isExpanded ? null : job.id);
+                                }
+                              }}
+                              className={`flex flex-col md:flex-row md:items-center justify-between p-4 cursor-pointer hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-all ${
+                                isExpanded ? 'bg-slate-50/30 dark:bg-slate-800/10' : ''
+                              }`}
+                            >
+                              <div className="space-y-1">
+                                <div className="flex items-center gap-2.5">
+                                  <span className="font-bold text-slate-900 dark:text-white text-xs">{job.file_name}</span>
+                                  <span className="text-[10px] font-mono px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-500 rounded">
+                                    {job.format}
+                                  </span>
+                                </div>
+                                <div className="text-[10px] text-slate-400 flex items-center gap-3">
+                                  <span>Job ID: {job.id}</span>
+                                  <span>•</span>
+                                  <span>{new Date(job.created_at).toLocaleString()}</span>
+                                  <span>•</span>
+                                  <span>Strategy: {job.strategy === 'CREATE_IF_MISSING' ? 'Create CSI' : 'Strict Mode'}</span>
+                                </div>
+                              </div>
+
+                              <div className="flex items-center gap-6 mt-2 md:mt-0">
+                                {job.status === 'COMPLETED' && (
+                                  <div className="flex gap-3 text-[11px] font-semibold">
+                                    <span className="text-emerald-600 dark:text-emerald-400 font-bold">
+                                      +{job.imported_count} Success
+                                    </span>
+                                    {job.failed_count > 0 && (
+                                      <span className="text-rose-500 font-bold">
+                                        {job.failed_count} Failed
+                                      </span>
+                                    )}
+                                  </div>
+                                )}
+
+                                <div className="flex items-center gap-2">
+                                  {job.status === 'PENDING' && (
+                                    <span className="px-2.5 py-1 text-[10px] font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 rounded-full border border-amber-500/20">
+                                      Pending
+                                    </span>
+                                  )}
+                                  {job.status === 'PROCESSING' && (
+                                    <span className="flex items-center gap-1 px-2.5 py-1 text-[10px] font-bold bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 rounded-full border border-cyan-500/20">
+                                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                      Processing
+                                    </span>
+                                  )}
+                                  {job.status === 'COMPLETED' && (
+                                    <span className="flex items-center gap-1 px-2.5 py-1 text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-full border border-emerald-500/20">
+                                      <Check className="w-3.5 h-3.5" />
+                                      Completed
+                                    </span>
+                                  )}
+                                  {job.status === 'FAILED' && (
+                                    <span className="flex items-center gap-1 px-2.5 py-1 text-[10px] font-bold bg-rose-500/10 text-rose-600 dark:text-rose-400 rounded-full border border-rose-500/20">
+                                      <X className="w-3.5 h-3.5" />
+                                      Failed
+                                    </span>
+                                  )}
+
+                                  {(job.status === 'COMPLETED' || job.status === 'FAILED') && (
+                                    <ChevronDown
+                                      className={`w-4 h-4 text-slate-400 transition-transform ${
+                                        isExpanded ? 'rotate-180' : ''
+                                      }`}
+                                    />
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+
+                            {isExpanded && (
+                              <div className="bg-slate-50/50 dark:bg-slate-900/40 p-4 border-t border-slate-100 dark:border-slate-800 text-xs space-y-2">
+                                {job.status === 'FAILED' && job.error_message && (
+                                  <div className="p-3 bg-rose-500/5 border border-rose-500/10 text-rose-600 dark:text-rose-400 rounded-xl">
+                                    <span className="font-bold">Error:</span> {job.error_message}
+                                  </div>
+                                )}
+
+                                {job.status === 'COMPLETED' && failedRows.length > 0 ? (
+                                  <div className="space-y-2 animate-in slide-in-from-top-1 duration-200">
+                                    <div className="font-bold text-slate-700 dark:text-slate-300">Failed Row Details ({job.failed_count} errors):</div>
+                                    <div className="max-h-48 overflow-y-auto border border-slate-200/60 dark:border-slate-800 rounded-lg custom-scrollbar">
+                                      <table className="w-full text-left border-collapse">
+                                        <thead>
+                                          <tr className="bg-slate-100 dark:bg-slate-800 font-semibold text-slate-600 dark:text-slate-400 text-[10px] border-b border-slate-200/60 dark:border-slate-800">
+                                            <th className="p-2 w-16">Row #</th>
+                                            <th className="p-2">Reason</th>
+                                          </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
+                                          {failedRows.map((f, idx) => (
+                                            <tr key={idx} className="hover:bg-slate-200/10">
+                                              <td className="p-2 font-mono text-[10px] text-slate-500">{f.row}</td>
+                                              <td className="p-2 text-rose-600 dark:text-rose-400">{f.reason}</td>
+                                            </tr>
+                                          ))}
+                                        </tbody>
+                                      </table>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <div className="text-slate-500 dark:text-slate-400 italic text-[11px] py-1 text-center">
+                                    Job completed with zero row failures. All records imported successfully!
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
                   )}
-                </button>
-              </form>
+                </div>
+              )}
             </div>
           )}
 

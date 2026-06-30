@@ -26,11 +26,13 @@ import {
   RefreshCw,
   X,
   CreditCard,
-  Plus
+  Plus,
+  FolderClosed
 } from 'lucide-react';
 import { Transaction, TransactionType, Saving, Revolving } from '../types';
 import { api } from '../services/api';
 import { FilterCriteria } from './FilterMenu';
+import { useNavigate } from 'react-router-dom';
 
 interface TransactionsCalendarProps {
   onTransactionClick?: (t: Transaction) => void;
@@ -56,6 +58,7 @@ export const TransactionsCalendar: React.FC<TransactionsCalendarProps> = ({
   filters = [],
   currentTab = 'all'
 }) => {
+  const navigate = useNavigate();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [view, setView] = useState<ViewType>('month');
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -689,9 +692,24 @@ export const TransactionsCalendar: React.FC<TransactionsCalendarProps> = ({
                           <p className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors">
                             {t.description || 'No Description'}
                           </p>
-                          <p className="text-[10px] text-slate-500 font-medium uppercase tracking-wider mt-0.5">
-                            {t.category?.name || 'Uncategorized'} • {t.payment_mode || 'Cash'}
-                          </p>
+                          <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
+                            <span className="text-[10px] text-slate-500 font-medium uppercase tracking-wider">
+                              {t.category?.name || 'Uncategorized'} • {t.payment_mode || 'Cash'}
+                            </span>
+                            {t.group && (
+                              <span 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  navigate(`/groups/${t.group.id}`);
+                                }}
+                                className="px-1.5 py-0.5 text-[8px] font-black rounded text-white flex items-center gap-1 hover:opacity-80 transition-opacity cursor-pointer animate-in fade-in duration-200"
+                                style={{ backgroundColor: t.group.color || '#06b6d4' }}
+                              >
+                                <FolderClosed className="w-2.5 h-2.5" />
+                                <span>{t.group.name}</span>
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
                       <div className="text-right">

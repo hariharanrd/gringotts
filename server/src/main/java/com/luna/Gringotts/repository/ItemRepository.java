@@ -19,4 +19,6 @@ public interface ItemRepository extends JpaRepository<Item, Long> {
     Page<Item> findBySubCategoryCategoryTypeAndSubCategoryCategoryUserAndNameContainingIgnoreCaseOrderByNameAsc(String type, com.luna.Gringotts.records.User user, String name, org.springframework.data.domain.Pageable pageable);
 
     boolean existsBySubCategoryId(Long subCategoryId);
+
+    java.util.Optional<Item> findByNameIgnoreCaseAndSubCategoryId(String name, Long subCategoryId);
 }
