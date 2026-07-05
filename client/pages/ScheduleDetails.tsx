@@ -95,7 +95,6 @@ const ScheduleDetails: React.FC = () => {
       <p className="text-slate-500 font-medium">{error}</p>
       <button onClick={() => navigate('/schedules')} className="flex items-center gap-2 px-6 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl transition-all font-semibold">
         <ArrowLeft className="w-4 h-4" />
-        Back to Schedules
       </button>
     </div>
   );
@@ -111,18 +110,18 @@ const ScheduleDetails: React.FC = () => {
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       {/* Actions Row */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-y-3 sm:gap-4">
         <button 
           onClick={() => navigate('/schedules')} 
-          className="flex items-center gap-2 text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors group"
+          className="flex items-center gap-2 text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors group self-start"
         >
           <div className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 group-hover:bg-slate-200 dark:group-hover:bg-slate-700 transition-colors">
             <ArrowLeft className="w-4 h-4" />
           </div>
-          <span className="text-xs font-bold tracking-tight uppercase">Back to Schedules</span>
+          <span className="text-xs font-bold tracking-tight uppercase">Back</span>
         </button>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-3 sm:gap-3">
           <button
             onClick={handleToggleStatus}
             className={`flex items-center gap-2 px-4 py-2 font-bold rounded-xl transition-all active:scale-95 text-xs ${schedule.is_active ? 'bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-500/20' : 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-500/20'}`}
