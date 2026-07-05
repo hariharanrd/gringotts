@@ -213,7 +213,7 @@ const CreditCards: React.FC = () => {
               <div
                 key={card.id}
                 onClick={() => navigate(`/credit-cards/${card.id}`)}
-                className={`group relative aspect-[1.586] w-full max-w-[380px] mx-auto rounded-2xl md:rounded-[1.75rem] ${theme.bg} border ${card.threshold_exceeded ? 'border-rose-500' : theme.border} shadow-lg hover:shadow-2xl transition-all duration-500 overflow-hidden text-white flex flex-col justify-between p-5 md:p-6 cursor-pointer`}
+                className={`group relative h-[210px] w-full rounded-2xl md:rounded-[1.75rem] ${theme.bg} border ${card.threshold_exceeded ? 'border-rose-500' : theme.border} shadow-lg hover:shadow-2xl transition-all duration-500 overflow-hidden text-white flex flex-col justify-between p-4 md:p-5 cursor-pointer`}
               >
                 {/* Background textures */}
                 <div className={`absolute inset-0 ${theme.pattern} opacity-100`} />
@@ -252,7 +252,7 @@ const CreditCards: React.FC = () => {
                   </div>
 
                   {/* Middle Row: Chip & Contactless & Utilization */}
-                  <div className="flex items-center justify-between gap-4 my-2">
+                  <div className="flex items-center justify-between gap-4 my-1 md:my-1.5">
                     <div className="flex items-center gap-3">
                       {/* Chip */}
                       <div className="w-8 h-6 rounded bg-gradient-to-br from-amber-200 via-yellow-400 to-amber-600 border border-amber-600/30 flex flex-col justify-between p-1 shadow-inner flex-shrink-0">
@@ -290,27 +290,53 @@ const CreditCards: React.FC = () => {
 
                   {/* Bill Due Info Row (If applicable) */}
                   {card.smart_status && (card.smart_status.amount || card.smart_status.due_date) ? (
-                    <div className="bg-black/15 border border-white/5 rounded-xl px-3 py-1.5 flex items-center justify-between gap-2 text-[9px] font-medium leading-none">
-                      <span className="text-white/50 uppercase tracking-wider">
+                    <div className={`px-3 py-1 flex items-center justify-between gap-2 text-[9px] font-medium leading-none rounded-xl border ${
+                      card.smart_status.type === 'overdue'
+                        ? 'bg-rose-500/10 border-rose-500/20 text-rose-200'
+                        : card.smart_status.type === 'pending'
+                        ? 'bg-amber-500/10 border-amber-500/20 text-amber-200'
+                        : 'bg-black/15 border border-white/5 text-white/70'
+                    }`}>
+                      <span className={`uppercase tracking-wider ${
+                        card.smart_status.type === 'overdue'
+                          ? 'text-rose-300/80'
+                          : card.smart_status.type === 'pending'
+                          ? 'text-amber-300/80'
+                          : 'text-white/50'
+                      }`}>
                         {card.smart_status.type === 'overdue' ? 'Overdue amount' : 'Current Due'}
                       </span>
                       <div className="flex items-baseline gap-2">
                         {card.smart_status.amount && (
-                          <span className="text-[11px] font-black text-white">₹{card.smart_status.amount.toLocaleString('en-IN')}</span>
+                          <span className={`text-[11px] font-black ${
+                            card.smart_status.type === 'overdue'
+                              ? 'text-rose-200'
+                              : card.smart_status.type === 'pending'
+                              ? 'text-amber-200'
+                              : 'text-white'
+                          }`}>
+                            ₹{card.smart_status.amount.toLocaleString('en-IN')}
+                          </span>
                         )}
                         {card.smart_status.due_date && (
-                          <span className="text-[8px] text-white/50">
+                          <span className={`text-[8px] ${
+                            card.smart_status.type === 'overdue'
+                              ? 'text-rose-300/60'
+                              : card.smart_status.type === 'pending'
+                              ? 'text-amber-300/60'
+                              : 'text-white/50'
+                          }`}>
                             by {new Date(card.smart_status.due_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
                           </span>
                         )}
                       </div>
                     </div>
                   ) : (
-                    <div className="h-[21px]" /> /* alignment placeholder */
+                    <div className="h-5" /> /* alignment placeholder */
                   )}
 
                   {/* Bottom Row: Outstanding, Limit, & Actions */}
-                  <div className="flex justify-between items-end border-t border-white/10 pt-2.5 mt-1.5">
+                  <div className="flex justify-between items-end border-t border-white/10 pt-2 mt-1">
                     <div className="flex gap-4 md:gap-6">
                       <div>
                         <span className="text-[7px] font-bold text-white/40 uppercase tracking-widest block">Outstanding</span>

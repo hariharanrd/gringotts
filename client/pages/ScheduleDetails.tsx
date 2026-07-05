@@ -42,6 +42,10 @@ const ScheduleDetails: React.FC = () => {
   const { id } = useParams();
   const [schedule, setSchedule] = useState<ScheduledTransaction | null>(null);
   const [history, setHistory] = useState<any[]>([]);
+  const [hasMore, setHasMore] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -54,11 +58,31 @@ const ScheduleDetails: React.FC = () => {
       setError(null);
       const s = await api.getScheduledTransactionById(Number(id));
       setSchedule(s);
-      const h = await api.getScheduledTransactionHistory(Number(id));
+      const h = await api.getScheduledTransactionHistory(Number(id), 1);
       setHistory(h.data || []);
+      setHasMore(h.has_more || false);
+      setTotalCount(h.total_count || 0);
+      setCurrentPage(1);
     } catch (err: any) {
       setError(err.message || 'Failed to load schedule');
       showToast(err.message || 'Failed to load schedule', 'error');
+    }
+  };
+
+  const handleLoadMore = async () => {
+    if (!id || isLoadingMore || !hasMore) return;
+    try {
+      setIsLoadingMore(true);
+      const nextPage = currentPage + 1;
+      const h = await api.getScheduledTransactionHistory(Number(id), nextPage);
+      setHistory(prev => [...prev, ...(h.data || [])]);
+      setHasMore(h.has_more || false);
+      setTotalCount(h.total_count || 0);
+      setCurrentPage(nextPage);
+    } catch (err: any) {
+      showToast(err.message || 'Failed to load more history', 'error');
+    } finally {
+      setIsLoadingMore(false);
     }
   };
 
@@ -95,7 +119,6 @@ const ScheduleDetails: React.FC = () => {
       <p className="text-slate-500 font-medium">{error}</p>
       <button onClick={() => navigate('/schedules')} className="flex items-center gap-2 px-6 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl transition-all font-semibold">
         <ArrowLeft className="w-4 h-4" />
-        Back to Schedules
       </button>
     </div>
   );
@@ -111,18 +134,18 @@ const ScheduleDetails: React.FC = () => {
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       {/* Actions Row */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-y-3 sm:gap-4">
         <button 
           onClick={() => navigate('/schedules')} 
-          className="flex items-center gap-2 text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors group"
+          className="flex items-center gap-2 text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors group self-start"
         >
           <div className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 group-hover:bg-slate-200 dark:group-hover:bg-slate-700 transition-colors">
             <ArrowLeft className="w-4 h-4" />
           </div>
-          <span className="text-xs font-bold tracking-tight uppercase">Back to Schedules</span>
+          <span className="text-xs font-bold tracking-tight uppercase">Back</span>
         </button>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-3 sm:gap-3">
           <button
             onClick={handleToggleStatus}
             className={`flex items-center gap-2 px-4 py-2 font-bold rounded-xl transition-all active:scale-95 text-xs ${schedule.is_active ? 'bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-500/20' : 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-500/20'}`}
@@ -231,7 +254,7 @@ const ScheduleDetails: React.FC = () => {
                 Execution History
               </h4>
               <span className="text-xs font-bold text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-lg">
-                {history.length} Runs
+                {totalCount} Runs
               </span>
             </div>
 
@@ -279,6 +302,24 @@ const ScheduleDetails: React.FC = () => {
                 </table>
               )}
             </div>
+            {hasMore && (
+              <div className="p-4 border-t border-slate-100 dark:border-slate-800 flex justify-center">
+                <button
+                  onClick={handleLoadMore}
+                  disabled={isLoadingMore}
+                  className="px-6 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold rounded-xl transition-all border border-slate-200 dark:border-slate-700/50 disabled:opacity-50 disabled:pointer-events-none active:scale-95 flex items-center gap-2"
+                >
+                  {isLoadingMore ? (
+                    <>
+                      <div className="w-3.5 h-3.5 border-2 border-slate-350 border-t-cyan-500 rounded-full animate-spin"></div>
+                      Loading...
+                    </>
+                  ) : (
+                    'More'
+                  )}
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>
