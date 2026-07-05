@@ -42,6 +42,10 @@ const ScheduleDetails: React.FC = () => {
   const { id } = useParams();
   const [schedule, setSchedule] = useState<ScheduledTransaction | null>(null);
   const [history, setHistory] = useState<any[]>([]);
+  const [hasMore, setHasMore] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -54,11 +58,31 @@ const ScheduleDetails: React.FC = () => {
       setError(null);
       const s = await api.getScheduledTransactionById(Number(id));
       setSchedule(s);
-      const h = await api.getScheduledTransactionHistory(Number(id));
+      const h = await api.getScheduledTransactionHistory(Number(id), 1);
       setHistory(h.data || []);
+      setHasMore(h.has_more || false);
+      setTotalCount(h.total_count || 0);
+      setCurrentPage(1);
     } catch (err: any) {
       setError(err.message || 'Failed to load schedule');
       showToast(err.message || 'Failed to load schedule', 'error');
+    }
+  };
+
+  const handleLoadMore = async () => {
+    if (!id || isLoadingMore || !hasMore) return;
+    try {
+      setIsLoadingMore(true);
+      const nextPage = currentPage + 1;
+      const h = await api.getScheduledTransactionHistory(Number(id), nextPage);
+      setHistory(prev => [...prev, ...(h.data || [])]);
+      setHasMore(h.has_more || false);
+      setTotalCount(h.total_count || 0);
+      setCurrentPage(nextPage);
+    } catch (err: any) {
+      showToast(err.message || 'Failed to load more history', 'error');
+    } finally {
+      setIsLoadingMore(false);
     }
   };
 
@@ -230,7 +254,7 @@ const ScheduleDetails: React.FC = () => {
                 Execution History
               </h4>
               <span className="text-xs font-bold text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-lg">
-                {history.length} Runs
+                {totalCount} Runs
               </span>
             </div>
 
@@ -278,6 +302,24 @@ const ScheduleDetails: React.FC = () => {
                 </table>
               )}
             </div>
+            {hasMore && (
+              <div className="p-4 border-t border-slate-100 dark:border-slate-800 flex justify-center">
+                <button
+                  onClick={handleLoadMore}
+                  disabled={isLoadingMore}
+                  className="px-6 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold rounded-xl transition-all border border-slate-200 dark:border-slate-700/50 disabled:opacity-50 disabled:pointer-events-none active:scale-95 flex items-center gap-2"
+                >
+                  {isLoadingMore ? (
+                    <>
+                      <div className="w-3.5 h-3.5 border-2 border-slate-350 border-t-cyan-500 rounded-full animate-spin"></div>
+                      Loading...
+                    </>
+                  ) : (
+                    'More'
+                  )}
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>

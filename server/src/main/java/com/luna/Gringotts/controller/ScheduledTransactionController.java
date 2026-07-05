@@ -5,6 +5,7 @@ import com.luna.Gringotts.records.Transaction;
 import com.luna.Gringotts.services.ScheduledTransactionService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -63,7 +64,7 @@ public class ScheduledTransactionController {
     @GetMapping("/{id}/history")
     public ResponseEntity<Map<String, Object>> history(@PathVariable Long id,
             @RequestParam(value = "page", defaultValue = "1") int page) {
-        var result = scheduledTransactionService.getHistory(id, PageRequest.of(Math.max(0, page - 1), 20));
+        var result = scheduledTransactionService.getHistory(id, PageRequest.of(Math.max(0, page - 1), 10, Sort.by(Sort.Direction.DESC, "transactionTime", "id")));
         Map<String, Object> resp = new HashMap<>();
         resp.put("data", result.getContent());
         resp.put("total_count", result.getTotalElements());
