@@ -349,28 +349,53 @@ const CreditCardDetails: React.FC = () => {
             </div>
 
             {/* Stat Box: Smart Status */}
-            <div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800/50 rounded-2xl p-4 flex flex-col justify-center gap-0.5">
-              <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Smart Status</span>
-              {(() => {
-                const status = card.smart_status;
-                if (!status) return <span className="text-xs text-slate-400 font-bold">No Bills</span>;
-                const config = getStatusConfig(status.type);
-                const StatusIcon = config.icon;
-                return (
-                  <div className="flex flex-col gap-0.5">
-                    <div className="flex items-center gap-1.5 text-xs font-black text-slate-900 dark:text-white">
-                      <StatusIcon className={`w-3.5 h-3.5 ${status.type === 'overdue' ? 'text-rose-500 animate-pulse' : status.type === 'pending' ? 'text-amber-500' : 'text-emerald-400'}`} />
-                      <span>{status.label}</span>
-                    </div>
-                    {status.due_date && (
-                      <span className="text-[8px] font-bold text-slate-400 uppercase tracking-wide">
-                        Due: {new Date(status.due_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
-                      </span>
-                    )}
-                  </div>
-                );
-              })()}
-            </div>
+            {(() => {
+              const status = card.smart_status;
+              const isOverdue = status?.type === 'overdue';
+              const isPending = status?.type === 'pending';
+              
+              let boxClass = "bg-slate-50 dark:bg-slate-900/50 border-slate-100 dark:border-slate-800/50";
+              let labelClass = "text-slate-400";
+              let valueClass = "text-slate-900 dark:text-white";
+              let dateClass = "text-slate-400";
+              
+              if (isOverdue) {
+                boxClass = "bg-rose-500/5 dark:bg-rose-500/10 border-rose-500/20";
+                labelClass = "text-rose-500 dark:text-rose-400/80";
+                valueClass = "text-rose-600 dark:text-rose-300";
+                dateClass = "text-rose-500/80 dark:text-rose-400/60";
+              } else if (isPending) {
+                boxClass = "bg-amber-500/5 dark:bg-amber-500/10 border-amber-500/20";
+                labelClass = "text-amber-600 dark:text-amber-400/80";
+                valueClass = "text-amber-700 dark:text-amber-300";
+                dateClass = "text-amber-600/80 dark:text-amber-400/60";
+              }
+
+              return (
+                <div className={`${boxClass} border rounded-2xl p-4 flex flex-col justify-center gap-0.5`}>
+                  <span className={`text-[9px] font-bold uppercase tracking-wider ${labelClass}`}>Smart Status</span>
+                  {!status ? (
+                    <span className="text-xs text-slate-400 font-bold">No Bills</span>
+                  ) : (() => {
+                    const config = getStatusConfig(status.type);
+                    const StatusIcon = config.icon;
+                    return (
+                      <div className="flex flex-col gap-0.5">
+                        <div className={`flex items-center gap-1.5 text-xs font-black ${valueClass}`}>
+                          <StatusIcon className={`w-3.5 h-3.5 ${status.type === 'overdue' ? 'text-rose-500 animate-pulse' : status.type === 'pending' ? 'text-amber-500' : 'text-emerald-400'}`} />
+                          <span>{status.label}</span>
+                        </div>
+                        {status.due_date && (
+                          <span className={`text-[8px] font-bold uppercase tracking-wide ${dateClass}`}>
+                            Due: {new Date(status.due_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })()}
+                </div>
+              );
+            })()}
 
             {/* Stat Box: Billing Date & Info */}
             <div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800/50 rounded-2xl p-4 flex flex-col justify-center gap-0.5">
