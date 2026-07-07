@@ -101,7 +101,8 @@ public class ScheduledTransactionService {
     }
 
     public ScheduledTransaction update(Long id, ScheduledTransaction incoming) {
-        ScheduledTransaction existing = scheduledTransactionRepository.findById(id).orElseThrow();
+        ScheduledTransaction existing = scheduledTransactionRepository.findByIdAndUser(id, iamService.getCurrentUser())
+                .orElseThrow(() -> new java.util.NoSuchElementException("Scheduled transaction not found: " + id));
 
         boolean transitioningToActive = Boolean.TRUE.equals(incoming.getIsActive()) && !Boolean.TRUE.equals(existing.getIsActive());
 
@@ -198,14 +199,16 @@ public class ScheduledTransactionService {
     public void delete(Long id) {
         // first disable and save and then attempt delete, so if delete fails, it is
         // still disabled
-        ScheduledTransaction s = scheduledTransactionRepository.findById(id).orElseThrow();
+        ScheduledTransaction s = scheduledTransactionRepository.findByIdAndUser(id, iamService.getCurrentUser())
+                .orElseThrow(() -> new java.util.NoSuchElementException("Scheduled transaction not found: " + id));
         s.setIsActive(false);
         scheduledTransactionRepository.save(s);
         scheduledTransactionRepository.delete(s);
     }
 
     public ScheduledTransaction toggleActive(Long id) {
-        ScheduledTransaction s = scheduledTransactionRepository.findById(id).orElseThrow();
+        ScheduledTransaction s = scheduledTransactionRepository.findByIdAndUser(id, iamService.getCurrentUser())
+                .orElseThrow(() -> new java.util.NoSuchElementException("Scheduled transaction not found: " + id));
         boolean newStatus = !Boolean.TRUE.equals(s.getIsActive());
         s.setIsActive(newStatus);
         if (newStatus) {
@@ -261,7 +264,7 @@ public class ScheduledTransactionService {
     }
 
     public ScheduledTransaction getById(Long id) {
-        return scheduledTransactionRepository.findById(id).orElse(null);
+        return scheduledTransactionRepository.findByIdAndUser(id, iamService.getCurrentUser()).orElse(null);
     }
 
     public List<ScheduledTransaction> getAllForUser() {
@@ -271,6 +274,8 @@ public class ScheduledTransactionService {
 
     public Page<Transaction> getHistory(Long scheduleId, Pageable pageable) {
         User user = iamService.getCurrentUser();
+        scheduledTransactionRepository.findByIdAndUser(scheduleId, user)
+                .orElseThrow(() -> new java.util.NoSuchElementException("Scheduled transaction not found: " + scheduleId));
         Specification<Transaction> spec = com.luna.Gringotts.repository.TransactionSpecification.userFilter(user)
                 .and((root, query, builder) -> builder.equal(root.get("scheduleId"), scheduleId));
         return transactionRepository.findAll(spec, pageable);
@@ -306,7 +311,13 @@ public class ScheduledTransactionService {
 
     @Transactional
     public Transaction executeSchedule(Long scheduleId, boolean isManual) {
-        ScheduledTransaction s = scheduledTransactionRepository.findById(scheduleId).orElseThrow();
+        ScheduledTransaction s;
+        if (isManual) {
+            s = scheduledTransactionRepository.findByIdAndUser(scheduleId, iamService.getCurrentUser())
+                    .orElseThrow(() -> new java.util.NoSuchElementException("Scheduled transaction not found: " + scheduleId));
+        } else {
+            s = scheduledTransactionRepository.findById(scheduleId).orElseThrow();
+        }
         if (!isManual && !Boolean.TRUE.equals(s.getIsActive()))
             return null;
 

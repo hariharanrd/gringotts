@@ -52,7 +52,7 @@ public class BudgetService {
     }
 
     public Budget getBudgetById(Long id) {
-        return budgetRepository.findById(id)
+        return budgetRepository.findByIdAndUser(id, iamService.getCurrentUser())
                 .orElseThrow(() -> new NoSuchElementException("Budget not found: " + id));
     }
 

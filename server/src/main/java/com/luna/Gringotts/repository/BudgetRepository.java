@@ -11,6 +11,8 @@ import java.util.Optional;
 @Repository
 public interface BudgetRepository extends JpaRepository<Budget, Long> {
 
+    Optional<Budget> findByIdAndUser(Long id, User user);
+
     Optional<Budget> findByIsMasterTrueAndUser(User user);
 
     Optional<Budget> findByMonthAndYearAndUser(int month, int year, User user);

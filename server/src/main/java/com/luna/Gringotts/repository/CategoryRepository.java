@@ -11,6 +11,7 @@ import java.util.List;
 
 @Repository
 public interface CategoryRepository extends JpaRepository<Category, Long> {
+    java.util.Optional<Category> findByIdAndUser(Long id, User user);
     Page<Category> findByUserOrderByTypeAscNameAsc(User user, Pageable pageable);
     Page<Category> findByTypeAndUserOrderByNameAsc(String type, User user, Pageable pageable);
     Page<Category> findByUserAndNameContainingIgnoreCaseOrderByTypeAscNameAsc(User user, String name, Pageable pageable);

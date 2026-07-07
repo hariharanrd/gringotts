@@ -3,8 +3,11 @@ package com.luna.Gringotts.records;
 import jakarta.persistence.*;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import org.hibernate.annotations.Filter;
+
 @Entity
 @Table(name = "category", schema = "public")
+@Filter(name = "tenantFilter", condition = "user_id = :userId")
 public class Category {
 
     public void setId(Long id) {

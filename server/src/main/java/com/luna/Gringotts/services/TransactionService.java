@@ -91,23 +91,23 @@ public class TransactionService {
     private TransactionGroupRepository transactionGroupRepository;
 
     public Transaction getTransactionById(Long id) {
-        return transactionRepository.findById(id).orElse(null);
+        return transactionRepository.findByIdAndUser(id, iamService.getCurrentUser()).orElse(null);
     }
 
     public Expense getExpenseById(Long id) {
-        return expenseRepository.findById(id).orElse(null);
+        return expenseRepository.findByIdAndUser(id, iamService.getCurrentUser()).orElse(null);
     }
 
     public Income getIncomeById(Long id) {
-        return incomeRepository.findById(id).orElse(null);
+        return incomeRepository.findByIdAndUser(id, iamService.getCurrentUser()).orElse(null);
     }
 
     public Saving getSavingById(Long id) {
-        return savingRepository.findById(id).orElse(null);
+        return savingRepository.findByIdAndUser(id, iamService.getCurrentUser()).orElse(null);
     }
 
     public Revolving getRevolvingById(Long id) {
-        return revolvingRepository.findById(id).orElse(null);
+        return revolvingRepository.findByIdAndUser(id, iamService.getCurrentUser()).orElse(null);
     }
 
     /**
@@ -270,7 +270,8 @@ public class TransactionService {
     }
 
     public void deleteTransaction(Long id) {
-        Transaction t = transactionRepository.findById(id).get();
+        Transaction t = transactionRepository.findByIdAndUser(id, iamService.getCurrentUser())
+                .orElseThrow(() -> new java.util.NoSuchElementException("Transaction not found: " + id));
         if (t instanceof Expense) {
             deleteExpense(id);
         } else if (t instanceof Income) {
@@ -489,7 +490,8 @@ public class TransactionService {
 
     @Transactional
     public Expense updateToExpense(Long id, Expense incoming) {
-        Transaction existing = transactionRepository.findById(id).orElseThrow();
+        Transaction existing = transactionRepository.findByIdAndUser(id, iamService.getCurrentUser())
+                .orElseThrow(() -> new java.util.NoSuchElementException("Transaction not found: " + id));
         handleCreditCardCredit(existing);
 
         // Reverse old goal first
@@ -558,7 +560,8 @@ public class TransactionService {
     public Income updateToIncome(Long id, Income incoming) {
         incoming.setIncludeInBudget(true);
         incoming.setFundingGoal(null); // Ensure income cannot be goal funded
-        Transaction existing = transactionRepository.findById(id).orElseThrow();
+        Transaction existing = transactionRepository.findByIdAndUser(id, iamService.getCurrentUser())
+                .orElseThrow(() -> new java.util.NoSuchElementException("Transaction not found: " + id));
         handleCreditCardCredit(existing);
 
         // Reverse old goal first
@@ -598,7 +601,8 @@ public class TransactionService {
         if (Boolean.FALSE.equals(incoming.getIsIn())) {
             incoming.setIncludeInBudget(true);
         }
-        Transaction existing = transactionRepository.findById(id).orElseThrow();
+        Transaction existing = transactionRepository.findByIdAndUser(id, iamService.getCurrentUser())
+                .orElseThrow(() -> new java.util.NoSuchElementException("Transaction not found: " + id));
         handleCreditCardCredit(existing);
 
         // Reverse old goal first
@@ -668,7 +672,8 @@ public class TransactionService {
         if (Boolean.FALSE.equals(incoming.getIsGive())) {
             incoming.setIncludeInBudget(true);
         }
-        Transaction existing = transactionRepository.findById(id).orElseThrow();
+        Transaction existing = transactionRepository.findByIdAndUser(id, iamService.getCurrentUser())
+                .orElseThrow(() -> new java.util.NoSuchElementException("Transaction not found: " + id));
         handleCreditCardCredit(existing);
 
         // Reverse old goal first

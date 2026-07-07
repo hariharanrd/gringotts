@@ -8,6 +8,8 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface SubCategoryRepository extends JpaRepository<SubCategory, Long> {
 
+    java.util.Optional<SubCategory> findByIdAndCategoryUser(Long id, com.luna.Gringotts.records.User user);
+
     Page<SubCategory> findByCategoryId(Long categoryId, org.springframework.data.domain.Pageable pageable);
 
     Page<SubCategory> findByCategoryUserOrderByNameAsc(com.luna.Gringotts.records.User user, org.springframework.data.domain.Pageable pageable);

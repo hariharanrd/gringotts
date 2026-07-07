@@ -5,8 +5,11 @@ import jakarta.persistence.*;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
+import org.hibernate.annotations.Filter;
+
 @Entity
 @Table(name = "item", schema = "public", uniqueConstraints = {@UniqueConstraint(columnNames = {"name", "subcategory"})})
+@Filter(name = "tenantFilter", condition = "subcategory in (select sc.id from sub_category sc join category c on sc.category = c.id where c.user_id = :userId)")
 public class Item {
 
     public void setId(Long id) {
