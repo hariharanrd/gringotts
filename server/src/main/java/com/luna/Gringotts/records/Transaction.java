@@ -9,6 +9,8 @@ import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.springframework.data.annotation.ReadOnlyProperty;
 
+import org.hibernate.annotations.Filter;
+
 @Entity
 @Table(name = "transaction", schema = "public")
 @Inheritance(strategy = InheritanceType.JOINED)
@@ -19,6 +21,7 @@ import org.springframework.data.annotation.ReadOnlyProperty;
         @JsonSubTypes.Type(value = Saving.class, name = "SAVING"),
         @JsonSubTypes.Type(value = Revolving.class, name = "REVOLVING")
 })
+@Filter(name = "tenantFilter", condition = "user_id = :userId")
 public class Transaction {
 
     public Transaction() {

@@ -4,10 +4,13 @@ import jakarta.persistence.*;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
+import org.hibernate.annotations.Filter;
+
 @Entity
 @Table(name = "sub_category", schema = "public", uniqueConstraints = {
         @UniqueConstraint(columnNames = {"name", "category"})
 })
+@Filter(name = "tenantFilter", condition = "category in (select c.id from category c where c.user_id = :userId)")
 public class SubCategory {
 
     public void setId(Long id) {

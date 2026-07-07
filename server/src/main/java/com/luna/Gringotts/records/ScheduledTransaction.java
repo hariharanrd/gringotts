@@ -8,8 +8,11 @@ import org.hibernate.annotations.UpdateTimestamp;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
+import org.hibernate.annotations.Filter;
+
 @Entity
 @Table(name = "scheduled_transaction", schema = "public")
+@Filter(name = "tenantFilter", condition = "user_id = :userId")
 public class ScheduledTransaction {
 
     @Id

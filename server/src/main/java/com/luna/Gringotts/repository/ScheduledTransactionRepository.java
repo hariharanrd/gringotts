@@ -12,6 +12,8 @@ import java.util.List;
 @Repository
 public interface ScheduledTransactionRepository extends JpaRepository<ScheduledTransaction, Long> {
 
+    java.util.Optional<ScheduledTransaction> findByIdAndUser(Long id, User user);
+
     List<ScheduledTransaction> findByUserOrderByNextRunDateAscIdAsc(User user);
 
     List<ScheduledTransaction> findByUserAndIsActiveTrue(User user);

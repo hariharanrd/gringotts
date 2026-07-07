@@ -7,8 +7,11 @@ import org.hibernate.annotations.CreationTimestamp;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
+import org.hibernate.annotations.Filter;
+
 @Entity
 @Table(name = "loan", schema = "public")
+@Filter(name = "tenantFilter", condition = "user_id = :userId")
 public class Loan {
 
     public Loan() {}

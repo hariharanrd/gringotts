@@ -5,8 +5,11 @@ import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
 import java.time.LocalDateTime;
 
+import org.hibernate.annotations.Filter;
+
 @Entity
 @Table(name = "import_job", schema = "public")
+@Filter(name = "tenantFilter", condition = "user_id = :userId")
 public class ImportJob {
 
     public enum ImportJobStatus {

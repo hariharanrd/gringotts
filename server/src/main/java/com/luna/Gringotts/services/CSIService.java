@@ -62,6 +62,10 @@ public class CSIService {
 
     @CacheEvict(value = {"categories", "categoryById"}, allEntries = true)
     public Map<String, Object> deleteCategory(Long id){
+        Category category = categoryRepository.findByIdAndUser(id, iamService.getCurrentUser()).orElse(null);
+        if (category == null) {
+            return Map.of("status", "error", "message", "Category not found.", "status_code", 404);
+        }
         if (subCategoryRepository.existsByCategoryId(id)) {
             return Map.of("status", "error", "message", "Cannot delete category as it has associated sub-categories.", "status_code", 409);
         }
@@ -80,6 +84,10 @@ public class CSIService {
 
     @CacheEvict(value = {"subCategories", "subCategoryById"}, allEntries = true)
     public Map<String, Object> deleteSubCategory(Long id){
+        SubCategory subCategory = subCategoryRepository.findByIdAndCategoryUser(id, iamService.getCurrentUser()).orElse(null);
+        if (subCategory == null) {
+            return Map.of("status", "error", "message", "Sub-category not found.", "status_code", 404);
+        }
         if (itemRepository.existsBySubCategoryId(id)) {
             return Map.of("status", "error", "message", "Cannot delete sub-category as it has associated items.", "status_code", 409);
         }
@@ -95,6 +103,10 @@ public class CSIService {
 
     @CacheEvict(value = {"items", "itemById"}, allEntries = true)
     public Map<String, Object> deleteItem(Long id){
+        Item item = itemRepository.findByIdAndSubCategoryCategoryUser(id, iamService.getCurrentUser()).orElse(null);
+        if (item == null) {
+            return Map.of("status", "error", "message", "Item not found.", "status_code", 404);
+        }
         if (transactionRepository.existsByItemId(id)) {
             return Map.of("status", "error", "message", "Cannot delete item as it is associated with transactions.", "status_code", 409);
         }
@@ -107,6 +119,10 @@ public class CSIService {
 
     @CacheEvict(value = {"categories", "categoryById"}, allEntries = true)
     public Category updateCategory(Category category){
+        Category existing = categoryRepository.findByIdAndUser(category.getId(), iamService.getCurrentUser()).orElse(null);
+        if (existing == null) {
+            throw new java.util.NoSuchElementException("Category not found: " + category.getId());
+        }
         category.setUser(iamService.getCurrentUser());
         return categoryRepository.save(category);
     }
@@ -114,6 +130,10 @@ public class CSIService {
     @Transactional
     @CacheEvict(value = {"subCategories", "subCategoryById"}, allEntries = true)
     public SubCategory updateSubCategory(SubCategory subCategory){
+        SubCategory existing = subCategoryRepository.findByIdAndCategoryUser(subCategory.getId(), iamService.getCurrentUser()).orElse(null);
+        if (existing == null) {
+            throw new java.util.NoSuchElementException("Sub-category not found: " + subCategory.getId());
+        }
         SubCategory saved = subCategoryRepository.save(subCategory);
         return subCategoryRepository.findById(saved.getId()).orElse(saved);
     }
@@ -121,6 +141,10 @@ public class CSIService {
     @Transactional
     @CacheEvict(value = {"items", "itemById"}, allEntries = true)
     public Item updateItem(Item item){
+        Item existing = itemRepository.findByIdAndSubCategoryCategoryUser(item.getId(), iamService.getCurrentUser()).orElse(null);
+        if (existing == null) {
+            throw new java.util.NoSuchElementException("Item not found: " + item.getId());
+        }
         Item saved = itemRepository.save(item);
         return itemRepository.findById(saved.getId()).orElse(saved);
     }
@@ -135,13 +159,17 @@ public class CSIService {
         return categoryRepository.findByTypeAndUserOrderByNameAsc(type, iamService.getCurrentUser(), pageable);
     }
 
-    @Cacheable(value = "subCategories", key = "#categoryId + '-' + #pageable.pageNumber + '-' + #pageable.pageSize")
+    @Cacheable(value = "subCategories", key = "#root.target.iamService.getCurrentUser().id + '-' + #categoryId + '-' + #pageable.pageNumber + '-' + #pageable.pageSize")
     public Page<SubCategory> getSubCategories(Long categoryId, Pageable pageable){
+        categoryRepository.findByIdAndUser(categoryId, iamService.getCurrentUser())
+                .orElseThrow(() -> new java.util.NoSuchElementException("Category not found: " + categoryId));
         return subCategoryRepository.findByCategoryId(categoryId,pageable);
     }
 
-    @Cacheable(value = "items", key = "#subCategoryId + '-' + #pageable.pageNumber + '-' + #pageable.pageSize")
+    @Cacheable(value = "items", key = "#root.target.iamService.getCurrentUser().id + '-' + #subCategoryId + '-' + #pageable.pageNumber + '-' + #pageable.pageSize")
     public Page<Item> getItems(Long subCategoryId, Pageable pageable){
+        subCategoryRepository.findByIdAndCategoryUser(subCategoryId, iamService.getCurrentUser())
+                .orElseThrow(() -> new java.util.NoSuchElementException("Sub-category not found: " + subCategoryId));
         return itemRepository.findBySubCategoryId(subCategoryId,pageable);
     }
 
@@ -185,19 +213,19 @@ public class CSIService {
         return categoryRepository.findByTypeAndUserAndNameContainingIgnoreCaseOrderByNameAsc(type, iamService.getCurrentUser(), search, pageable);
     }
 
-    @Cacheable(value = "categoryById", key = "#id")
+    @Cacheable(value = "categoryById", key = "#root.target.iamService.getCurrentUser().id + '-' + #id")
     public Category getCategoryById(Long id){
-        return categoryRepository.findById(id).orElse(null);
+        return categoryRepository.findByIdAndUser(id, iamService.getCurrentUser()).orElse(null);
     }
 
-    @Cacheable(value = "subCategoryById", key = "#id")
+    @Cacheable(value = "subCategoryById", key = "#root.target.iamService.getCurrentUser().id + '-' + #id")
     public SubCategory getSubCategoryById(Long id) {
-        return subCategoryRepository.findById(id).orElse(null);
+        return subCategoryRepository.findByIdAndCategoryUser(id, iamService.getCurrentUser()).orElse(null);
     }
 
-    @Cacheable(value = "itemById", key = "#id")
+    @Cacheable(value = "itemById", key = "#root.target.iamService.getCurrentUser().id + '-' + #id")
     public Item getItemById(Long id) {
-        return itemRepository.findById(id).orElse(null);
+        return itemRepository.findByIdAndSubCategoryCategoryUser(id, iamService.getCurrentUser()).orElse(null);
     }
 
 }

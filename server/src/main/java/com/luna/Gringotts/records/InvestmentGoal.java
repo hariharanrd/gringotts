@@ -9,9 +9,12 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.hibernate.annotations.Filter;
+
 @Entity
 @Table(name = "investment_goal", schema = "public")
 @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
+@Filter(name = "tenantFilter", condition = "user_id = :userId")
 public class InvestmentGoal {
 
     public InvestmentGoal() {}

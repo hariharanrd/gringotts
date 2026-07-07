@@ -24,6 +24,8 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 @Repository
 public interface TransactionRepository<T extends Transaction> extends JpaRepository<T, Long>, JpaSpecificationExecutor<T> {
 
+    java.util.Optional<T> findByIdAndUser(Long id, User user);
+
 
     @EntityGraph(attributePaths = {"category", "subCategory", "item"})
     List<T> findByUserAndTransactionTimeAfter(User user, LocalDateTime after);
