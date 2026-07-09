@@ -17,6 +17,9 @@ public class IAMService {
     public User getCurrentUser (){
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if(authentication != null) {
+            if (authentication.getPrincipal() instanceof User) {
+                return (User) authentication.getPrincipal();
+            }
             String username = authentication.getName();
             return userRepository.findByUsername(username).orElse(null);
         }
