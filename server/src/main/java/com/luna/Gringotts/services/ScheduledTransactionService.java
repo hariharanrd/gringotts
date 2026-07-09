@@ -328,98 +328,114 @@ public class ScheduledTransactionService {
         Transaction created = null;
         User owner = s.getUser();
 
-        switch (s.getTransactionType()) {
-            case "EXPENSE": {
-                Expense e = new Expense();
-                e.setValue(s.getAmount());
-                e.setDescription(s.getDescription());
-                e.setTransactionTime(txTime);
-                e.setCategory(s.getCategory());
-                e.setSubCategory(s.getSubCategory());
-                e.setItem(s.getItem());
-                e.setPaymentMode(s.getPaymentMode());
-                e.setCreditCard(s.getCreditCard());
-                e.setImported(false);
-                e.setUser(owner);
-                e.setCreatedBy("SCHEDULE");
-                e.setScheduleId(s.getId());
-                e.setLoan(s.getLoan());
-                handleScheduledGoalFunding(e, s.getFundingGoal());
-                created = expenseRepository.save(e);
+        // Temporarily set the schedule's user in the SecurityContext to enable user context and tenant isolation during run.
+        org.springframework.security.core.context.SecurityContext originalContext = 
+                org.springframework.security.core.context.SecurityContextHolder.getContext();
+        try {
+            org.springframework.security.core.context.SecurityContext newContext = 
+                    org.springframework.security.core.context.SecurityContextHolder.createEmptyContext();
+            org.springframework.security.authentication.UsernamePasswordAuthenticationToken auth = 
+                    new org.springframework.security.authentication.UsernamePasswordAuthenticationToken(
+                            owner, null, java.util.Collections.emptyList()
+                    );
+            newContext.setAuthentication(auth);
+            org.springframework.security.core.context.SecurityContextHolder.setContext(newContext);
 
-                if (e.getLoan() != null && e.getLoan().getId() != null) {
-                    loanLinkingService.linkExpenseToLoan(e);
-                }
+            switch (s.getTransactionType()) {
+                case "EXPENSE": {
+                    Expense e = new Expense();
+                    e.setValue(s.getAmount());
+                    e.setDescription(s.getDescription());
+                    e.setTransactionTime(txTime);
+                    e.setCategory(s.getCategory());
+                    e.setSubCategory(s.getSubCategory());
+                    e.setItem(s.getItem());
+                    e.setPaymentMode(s.getPaymentMode());
+                    e.setCreditCard(s.getCreditCard());
+                    e.setImported(false);
+                    e.setUser(owner);
+                    e.setCreatedBy("SCHEDULE");
+                    e.setScheduleId(s.getId());
+                    e.setLoan(s.getLoan());
+                    handleScheduledGoalFunding(e, s.getFundingGoal());
+                    created = expenseRepository.save(e);
 
-                if ("CREDIT_CARD".equals(e.getPaymentMode()) && e.getCreditCard() != null) {
-                    creditCardService.addTransactionToBill(e);
-                }
-                break;
-            }
-            case "INCOME": {
-                Income i = new Income();
-                i.setValue(s.getAmount());
-                i.setDescription(s.getDescription());
-                i.setTransactionTime(txTime);
-                i.setCategory(s.getCategory());
-                i.setSubCategory(s.getSubCategory());
-                i.setItem(s.getItem());
-                i.setPaymentMode(s.getPaymentMode());
-                i.setCreditCard(s.getCreditCard());
-                i.setUser(owner);
-                i.setCreatedBy("SCHEDULE");
-                i.setScheduleId(s.getId());
-                created = incomeRepository.save(i);
-                if ("CREDIT_CARD".equals(i.getPaymentMode()) && i.getCreditCard() != null) {
-                    creditCardService.addTransactionToBill(i);
-                }
-                break;
-            }
-            case "SAVING": {
-                Saving sv = new Saving();
-                sv.setValue(s.getAmount());
-                sv.setDescription(s.getDescription());
-                sv.setTransactionTime(txTime);
-                sv.setCategory(s.getCategory());
-                sv.setSubCategory(s.getSubCategory());
-                sv.setItem(s.getItem());
-                sv.setIsIn(s.getIsIn() != null ? s.getIsIn() : Boolean.TRUE);
-                sv.setPaymentMode(s.getPaymentMode());
-                sv.setCreditCard(s.getCreditCard());
-                sv.setUser(owner);
-                sv.setCreatedBy("SCHEDULE");
-                sv.setScheduleId(s.getId());
-                handleScheduledGoalFunding(sv, s.getFundingGoal());
-                created = savingRepository.save(sv);
-                // adjust goals similar to TransactionService.saveSaving
-                double delta = Boolean.TRUE.equals(sv.getIsIn()) ? sv.getValue() : -sv.getValue();
-                investmentGoalService.adjustGoalsForSaving(sv, delta);
-                if ("CREDIT_CARD".equals(sv.getPaymentMode()) && sv.getCreditCard() != null) {
-                    creditCardService.addTransactionToBill(sv);
-                }
-                break;
-            }
-            default:
-                throw new IllegalArgumentException("Unsupported transaction type: " + s.getTransactionType());
-        }
+                    if (e.getLoan() != null && e.getLoan().getId() != null) {
+                        loanLinkingService.linkExpenseToLoan(e);
+                    }
 
-        if (isManual) {
+                    if ("CREDIT_CARD".equals(e.getPaymentMode()) && e.getCreditCard() != null) {
+                        creditCardService.addTransactionToBill(e);
+                    }
+                    break;
+                }
+                case "INCOME": {
+                    Income i = new Income();
+                    i.setValue(s.getAmount());
+                    i.setDescription(s.getDescription());
+                    i.setTransactionTime(txTime);
+                    i.setCategory(s.getCategory());
+                    i.setSubCategory(s.getSubCategory());
+                    i.setItem(s.getItem());
+                    i.setPaymentMode(s.getPaymentMode());
+                    i.setCreditCard(s.getCreditCard());
+                    i.setUser(owner);
+                    i.setCreatedBy("SCHEDULE");
+                    i.setScheduleId(s.getId());
+                    created = incomeRepository.save(i);
+                    if ("CREDIT_CARD".equals(i.getPaymentMode()) && i.getCreditCard() != null) {
+                        creditCardService.addTransactionToBill(i);
+                    }
+                    break;
+                }
+                case "SAVING": {
+                    Saving sv = new Saving();
+                    sv.setValue(s.getAmount());
+                    sv.setDescription(s.getDescription());
+                    sv.setTransactionTime(txTime);
+                    sv.setCategory(s.getCategory());
+                    sv.setSubCategory(s.getSubCategory());
+                    sv.setItem(s.getItem());
+                    sv.setIsIn(s.getIsIn() != null ? s.getIsIn() : Boolean.TRUE);
+                    sv.setPaymentMode(s.getPaymentMode());
+                    sv.setCreditCard(s.getCreditCard());
+                    sv.setUser(owner);
+                    sv.setCreatedBy("SCHEDULE");
+                    sv.setScheduleId(s.getId());
+                    handleScheduledGoalFunding(sv, s.getFundingGoal());
+                    created = savingRepository.save(sv);
+                    // adjust goals similar to TransactionService.saveSaving
+                    double delta = Boolean.TRUE.equals(sv.getIsIn()) ? sv.getValue() : -sv.getValue();
+                    investmentGoalService.adjustGoalsForSaving(sv, delta);
+                    if ("CREDIT_CARD".equals(sv.getPaymentMode()) && sv.getCreditCard() != null) {
+                        creditCardService.addTransactionToBill(sv);
+                    }
+                    break;
+                }
+                default:
+                    throw new IllegalArgumentException("Unsupported transaction type: " + s.getTransactionType());
+            }
+
+            if (isManual) {
+                return created;
+            }
+
+            // Update schedule run dates for automated runs
+            s.setLastRunDate(runDate);
+            LocalDate next = calculateNextRunDate(s);
+            s.setNextRunDate(next);
+            if (s.getFrequency().equals("ONE_TIME")) {
+                s.setIsActive(false);
+            }
+            if (s.getEndDate() != null && next != null && next.isAfter(s.getEndDate())) {
+                s.setIsActive(false);
+            }
+            scheduledTransactionRepository.save(s);
+
             return created;
+        } finally {
+            org.springframework.security.core.context.SecurityContextHolder.setContext(originalContext);
         }
-
-        // Update schedule run dates for automated runs
-        s.setLastRunDate(runDate);
-        LocalDate next = calculateNextRunDate(s);
-        s.setNextRunDate(next);
-        if (s.getFrequency().equals("ONE_TIME")) {
-            s.setIsActive(false);
-        }
-        if (s.getEndDate() != null && next != null && next.isAfter(s.getEndDate())) {
-            s.setIsActive(false);
-        }
-        scheduledTransactionRepository.save(s);
-
-        return created;
     }
 
     public LocalDate calculateNextRunDate(ScheduledTransaction s) {
