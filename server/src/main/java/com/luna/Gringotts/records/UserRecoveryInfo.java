@@ -15,7 +15,7 @@ public class UserRecoveryInfo {
     @JoinColumn(name = "user_id", nullable = false, unique = true)
     private User user;
 
-    @Column(name = "recovery_email")
+    @Column(name = "recovery_email", unique = true)
     private String recoveryEmail;
 
     @Column(name = "verification_status", nullable = false)

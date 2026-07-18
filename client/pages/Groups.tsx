@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, FolderClosed, Sparkles, Edit2, Trash2, ChevronRight, HelpCircle, X } from 'lucide-react';
+import { Plus, FolderClosed, Sparkles, Edit2, Trash2, ChevronRight, HelpCircle, X, Users } from 'lucide-react';
 import { api } from '../services/api';
 import { TransactionGroup } from '../types';
 import { useToast } from '../components/ToastContext';
@@ -77,6 +77,7 @@ const Groups: React.FC = () => {
   const [allowsSaving, setAllowsSaving] = useState(true);
   const [allowsRevolving, setAllowsRevolving] = useState(true);
   const [thumbnail, setThumbnail] = useState<string | null>(null);
+  const [shared, setShared] = useState(false);
 
   const fetchGroups = async () => {
     setLoading(true);
@@ -107,6 +108,7 @@ const Groups: React.FC = () => {
     setAllowsSaving(true);
     setAllowsRevolving(true);
     setThumbnail(null);
+    setShared(false);
     setIsModalOpen(true);
   };
 
@@ -124,6 +126,7 @@ const Groups: React.FC = () => {
     setAllowsSaving(group.allows_saving ?? true);
     setAllowsRevolving(group.allows_revolving ?? true);
     setThumbnail(group.thumbnail || null);
+    setShared(group.shared || false);
     setIsModalOpen(true);
   };
 
@@ -167,7 +170,8 @@ const Groups: React.FC = () => {
         allows_income: allowsIncome,
         allows_saving: allowsSaving,
         allows_revolving: allowsRevolving,
-        thumbnail: thumbnail || undefined
+        thumbnail: thumbnail || undefined,
+        shared
       };
 
       if (editingGroup) {
@@ -255,7 +259,11 @@ const Groups: React.FC = () => {
                     <div
                       key={group.id}
                       onClick={() => handleCardClick(group)}
-                      className="group relative bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl rounded-3xl border transition-all duration-300 hover:-translate-y-1 hover:shadow-xl cursor-pointer overflow-hidden border-slate-200 dark:border-slate-800/80"
+                      className={`group relative bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl rounded-3xl border transition-all duration-300 hover:-translate-y-1 hover:shadow-xl cursor-pointer overflow-hidden ${
+                        group.shared 
+                          ? 'border-cyan-500/30 dark:border-cyan-500/20 shadow-[0_0_15px_-3px_rgba(6,182,212,0.1)] dark:shadow-[0_0_15px_-3px_rgba(6,182,212,0.05)] border-l-4 border-l-cyan-500/80' 
+                          : 'border-slate-200 dark:border-slate-800/80'
+                      }`}
                     >
                       {/* Lazy loaded Cover Banner */}
                       <LazyGroupThumbnail groupId={group.id} groupName={group.name} isBanner={false} />
@@ -271,8 +279,13 @@ const Groups: React.FC = () => {
                               <IconComponent className="w-5 h-5" />
                             </div>
                             <div>
-                              <h3 className="font-extrabold text-slate-850 dark:text-slate-100 text-sm leading-tight line-clamp-1">
+                              <h3 className="flex items-center gap-1.5 font-extrabold text-slate-850 dark:text-slate-100 text-sm leading-tight line-clamp-1">
                                 {group.name}
+                                {group.shared && (
+                                  <span className="flex items-center gap-0.5 text-[9px] font-extrabold bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 px-1.5 py-0.5 rounded-md uppercase tracking-wider shrink-0">
+                                    <Users className="w-2.5 h-2.5" /> Shared
+                                  </span>
+                                )}
                               </h3>
                               <div className="flex flex-wrap gap-1 mt-1">
                                 <span className="inline-block px-1.5 py-0.5 text-[8px] font-extrabold rounded bg-slate-100 dark:bg-slate-800 text-slate-550 dark:text-slate-450 uppercase tracking-wider">
@@ -370,7 +383,11 @@ const Groups: React.FC = () => {
                       <div
                         key={group.id}
                         onClick={() => handleCardClick(group)}
-                        className="group relative bg-white/40 dark:bg-slate-900/40 backdrop-blur-xl rounded-3xl border border-slate-200 dark:border-slate-800 opacity-70 hover:opacity-100 hover:-translate-y-1 hover:shadow-lg transition-all duration-300 cursor-pointer overflow-hidden"
+                        className={`group relative bg-white/40 dark:bg-slate-900/40 backdrop-blur-xl rounded-3xl border opacity-70 hover:opacity-100 hover:-translate-y-1 hover:shadow-lg transition-all duration-300 cursor-pointer overflow-hidden ${
+                          group.shared 
+                            ? 'border-cyan-500/30 dark:border-cyan-500/20 border-l-4 border-l-cyan-500/60' 
+                            : 'border-slate-200 dark:border-slate-800'
+                        }`}
                       >
                         {/* Lazy loaded Cover Banner */}
                         <LazyGroupThumbnail groupId={group.id} groupName={group.name} isBanner={false} />
@@ -386,8 +403,13 @@ const Groups: React.FC = () => {
                                 <IconComponent className="w-5 h-5 text-slate-400 dark:text-slate-500" />
                               </div>
                               <div>
-                                <h3 className="font-extrabold text-slate-850 dark:text-slate-100 text-sm leading-tight line-clamp-1">
+                                <h3 className="flex items-center gap-1.5 font-extrabold text-slate-850 dark:text-slate-100 text-sm leading-tight line-clamp-1">
                                   {group.name}
+                                  {group.shared && (
+                                    <span className="flex items-center gap-0.5 text-[9px] font-extrabold bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 px-1.5 py-0.5 rounded-md uppercase tracking-wider shrink-0">
+                                      <Users className="w-2.5 h-2.5" /> Shared
+                                    </span>
+                                  )}
                                 </h3>
                                 <div className="flex flex-wrap gap-1 mt-1">
                                   <span className="inline-block px-1.5 py-0.5 text-[8px] font-extrabold rounded bg-slate-100 dark:bg-slate-800 text-slate-550 dark:text-slate-450 uppercase tracking-wider">
@@ -598,6 +620,40 @@ const Groups: React.FC = () => {
                     <label htmlFor="allowRevolving" className="text-xs font-bold text-slate-600 dark:text-slate-400 cursor-pointer select-none">
                       Revolving
                     </label>
+                  </div>
+                </div>
+              </div>
+
+              {/* Shared Group Toggle */}
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Group Collaboration</label>
+                <div className="flex items-center gap-3 p-3.5 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-200 dark:border-slate-800">
+                  <div className="relative flex items-center">
+                    <input
+                      type="checkbox"
+                      id="sharedGroup"
+                      checked={shared}
+                      onChange={(e) => setShared(e.target.checked)}
+                      disabled={!!editingGroup}
+                      className="w-5 h-5 rounded-lg border-slate-300 dark:border-slate-700 text-cyan-500 focus:ring-cyan-500/40 bg-slate-100 dark:bg-slate-800 transition-all cursor-pointer appearance-none checked:bg-cyan-500 border disabled:opacity-50 disabled:cursor-not-allowed"
+                    />
+                    {shared && (
+                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                        <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="4">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <label htmlFor="sharedGroup" className="text-xs font-bold text-slate-705 dark:text-slate-300 cursor-pointer select-none block">
+                      Shared Group
+                    </label>
+                    <span className="text-[10px] text-slate-500 dark:text-slate-400 block leading-tight">
+                      {editingGroup 
+                        ? "Shared status cannot be changed after creation." 
+                        : "Allow other users to join this group, see transactions, and tag their own transactions."}
+                    </span>
                   </div>
                 </div>
               </div>

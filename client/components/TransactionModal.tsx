@@ -78,6 +78,7 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
   });
 
   const [loading, setLoading] = useState(false);
+  const [showOptional, setShowOptional] = useState(false);
 
   const getAvailableBalance = (g: InvestmentGoal, currentTx?: Transaction | null) => {
     let baseAvailable = g.current_amount;
@@ -99,6 +100,7 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
   })() : false;
 
   const resetForm = () => {
+    setShowOptional(!!defaultGroupId);
     const initialDate = defaultDate ? (() => {
       const dateToUse = new Date(defaultDate);
       const now = new Date();
@@ -151,6 +153,17 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
     const fetchDropdownData = async () => {
       if (isOpen) {
         setShowTypeChangeConfirm(false);
+        const hasOpt = !!(
+          (transaction && (
+            transaction.notes ||
+            transaction.group?.id ||
+            transaction.funding_goal?.id ||
+            transaction.loan_id ||
+            transaction.include_in_budget === false
+          )) ||
+          defaultGroupId
+        );
+        setShowOptional(hasOpt);
         let typeToUse = transaction ? transaction.type : (defaultType || type);
         if (allowedTypes && allowedTypes.length > 0 && !allowedTypes.includes(typeToUse)) {
           typeToUse = allowedTypes[0];
@@ -531,116 +544,7 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
                   )}
                 </div>
               )}
-            </div>
-
-            {type !== TransactionType.INCOME && (
-              <div className="space-y-1.5 animate-in slide-in-from-top-2 duration-200">
-                <label className="text-sm font-medium text-slate-600 dark:text-slate-300">Fund from Goal (Optional)</label>
-                <select
-                  className="w-full px-4 py-2.5 bg-slate-100 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 rounded-xl focus:ring-2 focus:ring-cyan-500/40 outline-none text-slate-900 dark:text-white"
-                  value={formData.funding_goal_id || ''}
-                  onChange={(e) => {
-                    const goalIdVal = e.target.value ? Number(e.target.value) : undefined;
-                    setFormData(prev => ({
-                      ...prev,
-                      funding_goal_id: goalIdVal,
-                      include_in_budget: goalIdVal ? false : prev.include_in_budget
-                    }));
-                  }}
-                >
-                  <option value="">Do not fund from a Goal</option>
-                  {goals.map(g => {
-                    const available = getAvailableBalance(g, transaction);
-                    return (
-                      <option key={g.id} value={g.id}>
-                        {g.icon || '🎯'} {g.name} — Available: ₹{available.toLocaleString('en-IN')} ({g.goal_type === 'ONE_TIME' ? 'One-Time' : 'Persistent'})
-                      </option>
-                    );
-                  })}
-                </select>
-                {formData.funding_goal_id && (() => {
-                  const selectedGoal = goals.find(g => g.id === formData.funding_goal_id);
-                  if (!selectedGoal) return null;
-                  const available = getAvailableBalance(selectedGoal, transaction);
-                  const txVal = Number(formData.value) || 0;
-
-                  return (
-                    <div className="space-y-1.5 mt-2">
-                      <p className="text-[11px] text-indigo-600 dark:text-indigo-400 font-medium">
-                        Note: Funding from a goal automatically excludes this transaction from the budget.
-                      </p>
-
-                      {available === 0 ? (
-                        <div className="flex gap-2.5 p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl">
-                          <AlertTriangle className="w-4.5 h-4.5 text-amber-500 shrink-0 mt-0.5" />
-                          <div className="text-xs">
-                            <p className="font-bold text-amber-600 dark:text-amber-400">Zero Balance Warning</p>
-                            <p className="text-amber-500/90 leading-tight">
-                              This goal has an available balance of ₹0. Please contribute savings first.
-                            </p>
-                          </div>
-                        </div>
-                      ) : txVal > available ? (
-                        <div className="flex gap-2.5 p-3 bg-rose-500/10 border border-rose-500/20 rounded-xl">
-                          <AlertTriangle className="w-4.5 h-4.5 text-rose-500 shrink-0 mt-0.5" />
-                          <div className="text-xs">
-                            <p className="font-bold text-rose-600 dark:text-rose-400">Overdraft Warning</p>
-                            <p className="text-rose-500/90 leading-tight">
-                              Transaction amount (₹{txVal.toLocaleString('en-IN')}) exceeds the goal's available balance (₹{available.toLocaleString('en-IN')}). Saving this will throw an error.
-                            </p>
-                          </div>
-                        </div>
-                      ) : null}
-                    </div>
-                  );
-                })()}
-              </div>
-            )}
-
-            {type === TransactionType.EXPENSE && !formData.funding_goal_id && (
-              <div className="space-y-1.5 animate-in slide-in-from-top-2 duration-200">
-                <label className="text-sm font-medium text-slate-600 dark:text-slate-300">Link to Loan (Optional)</label>
-                <select
-                  className="w-full px-4 py-2.5 bg-slate-100 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 rounded-xl focus:ring-2 focus:ring-cyan-500/40 outline-none text-slate-900 dark:text-white"
-                  value={formData.loan_id || ''}
-                  onChange={(e) => {
-                    const loanIdVal = e.target.value ? Number(e.target.value) : undefined;
-                    setFormData(prev => ({ ...prev, loan_id: loanIdVal }));
-                  }}
-                >
-                  <option value="">Do not link to a Loan</option>
-                  {loans.map(l => (
-                    <option key={l.id} value={l.id}>
-                      {l.name} (EMI: ₹{l.emi_amount.toLocaleString('en-IN')})
-                    </option>
-                  ))}
-                </select>
-                {formData.loan_id && (() => {
-                  const selectedLoan = loans.find(l => l.id === formData.loan_id);
-                  if (!selectedLoan) return null;
-                  const txVal = Number(formData.value) || 0;
-                  const emiAmount = selectedLoan.emi_amount;
-                  const matchesEmi = Math.abs(txVal - emiAmount) < 0.01;
-                  console.log("matchesEmi debug:", { txVal, emiAmount, matchesEmi, diff: Math.abs(txVal - emiAmount), valueType: typeof formData.value, rawValue: formData.value });
-
-                  return (
-                    <div className="mt-2 text-xs font-medium">
-                      {matchesEmi ? (
-                        <p className="text-emerald-600 dark:text-emerald-400">
-                          ✓ Amount matches EMI (₹{emiAmount.toLocaleString('en-IN')}) — will be logged as the EMI payment for this month if not already done.
-                        </p>
-                      ) : (
-                        <p className="text-indigo-600 dark:text-indigo-400">
-                          ℹ Amount differs from EMI (₹{emiAmount.toLocaleString('en-IN')}) — will be logged as a Part Payment.
-                        </p>
-                      )}
-                    </div>
-                  );
-                })()}
-              </div>
-            )}
-
-            {type === TransactionType.SAVING && (
+            </div>            {type === TransactionType.SAVING && (
               <div className="space-y-4">
                 <div className="space-y-1.5">
                   <label className="text-sm font-medium text-slate-600 dark:text-slate-300">Transaction Type</label>
@@ -704,67 +608,184 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
               </div>
             )}
 
-            {(type === TransactionType.EXPENSE ||
-              (type === TransactionType.SAVING && formData.is_in) ||
-              (type === TransactionType.REVOLVING && formData.is_give !== false)) && (
-                <div className="flex items-center gap-3 mt-2 mb-2">
-                  <input
-                    type="checkbox"
-                    id="exclude-budget-checkbox"
-                    className="w-5 h-5 rounded border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-cyan-500 focus:ring-cyan-500/40 cursor-pointer accent-cyan-500 disabled:opacity-50"
-                    checked={formData.include_in_budget === false || !!formData.funding_goal_id}
-                    disabled={!!formData.funding_goal_id}
-                    onChange={(e) => !formData.funding_goal_id && setFormData(prev => ({ ...prev, include_in_budget: !e.target.checked }))}
-                  />
-                  <label htmlFor="exclude-budget-checkbox" className={`text-sm font-medium cursor-pointer ${formData.funding_goal_id ? 'text-slate-400 dark:text-slate-500' : 'text-slate-600 dark:text-slate-300'}`}>
-                    Exclude from budget utilization {formData.funding_goal_id && '(Locked by goal funding)'}
-                  </label>
+            <button
+              type="button"
+              onClick={() => setShowOptional(!showOptional)}
+              className="flex items-center gap-1.5 py-2 text-xs font-bold text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 transition-all uppercase tracking-wider mt-4 outline-none"
+            >
+              <span>Additional Options</span>
+              <ChevronDown className={`w-4 h-4 transition-transform duration-350 ${showOptional ? 'rotate-180' : ''}`} />
+            </button>
+
+            {showOptional && (
+              <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-slate-800/80 animate-in fade-in slide-in-from-top-2 duration-300">
+                {type !== TransactionType.INCOME && (
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium text-slate-600 dark:text-slate-300">Fund from Goal (Optional)</label>
+                    <select
+                      className="w-full px-4 py-2.5 bg-slate-100 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 rounded-xl focus:ring-2 focus:ring-cyan-500/40 outline-none text-slate-900 dark:text-white"
+                      value={formData.funding_goal_id || ''}
+                      onChange={(e) => {
+                        const goalIdVal = e.target.value ? Number(e.target.value) : undefined;
+                        setFormData(prev => ({
+                          ...prev,
+                          funding_goal_id: goalIdVal,
+                          include_in_budget: goalIdVal ? false : prev.include_in_budget
+                        }));
+                      }}
+                    >
+                      <option value="">Do not fund from a Goal</option>
+                      {goals.map(g => {
+                        const available = getAvailableBalance(g, transaction);
+                        return (
+                          <option key={g.id} value={g.id}>
+                            {g.icon || '🎯'} {g.name} — Available: ₹{available.toLocaleString('en-IN')} ({g.goal_type === 'ONE_TIME' ? 'One-Time' : 'Persistent'})
+                          </option>
+                        );
+                      })}
+                    </select>
+                    {formData.funding_goal_id && (() => {
+                      const selectedGoal = goals.find(g => g.id === formData.funding_goal_id);
+                      if (!selectedGoal) return null;
+                      const available = getAvailableBalance(selectedGoal, transaction);
+                      const txVal = Number(formData.value) || 0;
+
+                      return (
+                        <div className="space-y-1.5 mt-2">
+                          <p className="text-[11px] text-indigo-600 dark:text-indigo-400 font-medium">
+                            Note: Funding from a goal automatically excludes this transaction from the budget.
+                          </p>
+
+                          {available === 0 ? (
+                            <div className="flex gap-2.5 p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl">
+                              <AlertTriangle className="w-4.5 h-4.5 text-amber-500 shrink-0 mt-0.5" />
+                              <div className="text-xs">
+                                <p className="font-bold text-amber-600 dark:text-amber-400">Zero Balance Warning</p>
+                                <p className="text-amber-500/90 leading-tight">
+                                  This goal has an available balance of ₹0. Please contribute savings first.
+                                </p>
+                              </div>
+                            </div>
+                          ) : txVal > available ? (
+                            <div className="flex gap-2.5 p-3 bg-rose-500/10 border border-rose-500/20 rounded-xl">
+                              <AlertTriangle className="w-4.5 h-4.5 text-rose-500 shrink-0 mt-0.5" />
+                              <div className="text-xs">
+                                <p className="font-bold text-rose-600 dark:text-rose-400">Overdraft Warning</p>
+                                <p className="text-rose-500/90 leading-tight">
+                                  Transaction amount (₹{txVal.toLocaleString('en-IN')}) exceeds the goal's available balance (₹{available.toLocaleString('en-IN')}). Saving this will throw an error.
+                                </p>
+                              </div>
+                            </div>
+                          ) : null}
+                        </div>
+                      );
+                    })()}
+                  </div>
+                )}
+
+                {type === TransactionType.EXPENSE && !formData.funding_goal_id && (
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium text-slate-600 dark:text-slate-300">Link to Loan (Optional)</label>
+                    <select
+                      className="w-full px-4 py-2.5 bg-slate-100 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 rounded-xl focus:ring-2 focus:ring-cyan-500/40 outline-none text-slate-900 dark:text-white"
+                      value={formData.loan_id || ''}
+                      onChange={(e) => {
+                        const loanIdVal = e.target.value ? Number(e.target.value) : undefined;
+                        setFormData(prev => ({ ...prev, loan_id: loanIdVal }));
+                      }}
+                    >
+                      <option value="">Do not link to a Loan</option>
+                      {loans.map(l => (
+                        <option key={l.id} value={l.id}>
+                          {l.name} (EMI: ₹{l.emi_amount.toLocaleString('en-IN')})
+                        </option>
+                      ))}
+                    </select>
+                    {formData.loan_id && (() => {
+                      const selectedLoan = loans.find(l => l.id === formData.loan_id);
+                      if (!selectedLoan) return null;
+                      const txVal = Number(formData.value) || 0;
+                      const emiAmount = selectedLoan.emi_amount;
+                      const matchesEmi = Math.abs(txVal - emiAmount) < 0.01;
+
+                      return (
+                        <div className="mt-2 text-xs font-medium">
+                          {matchesEmi ? (
+                            <p className="text-emerald-600 dark:text-emerald-400">
+                              ✓ Amount matches EMI (₹{emiAmount.toLocaleString('en-IN')}) — will be logged as the EMI payment for this month if not already done.
+                            </p>
+                          ) : (
+                            <p className="text-indigo-600 dark:text-indigo-400">
+                              ℹ Amount differs from EMI (₹{emiAmount.toLocaleString('en-IN')}) — will be logged as a Part Payment.
+                            </p>
+                          )}
+                        </div>
+                      );
+                    })()}
+                  </div>
+                )}
+
+                {(type === TransactionType.EXPENSE ||
+                  (type === TransactionType.SAVING && formData.is_in) ||
+                  (type === TransactionType.REVOLVING && formData.is_give !== false)) && (
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="checkbox"
+                        id="exclude-budget-checkbox"
+                        className="w-5 h-5 rounded border-slate-300 dark:border-slate-650 bg-white dark:bg-slate-800 text-cyan-500 focus:ring-cyan-500/40 cursor-pointer accent-cyan-500 disabled:opacity-50"
+                        checked={formData.include_in_budget === false || !!formData.funding_goal_id}
+                        disabled={!!formData.funding_goal_id}
+                        onChange={(e) => !formData.funding_goal_id && setFormData(prev => ({ ...prev, include_in_budget: !e.target.checked }))}
+                      />
+                      <label htmlFor="exclude-budget-checkbox" className={`text-sm font-medium cursor-pointer ${formData.funding_goal_id ? 'text-slate-400 dark:text-slate-500' : 'text-slate-600 dark:text-slate-300'}`}>
+                        Exclude from budget utilization {formData.funding_goal_id && '(Locked by goal funding)'}
+                      </label>
+                    </div>
+                  )}
+
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-slate-600 dark:text-slate-300">Assign to Group (Optional)</label>
+                  <select
+                    className="w-full px-4 py-2.5 bg-slate-100 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 rounded-xl focus:ring-2 focus:ring-cyan-500/40 outline-none text-slate-900 dark:text-white disabled:opacity-60 disabled:cursor-not-allowed"
+                    disabled={disableGroupSelection}
+                    value={formData.group_id || ''}
+                    onChange={(e) => {
+                      const groupIdVal = e.target.value ? Number(e.target.value) : undefined;
+                      setFormData(prev => ({ ...prev, group_id: groupIdVal }));
+                    }}
+                  >
+                    <option value="">Do not assign to a Group</option>
+                    {groups
+                      .filter(g => {
+                        if (formData.group_id === g.id) return true;
+                        if (type === TransactionType.EXPENSE) return g.allows_expense !== false;
+                        if (type === TransactionType.INCOME) return g.allows_income !== false;
+                        if (type === TransactionType.SAVING) return g.allows_saving !== false;
+                        if (type === TransactionType.REVOLVING) return g.allows_revolving !== false;
+                        return true;
+                      })
+                      .map(g => (
+                        <option key={g.id} value={g.id}>
+                          {g.name} ({g.type}){g.shared ? ' (Shared)' : ''}
+                        </option>
+                      ))
+                    }
+                  </select>
                 </div>
-              )}
 
-
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-slate-600 dark:text-slate-300">Assign to Group (Optional)</label>
-              <select
-                className="w-full px-4 py-2.5 bg-slate-100 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 rounded-xl focus:ring-2 focus:ring-cyan-500/40 outline-none text-slate-900 dark:text-white disabled:opacity-60 disabled:cursor-not-allowed"
-                disabled={disableGroupSelection}
-                value={formData.group_id || ''}
-                onChange={(e) => {
-                  const groupIdVal = e.target.value ? Number(e.target.value) : undefined;
-                  setFormData(prev => ({ ...prev, group_id: groupIdVal }));
-                }}
-              >
-                <option value="">Do not assign to a Group</option>
-                {groups
-                  .filter(g => {
-                    if (formData.group_id === g.id) return true;
-                    if (type === TransactionType.EXPENSE) return g.allows_expense !== false;
-                    if (type === TransactionType.INCOME) return g.allows_income !== false;
-                    if (type === TransactionType.SAVING) return g.allows_saving !== false;
-                    if (type === TransactionType.REVOLVING) return g.allows_revolving !== false;
-                    return true;
-                  })
-                  .map(g => (
-                    <option key={g.id} value={g.id}>
-                      {g.name} ({g.type})
-                    </option>
-                  ))
-                }
-              </select>
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-slate-600 dark:text-slate-300">Notes (Optional)</label>
-              <textarea
-                rows={2}
-                className="w-full px-4 py-2.5 bg-slate-100 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 rounded-xl focus:ring-2 focus:ring-cyan-500/40 outline-none text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600"
-                value={formData.notes}
-                onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
-              />
-            </div>
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-slate-600 dark:text-slate-300">Notes (Optional)</label>
+                  <textarea
+                    rows={2}
+                    className="w-full px-4 py-2.5 bg-slate-100 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 rounded-xl focus:ring-2 focus:ring-cyan-500/40 outline-none text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600"
+                    value={formData.notes}
+                    onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
+                  />
+                </div>
+              </div>
+            )}
           </div>
-
-          </div>
+        </div>
 
           <div className="p-6 pt-4 flex gap-3 border-t border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 shrink-0">
             <button

@@ -5,6 +5,7 @@
 - The user will run and test the application themselves.
 - When making backend changes, follow the established response map format (`data`, `total_count`, `has_more`, etc.).
 - **Strict Multi-User Isolation**: Every new entity must have a `User` field. All repository queries must filter by the current user (using `IAMService.getCurrentUser()`).
+- **Strict Access Control**: Every newly added or modified endpoint/action must enforce strict access controls. Ensure all API endpoints validate that the calling user is the owner or explicitly authorized (e.g., an active member) to perform the operation.
 - **Feature Planning**: Before building any new feature, create a comprehensive plan and get explicit consent from the user.
 - **Database Migrations**: If schema changes are required, always create a corresponding migration file under `supabase/migrations`.
 - **Implementation Order**: Always implement the backend logic and APIs first before proceeding to the frontend implementation.

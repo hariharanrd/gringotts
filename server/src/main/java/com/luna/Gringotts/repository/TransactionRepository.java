@@ -62,7 +62,48 @@ public interface TransactionRepository<T extends Transaction> extends JpaReposit
     @EntityGraph(attributePaths = {"category", "subCategory", "item", "group"})
     List<T> findByGroupIdAndUser(Long groupId, User user);
 
+    @EntityGraph(attributePaths = {"category", "subCategory", "item", "group"})
+    List<T> findByGroupOrderByTransactionTimeDesc(TransactionGroup group);
+
+    @EntityGraph(attributePaths = {"category", "subCategory", "item", "group"})
+    Page<T> findByGroup(TransactionGroup group, Pageable pageable);
+
+    @EntityGraph(attributePaths = {"category", "subCategory", "item", "group"})
+    Page<T> findByGroupAndUser(TransactionGroup group, User user, Pageable pageable);
+
+    // Unified access-aware group transaction query.
+    // When isShared=true (group is shared), all group transactions are returned regardless of owner.
+    // When isShared=false, only the requesting user's transactions in the group are returned.
+    @EntityGraph(attributePaths = {"category", "subCategory", "item", "group"})
+    @Query("""
+        SELECT t FROM Transaction t
+        WHERE t.group = :group
+          AND (:isShared = true OR t.user = :user)
+        ORDER BY t.transactionTime DESC
+        """)
+    List<T> findByGroupWithAccess(
+        @Param("group") TransactionGroup group,
+        @Param("user") User user,
+        @Param("isShared") boolean isShared);
+
+    @EntityGraph(attributePaths = {"category", "subCategory", "item", "group"})
+    @Query("""
+        SELECT t FROM Transaction t
+        WHERE t.group = :group
+          AND (:isShared = true OR t.user = :user)
+        ORDER BY t.transactionTime DESC
+        """)
+    Page<T> findByGroupWithAccess(
+        @Param("group") TransactionGroup group,
+        @Param("user") User user,
+        @Param("isShared") boolean isShared,
+        Pageable pageable);
+
     @Modifying
     @Query("UPDATE Transaction t SET t.group = null WHERE t.group.id = :groupId AND t.user = :user")
     void nullifyGroupByGroupIdAndUser(@Param("groupId") Long groupId, @Param("user") User user);
+
+    @Modifying
+    @Query("UPDATE Transaction t SET t.group = null WHERE t.group.id = :groupId")
+    void nullifyGroupByGroupId(@Param("groupId") Long groupId);
 }

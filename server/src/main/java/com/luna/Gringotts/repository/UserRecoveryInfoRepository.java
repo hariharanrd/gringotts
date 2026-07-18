@@ -10,5 +10,6 @@ import java.util.Optional;
 @Repository
 public interface UserRecoveryInfoRepository extends JpaRepository<UserRecoveryInfo, Long> {
     Optional<UserRecoveryInfo> findByUser(User user);
+    Optional<UserRecoveryInfo> findByRecoveryEmailIgnoreCase(String recoveryEmail);
     Optional<UserRecoveryInfo> findByRecoveryEmailIgnoreCaseAndVerificationStatus(String recoveryEmail, String verificationStatus);
 }
