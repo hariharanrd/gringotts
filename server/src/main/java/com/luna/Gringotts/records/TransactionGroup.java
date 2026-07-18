@@ -5,11 +5,9 @@ import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
 import java.time.LocalDateTime;
 
-import org.hibernate.annotations.Filter;
 
 @Entity
 @Table(name = "transaction_group", schema = "public")
-@Filter(name = "tenantFilter", condition = "user_id = :userId")
 public class TransactionGroup {
 
     public TransactionGroup() {}
@@ -54,6 +52,9 @@ public class TransactionGroup {
     @Column(columnDefinition = "text")
     @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     private String thumbnail;
+
+    @Column(nullable = false)
+    private boolean shared = false;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
@@ -180,5 +181,13 @@ public class TransactionGroup {
 
     public void setThumbnail(String thumbnail) {
         this.thumbnail = thumbnail;
+    }
+
+    public boolean isShared() {
+        return shared;
+    }
+
+    public void setShared(boolean shared) {
+        this.shared = shared;
     }
 }

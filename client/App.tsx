@@ -21,7 +21,8 @@ import { Login } from './pages/Login';
 import { Register } from './pages/Register';
 import { ForgotPassword } from './pages/ForgotPassword';
 import { ResetPassword } from './pages/ResetPassword';
-import { Transaction, TransactionType } from './types';
+import { Transaction, TransactionType, GroupInvitation } from './types';
+import { api } from './services/api';
 import { ToastProvider, useToast } from './components/ToastContext';
 import { ThemeProvider } from './components/ThemeContext';
 import { personalizationSync } from './services/personalizationSync';
@@ -86,6 +87,16 @@ const GringottsApp: React.FC = () => {
   const [hasRecoveryEmail, setHasRecoveryEmail] = useState<boolean>(true);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [pendingInvitations, setPendingInvitations] = useState<GroupInvitation[]>([]);
+
+  const fetchPendingInvitations = async () => {
+    try {
+      const res = await api.getPendingGroupInvitations();
+      setPendingInvitations(res.data ?? []);
+    } catch (error) {
+      console.error("Failed to fetch pending group invitations:", error);
+    }
+  };
 
   const fetchUser = async () => {
     try {
@@ -105,12 +116,34 @@ const GringottsApp: React.FC = () => {
         }
 
         setIsAuthenticated(true);
+        fetchPendingInvitations();
       } else {
         setIsAuthenticated(false);
       }
     } catch (error) {
       console.error("Failed to fetch user:", error);
       setIsAuthenticated(false);
+    }
+  };
+
+  const handleAcceptInvitation = async (id: number) => {
+    try {
+      await api.acceptGroupInvitation(id);
+      showToast("Invitation accepted!", "success");
+      setPendingInvitations(prev => prev.filter(inv => inv.id !== id));
+      setRefreshKey(prev => prev + 1);
+    } catch (error: any) {
+      showToast(error.message || "Failed to accept invitation", "error");
+    }
+  };
+
+  const handleDeclineInvitation = async (id: number) => {
+    try {
+      await api.declineGroupInvitation(id);
+      showToast("Invitation declined", "success");
+      setPendingInvitations(prev => prev.filter(inv => inv.id !== id));
+    } catch (error: any) {
+      showToast(error.message || "Failed to decline invitation", "error");
     }
   };
 
@@ -176,6 +209,9 @@ const GringottsApp: React.FC = () => {
               hasRecoveryEmail={hasRecoveryEmail}
               onLogout={handleLogout}
               onImportSuccess={handleImportSuccess}
+              pendingInvitations={pendingInvitations}
+              onAcceptInvitation={handleAcceptInvitation}
+              onDeclineInvitation={handleDeclineInvitation}
             >
               <Routes>
                 <Route path="/dashboard" element={<Dashboard />} />

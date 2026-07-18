@@ -9,7 +9,6 @@ import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.springframework.data.annotation.ReadOnlyProperty;
 
-import org.hibernate.annotations.Filter;
 
 @Entity
 @Table(name = "transaction", schema = "public")
@@ -21,7 +20,6 @@ import org.hibernate.annotations.Filter;
         @JsonSubTypes.Type(value = Saving.class, name = "SAVING"),
         @JsonSubTypes.Type(value = Revolving.class, name = "REVOLVING")
 })
-@Filter(name = "tenantFilter", condition = "user_id = :userId")
 public class Transaction {
 
     public Transaction() {
@@ -213,6 +211,19 @@ public class Transaction {
 
     public User getUser() {
         return user;
+    }
+
+    @JsonProperty("user")
+    public java.util.Map<String, Object> getUserDetails() {
+        if (user == null) {
+            return null;
+        }
+        java.util.Map<String, Object> details = new java.util.HashMap<>();
+        details.put("id", user.getId());
+        details.put("username", user.getUsername());
+        details.put("display_name", user.getDisplayName() != null && !user.getDisplayName().isEmpty() ? user.getDisplayName() : user.getUsername());
+        details.put("profile_picture", user.getProfilePicture());
+        return details;
     }
 
     public void setUser(User user) {

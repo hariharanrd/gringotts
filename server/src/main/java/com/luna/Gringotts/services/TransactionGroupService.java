@@ -4,16 +4,25 @@ import com.luna.Gringotts.records.Saving;
 import com.luna.Gringotts.records.Transaction;
 import com.luna.Gringotts.records.TransactionGroup;
 import com.luna.Gringotts.records.User;
+import com.luna.Gringotts.records.GroupMember;
 import com.luna.Gringotts.repository.TransactionGroupRepository;
 import com.luna.Gringotts.repository.TransactionRepository;
+import com.luna.Gringotts.repository.GroupMemberRepository;
+import com.luna.Gringotts.repository.UserRepository;
+import com.luna.Gringotts.repository.UserRecoveryInfoRepository;
+import com.luna.Gringotts.records.UserRecoveryInfo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.ArrayList;
 
 @Service
 public class TransactionGroupService {
@@ -25,16 +34,33 @@ public class TransactionGroupService {
     private TransactionRepository<Transaction> transactionRepository;
 
     @Autowired
+    private GroupMemberRepository groupMemberRepository;
+
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private UserRecoveryInfoRepository userRecoveryInfoRepository;
+
+    @Autowired
     private IAMService iamService;
 
     public List<TransactionGroup> getAllGroups() {
         User user = iamService.getCurrentUser();
-        return transactionGroupRepository.findAllByUserOrderByCreatedAtDesc(user);
+        return transactionGroupRepository.findAllAccessibleByUser(user);
     }
 
     public Optional<TransactionGroup> getGroupById(Long id) {
         User user = iamService.getCurrentUser();
-        return transactionGroupRepository.findByIdAndUser(id, user);
+        return transactionGroupRepository.findByIdAccessibleByUser(id, user);
+    }
+
+    public TransactionGroup getGroupForUser(Long groupId, User user) {
+        if (user == null || user.getId() == null) {
+            throw new IllegalArgumentException("User not authenticated");
+        }
+        return transactionGroupRepository.findByIdAccessibleByUser(groupId, user)
+                .orElseThrow(() -> new IllegalArgumentException("Group not found or access denied"));
     }
 
     private void validateGroupAllowedTypes(TransactionGroup group) {
@@ -85,29 +111,33 @@ public class TransactionGroupService {
     @Transactional
     public void deleteGroup(Long id) {
         User user = iamService.getCurrentUser();
+        // Only the owner can delete a group
         TransactionGroup group = transactionGroupRepository.findByIdAndUser(id, user)
                 .orElseThrow(() -> new IllegalArgumentException("Group not found or access denied"));
 
-        // Nullify group reference on all transactions associated with this group
-        transactionRepository.nullifyGroupByGroupIdAndUser(id, user);
+        // Nullify group reference on all transactions in this group (across all members)
+        transactionRepository.nullifyGroupByGroupId(id);
 
-        // Delete the group
         transactionGroupRepository.delete(group);
     }
 
     public List<Transaction> getGroupTransactions(Long groupId) {
         User user = iamService.getCurrentUser();
-        TransactionGroup group = transactionGroupRepository.findByIdAndUser(groupId, user)
-                .orElseThrow(() -> new IllegalArgumentException("Group not found or access denied"));
-        return transactionRepository.findByGroupAndUserOrderByTransactionTimeDesc(group, user);
+        TransactionGroup group = getGroupForUser(groupId, user);
+        return transactionRepository.findByGroupWithAccess(group, user, group.isShared());
+    }
+
+    public Page<Transaction> getGroupTransactionsPaginated(Long groupId, Pageable pageable) {
+        User user = iamService.getCurrentUser();
+        TransactionGroup group = getGroupForUser(groupId, user);
+        return transactionRepository.findByGroupWithAccess(group, user, group.isShared(), pageable);
     }
 
     public Map<String, Object> getGroupStatistics(Long groupId) {
         User user = iamService.getCurrentUser();
-        TransactionGroup group = transactionGroupRepository.findByIdAndUser(groupId, user)
-                .orElseThrow(() -> new IllegalArgumentException("Group not found or access denied"));
+        TransactionGroup group = getGroupForUser(groupId, user);
 
-        List<Transaction> transactions = transactionRepository.findByGroupAndUserOrderByTransactionTimeDesc(group, user);
+        List<Transaction> transactions = transactionRepository.findByGroupWithAccess(group, user, group.isShared());
 
         double totalExpenses = 0.0;
         double totalIncomes = 0.0;
@@ -140,7 +170,6 @@ public class TransactionGroupService {
                 }
             }
 
-            // Subcategory & Item breakdowns span all transaction types
             if (t.getSubCategory() != null) {
                 hasSubcategoryData = true;
                 String subCategoryName = t.getSubCategory().getName();
@@ -169,8 +198,159 @@ public class TransactionGroupService {
 
     public String getGroupThumbnail(Long groupId) {
         User user = iamService.getCurrentUser();
-        return transactionGroupRepository.findByIdAndUser(groupId, user)
-                .map(TransactionGroup::getThumbnail)
+        return getGroupForUser(groupId, user).getThumbnail();
+    }
+
+    public List<GroupMember> getGroupMembers(Long groupId) {
+        User user = iamService.getCurrentUser();
+        TransactionGroup group = getGroupForUser(groupId, user);
+        
+        List<GroupMember> members = new ArrayList<>(groupMemberRepository.findByGroup(group));
+        
+        boolean hasOwner = false;
+        for (GroupMember gm : members) {
+            if (gm.getUser().getId().equals(group.getUser().getId())) {
+                hasOwner = true;
+                break;
+            }
+        }
+        
+        if (!hasOwner) {
+            GroupMember ownerMember = new GroupMember();
+            ownerMember.setGroup(group);
+            ownerMember.setUser(group.getUser());
+            ownerMember.setRole("ADMIN");
+            ownerMember.setStatus("ACCEPTED");
+            ownerMember.setInvitedBy(group.getUser());
+            members.add(0, ownerMember);
+        }
+        
+        return members;
+    }
+
+    @Transactional
+    public void inviteMember(Long groupId, String identifier) {
+        User currentUser = iamService.getCurrentUser();
+        TransactionGroup group = transactionGroupRepository.findByIdAndUser(groupId, currentUser)
                 .orElseThrow(() -> new IllegalArgumentException("Group not found or access denied"));
+                
+        Optional<User> targetUserOpt = userRepository.findByUsername(identifier.toLowerCase());
+        if (targetUserOpt.isEmpty()) {
+            // Try looking up by verified recovery email
+            Optional<UserRecoveryInfo> recoveryOpt = userRecoveryInfoRepository.findByRecoveryEmailIgnoreCaseAndVerificationStatus(identifier, "VERIFIED");
+            if (recoveryOpt.isPresent()) {
+                targetUserOpt = Optional.of(recoveryOpt.get().getUser());
+            }
+        }
+        User targetUser = targetUserOpt.orElseThrow(() -> new IllegalArgumentException("User not found"));
+                
+        if (targetUser.getId().equals(currentUser.getId())) {
+            throw new IllegalArgumentException("Cannot invite yourself");
+        }
+        
+        Optional<GroupMember> existing = groupMemberRepository.findByGroupAndUser(group, targetUser);
+        if (existing.isPresent()) {
+            GroupMember gm = existing.get();
+            if ("ACCEPTED".equals(gm.getStatus())) {
+                throw new IllegalArgumentException("User is already a member of this group");
+            }
+            if ("PENDING".equals(gm.getStatus()) && gm.getExpiresAt().isAfter(LocalDateTime.now())) {
+                throw new IllegalArgumentException("An invitation to this user is already pending");
+            }
+        }
+        
+        GroupMember member = existing.orElseGet(GroupMember::new);
+        member.setGroup(group);
+        member.setUser(targetUser);
+        member.setRole("MEMBER");
+        member.setStatus("PENDING");
+        member.setInvitedAt(LocalDateTime.now());
+        member.setExpiresAt(LocalDateTime.now().plusDays(7));
+        member.setInvitedBy(currentUser);
+        groupMemberRepository.save(member);
+    }
+
+    public List<GroupMember> getPendingInvitations() {
+        User user = iamService.getCurrentUser();
+        return groupMemberRepository.findActivePendingInvitationsByUser(user, LocalDateTime.now());
+    }
+
+    @Transactional
+    public void acceptInvitation(Long memberId) {
+        User currentUser = iamService.getCurrentUser();
+        GroupMember gm = groupMemberRepository.findById(memberId)
+                .orElseThrow(() -> new IllegalArgumentException("Invitation not found"));
+                
+        if (!gm.getUser().getId().equals(currentUser.getId())) {
+            throw new IllegalArgumentException("Access denied");
+        }
+        
+        if (!"PENDING".equals(gm.getStatus()) || gm.getExpiresAt().isBefore(LocalDateTime.now())) {
+            throw new IllegalArgumentException("Invitation is not valid or has expired");
+        }
+        
+        gm.setStatus("ACCEPTED");
+        gm.setAcceptedAt(LocalDateTime.now());
+        groupMemberRepository.save(gm);
+        
+        TransactionGroup group = gm.getGroup();
+        if (!group.isShared()) {
+            group.setShared(true);
+            transactionGroupRepository.save(group);
+        }
+    }
+
+    @Transactional
+    public void declineInvitation(Long memberId) {
+        User currentUser = iamService.getCurrentUser();
+        GroupMember gm = groupMemberRepository.findById(memberId)
+                .orElseThrow(() -> new IllegalArgumentException("Invitation not found"));
+                
+        if (!gm.getUser().getId().equals(currentUser.getId())) {
+            throw new IllegalArgumentException("Access denied");
+        }
+        
+        if (!"PENDING".equals(gm.getStatus()) || gm.getExpiresAt().isBefore(LocalDateTime.now())) {
+            throw new IllegalArgumentException("Invitation is not valid or has expired");
+        }
+        
+        gm.setStatus("DECLINED");
+        groupMemberRepository.save(gm);
+    }
+
+    @Transactional
+    public void removeMember(Long groupId, Long userId) {
+        User currentUser = iamService.getCurrentUser();
+        TransactionGroup group = transactionGroupRepository.findByIdAndUser(groupId, currentUser)
+                .orElseThrow(() -> new IllegalArgumentException("Group not found or access denied"));
+                
+        User targetUser = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+                
+        GroupMember gm = groupMemberRepository.findByGroupAndUser(group, targetUser)
+                .orElseThrow(() -> new IllegalArgumentException("Member not found"));
+                
+        gm.setStatus("REMOVED");
+        groupMemberRepository.save(gm);
+    }
+
+    @Transactional
+    public void leaveGroup(Long groupId) {
+        User currentUser = iamService.getCurrentUser();
+        TransactionGroup group = getGroupForUser(groupId, currentUser);
+        
+        if (group.getUser().getId().equals(currentUser.getId())) {
+            throw new IllegalArgumentException("Owner cannot leave the group. Delete the group instead.");
+        }
+        
+        GroupMember gm = groupMemberRepository.findByGroupAndUser(group, currentUser)
+                .orElseThrow(() -> new IllegalArgumentException("You are not a member of this group"));
+                
+        if (!"ACCEPTED".equals(gm.getStatus())) {
+            throw new IllegalArgumentException("You are not an active member of this group");
+        }
+        
+        gm.setStatus("LEFT");
+        groupMemberRepository.save(gm);
     }
 }

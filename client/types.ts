@@ -53,6 +53,7 @@ export interface TransactionGroup {
   allows_saving: boolean;
   allows_revolving: boolean;
   thumbnail?: string;
+  shared?: boolean;
 }
 
 export interface Transaction {
@@ -76,6 +77,12 @@ export interface Transaction {
   loan_payment_type?: 'EMI' | 'PART_PAYMENT';
   loan_name?: string;
   group?: TransactionGroup;
+  user?: {
+    id: number;
+    username: string;
+    display_name: string;
+    profile_picture?: string;
+  };
 }
 
 
@@ -374,5 +381,22 @@ export interface ImportJob {
   created_at: string;
   completed_at?: string;
 }
+
+export interface GroupMember {
+  id: number;
+  group_id: number;
+  group_name: string;
+  user_id: number;
+  username: string;
+  display_name?: string;
+  role: 'ADMIN' | 'MEMBER';
+  status: 'PENDING' | 'ACCEPTED' | 'DECLINED' | 'REMOVED' | 'LEFT';
+  invited_at: string;
+  expires_at: string;
+  accepted_at?: string;
+  invited_by_username?: string;
+}
+
+export type GroupInvitation = GroupMember;
 
 

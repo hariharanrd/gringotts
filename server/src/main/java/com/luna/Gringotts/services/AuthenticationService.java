@@ -433,6 +433,12 @@ public class AuthenticationService {
                     "status_code", 429);
         }
 
+        // Check if recovery email is already in use by another user
+        Optional<UserRecoveryInfo> existingWithEmail = userRecoveryInfoRepository.findByRecoveryEmailIgnoreCase(recoveryEmail);
+        if (existingWithEmail.isPresent() && !existingWithEmail.get().getUser().getId().equals(user.getId())) {
+            return Map.of("status", "error", "message", "Recovery email is already in use by another account", "status_code", 400);
+        }
+
         // Find or create UserRecoveryInfo
         UserRecoveryInfo recoveryInfo = userRecoveryInfoRepository.findByUser(user)
                 .orElseGet(() -> {

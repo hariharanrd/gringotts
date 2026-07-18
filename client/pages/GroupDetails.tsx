@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, FolderClosed, Trash2, Edit2, ChevronRight, BarChart3, Receipt, HeartHandshake, CircleDollarSign, Calendar, Sparkles, X, Plus } from 'lucide-react';
+import { ArrowLeft, FolderClosed, Trash2, Edit2, ChevronRight, BarChart3, Receipt, HeartHandshake, CircleDollarSign, Calendar, Sparkles, X, Plus, Users, Shield, Clock, UserMinus, LogOut, Mail } from 'lucide-react';
 import { api } from '../services/api';
-import { Transaction, TransactionGroup, TransactionType, Expense, Income, Saving, Revolving } from '../types';
+import { Transaction, TransactionGroup, TransactionType, Expense, Income, Saving, Revolving, GroupMember } from '../types';
 import { useToast } from '../components/ToastContext';
 import CategoryIcon from '../components/CategoryIcon';
 import ConfirmationDialog from '../components/ConfirmationDialog';
@@ -10,6 +10,7 @@ import { ICONS, ICON_NAMES } from '../components/icons';
 import { GROUP_COLORS } from './Groups';
 import TransactionModal from '../components/TransactionModal';
 import LazyGroupThumbnail from '../components/LazyGroupThumbnail';
+import Pagination from '../components/Pagination';
 import {
   ResponsiveContainer,
   BarChart,
@@ -37,6 +38,25 @@ const GroupDetails: React.FC = () => {
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
+  // User and Tab states
+  const [currentUser, setCurrentUser] = useState<string>('');
+  const [activeTab, setActiveTab] = useState<'transactions' | 'statistics' | 'members'>('transactions');
+  const [members, setMembers] = useState<GroupMember[]>([]);
+  const [inviteIdentifier, setInviteIdentifier] = useState('');
+  const [inviting, setInviting] = useState(false);
+
+  // Pagination states
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
+  const [pageSize, setPageSize] = useState(15);
+
+  const handlePageSizeChange = (newSize: number) => {
+    setPageSize(newSize);
+    setPage(1);
+  };
+
   // Edit / Delete states
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<TransactionGroup | null>(null);
@@ -56,17 +76,31 @@ const GroupDetails: React.FC = () => {
   const [allowsRevolving, setAllowsRevolving] = useState(true);
   const [thumbnail, setThumbnail] = useState<string | null>(null);
 
+  const fetchCurrentUser = async () => {
+    try {
+      const response = await fetch('/api/v1/auth/me');
+      if (response.ok) {
+        const data = await response.json();
+        setCurrentUser(data.username);
+      }
+    } catch (err) {
+      console.error('Failed to fetch user context:', err);
+    }
+  };
+
   const fetchDetails = async () => {
     setLoading(true);
     try {
-      const [groupRes, txRes, statsRes] = await Promise.all([
-        api.getTransactionGroupById(groupId),
-        api.getTransactionGroupTransactions(groupId),
-        api.getTransactionGroupStatistics(groupId)
-      ]);
+      const groupRes = await api.getTransactionGroupById(groupId);
       setGroup(groupRes);
-      setTransactions(txRes.data ?? []);
+      
+      const statsRes = await api.getTransactionGroupStatistics(groupId);
       setStats(statsRes);
+
+      if (groupRes.shared) {
+        const membersRes = await api.getGroupMembers(groupId);
+        setMembers(membersRes.data ?? []);
+      }
     } catch (e: any) {
       showToast(e.message || 'Failed to load group details', 'error');
       navigate('/groups');
@@ -75,11 +109,39 @@ const GroupDetails: React.FC = () => {
     }
   };
 
+  const fetchTransactions = async () => {
+    if (!group) return;
+    try {
+      if (group.shared) {
+        const res = await api.getTransactionGroupTransactionsPaginated(groupId, page, pageSize);
+        setTransactions(res.data || []);
+        setTotalCount(res.total_count || 0);
+        setHasMore(res.has_more || false);
+        setTotalPages(Math.ceil((res.total_count || 0) / pageSize));
+      } else {
+        const res = await api.getTransactionGroupTransactions(groupId);
+        setTransactions(res.data || []);
+      }
+    } catch (e: any) {
+      showToast(e.message || 'Failed to load transactions', 'error');
+    }
+  };
+
+  useEffect(() => {
+    fetchCurrentUser();
+  }, []);
+
   useEffect(() => {
     if (groupId) {
       fetchDetails();
     }
   }, [groupId]);
+
+  useEffect(() => {
+    if (groupId && group) {
+      fetchTransactions();
+    }
+  }, [groupId, group, page, pageSize]);
 
   const openEditModal = () => {
     if (!group) return;
@@ -146,7 +208,6 @@ const GroupDetails: React.FC = () => {
 
   const handleRemoveTransaction = async (t: Transaction) => {
     try {
-      // Set group property to null
       const updatedData = { ...t, group: null };
       
       if (t.type === TransactionType.EXPENSE) {
@@ -161,8 +222,52 @@ const GroupDetails: React.FC = () => {
       
       showToast('Transaction removed from group', 'success');
       fetchDetails();
+      fetchTransactions();
     } catch (e: any) {
       showToast(e.message || 'Failed to remove transaction', 'error');
+    }
+  };
+
+  const handleInvite = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!inviteIdentifier.trim()) {
+      showToast('Please enter username or email', 'warning');
+      return;
+    }
+    setInviting(true);
+    try {
+      await api.inviteGroupMember(groupId, inviteIdentifier.trim());
+      showToast('Invitation sent successfully', 'success');
+      setInviteIdentifier('');
+      const membersRes = await api.getGroupMembers(groupId);
+      setMembers(membersRes.data ?? []);
+    } catch (err: any) {
+      showToast(err.message || 'Failed to send invitation', 'error');
+    } finally {
+      setInviting(false);
+    }
+  };
+
+  const handleRemoveMember = async (userId: number) => {
+    try {
+      await api.removeGroupMember(groupId, userId);
+      showToast('Member removed successfully', 'success');
+      const membersRes = await api.getGroupMembers(groupId);
+      setMembers(membersRes.data ?? []);
+      fetchDetails();
+      fetchTransactions();
+    } catch (err: any) {
+      showToast(err.message || 'Failed to remove member', 'error');
+    }
+  };
+
+  const handleLeaveGroup = async () => {
+    try {
+      await api.leaveGroup(groupId);
+      showToast('You have left the group successfully', 'success');
+      navigate('/groups');
+    } catch (err: any) {
+      showToast(err.message || 'Failed to leave group', 'error');
     }
   };
 
@@ -213,10 +318,109 @@ const GroupDetails: React.FC = () => {
     if (t.type === 'SAVING') return (t as any).is_in ? '+' : '-';
     if (t.type === 'REVOLVING') return (t as any).is_give ? '-' : '+';
     return '';
-  };
-
+  };  const isOwner = members.find(m => m.role === 'ADMIN')?.username === currentUser;
   const presetColor = GROUP_COLORS.find(c => c.hex === group.color) || GROUP_COLORS[0];
   const IconComponent = (ICONS as any)[group.icon || 'Tag'] || FolderClosed;
+
+  const renderMembersCard = () => {
+    return (
+      <div className="glass-card rounded-2xl p-6 space-y-6">
+        {/* Invite Member Section (Owner only) */}
+        {isOwner && group.status !== 'CLOSED' && (
+          <div className="space-y-3">
+            <h4 className="text-xs font-bold text-slate-450 dark:text-slate-500 uppercase tracking-wider">Invite Member</h4>
+            <form onSubmit={handleInvite} className="flex flex-col sm:flex-row gap-3">
+              <div className="relative flex-1">
+                <Mail className="absolute left-4 top-3.5 w-4.5 h-4.5 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="Enter username or recovery email..."
+                  value={inviteIdentifier}
+                  onChange={e => setInviteIdentifier(e.target.value)}
+                  disabled={inviting}
+                  className="w-full pl-11 pr-4 py-3 rounded-2xl bg-slate-55 dark:bg-slate-950 border border-slate-205 dark:border-slate-850 text-slate-805 dark:text-white text-sm focus:outline-none focus:border-cyan-500 transition-all font-semibold"
+                  required
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={inviting}
+                className="px-6 py-3 rounded-2xl text-white font-bold text-sm bg-cyan-500 hover:bg-cyan-600 disabled:opacity-50 transition-all shrink-0"
+              >
+                {inviting ? 'Inviting...' : 'Send Invite'}
+              </button>
+            </form>
+          </div>
+        )}
+
+        {/* Members List */}
+        <div className="space-y-3">
+          <h4 className="text-xs font-bold text-slate-450 dark:text-slate-500 uppercase tracking-wider">Group Members ({members.length})</h4>
+          <div className="space-y-3">
+            {members.map(m => {
+              const isCurrentUser = m.username === currentUser;
+              const canRemoveMember = isOwner && !isCurrentUser && m.role !== 'ADMIN';
+              
+              let statusBg = 'bg-slate-100 text-slate-655 dark:bg-slate-800 dark:text-slate-400';
+              if (m.status === 'ACCEPTED') statusBg = 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400';
+              if (m.status === 'PENDING') statusBg = 'bg-amber-500/10 text-amber-600 dark:text-amber-400';
+              if (m.status === 'DECLINED') statusBg = 'bg-rose-500/10 text-rose-600 dark:text-rose-455';
+              if (m.status === 'LEFT') statusBg = 'bg-rose-500/10 text-rose-600 dark:text-rose-455';
+              if (m.status === 'REMOVED') statusBg = 'bg-rose-500/10 text-rose-600 dark:text-rose-455';
+
+              return (
+                <div
+                  key={m.id}
+                  className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-50/50 dark:bg-slate-950/20 border border-slate-100 dark:border-slate-850 group/member-item"
+                >
+                  <div className="flex items-center gap-3.5 min-w-0">
+                    <div className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center font-bold text-slate-600 dark:text-slate-300">
+                      {m.display_name ? m.display_name.substring(0, 2).toUpperCase() : m.username.substring(0, 2).toUpperCase()}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-extrabold text-slate-800 dark:text-slate-200 truncate">
+                          {m.display_name || m.username}
+                        </p>
+                        {m.role === 'ADMIN' && (
+                          <span className="flex items-center gap-0.5 text-[8px] font-extrabold uppercase bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 px-1.5 py-0.5 rounded-md">
+                            <Shield className="w-2.5 h-2.5" /> Owner
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-[10px] text-slate-400 dark:text-slate-505 font-semibold mt-0.5">
+                        @{m.username}
+                        {m.status === 'PENDING' && ` • Invited by @${m.invited_by_username}`}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3 shrink-0">
+                    {m.role !== 'ADMIN' && (
+                      <span className={`px-2 py-0.5 text-[9px] font-extrabold rounded-md uppercase tracking-wider ${statusBg}`}>
+                        {m.status}
+                      </span>
+                    )}
+
+                    {canRemoveMember && (
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveMember(m.user_id)}
+                        className="p-1.5 rounded-lg text-slate-450 hover:text-rose-500 hover:bg-rose-500/10 transition-all"
+                        title="Remove Member"
+                      >
+                        <UserMinus className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="space-y-8 animate-in fade-in duration-300">
@@ -237,12 +441,19 @@ const GroupDetails: React.FC = () => {
               <IconComponent className="w-6 h-6" />
             </div>
             <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-xl font-black text-slate-850 dark:text-white leading-none">{group.name}</h1>
-                <span className="px-2 py-0.5 text-[9px] font-bold rounded-md bg-slate-150 dark:bg-slate-800 text-slate-500 dark:text-slate-400 uppercase tracking-widest">
-                  {group.type}
-                </span>
-                <span className={`w-2 h-2 rounded-full ${group.status === 'ACTIVE' ? 'bg-emerald-500' : 'bg-slate-400'}`} title={group.status}></span>
+              <div className="flex flex-wrap items-center gap-2">
+                <h1 className="text-xl font-black text-slate-850 dark:text-white leading-none break-words max-w-[180px] sm:max-w-none">{group.name}</h1>
+                <div className="flex flex-wrap items-center gap-1.5 shrink-0">
+                  <span className="px-2 py-0.5 text-[9px] font-bold rounded-md bg-slate-150 dark:bg-slate-800 text-slate-550 dark:text-slate-450 uppercase tracking-widest whitespace-nowrap">
+                    {group.type}
+                  </span>
+                  {group.shared && (
+                    <span className="px-2 py-0.5 text-[9px] font-bold rounded-md bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 uppercase tracking-widest whitespace-nowrap">
+                      Shared
+                    </span>
+                  )}
+                  <span className={`w-2 h-2 rounded-full ${group.status === 'ACTIVE' ? 'bg-emerald-500' : 'bg-slate-400'} shrink-0`} title={group.status}></span>
+                </div>
               </div>
               {group.description && (
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">{group.description}</p>
@@ -251,27 +462,39 @@ const GroupDetails: React.FC = () => {
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
           {group.status !== 'CLOSED' && (
             <button
               onClick={() => setIsAddTransactionOpen(true)}
-              className="flex items-center gap-1.5 px-4 py-2 text-xs font-bold rounded-xl bg-cyan-500 hover:bg-cyan-600 text-white shadow-md hover:shadow-lg hover:shadow-cyan-500/10 transition-all duration-200"
+              className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-2.5 text-xs font-bold rounded-xl bg-cyan-500 hover:bg-cyan-600 text-white shadow-md hover:shadow-lg hover:shadow-cyan-500/10 transition-all duration-200 whitespace-nowrap"
             >
               <Plus className="w-4 h-4" /> Add Transaction
             </button>
           )}
-          <button
-            onClick={openEditModal}
-            className="flex items-center gap-1.5 px-4 py-2 text-xs font-bold rounded-xl border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-350 hover:bg-slate-50 dark:hover:bg-slate-950 transition-all"
-          >
-            <Edit2 className="w-4 h-4" /> Edit Group
-          </button>
-          <button
-            onClick={() => setDeleteTarget(group)}
-            className="flex items-center gap-1.5 px-4 py-2 text-xs font-bold rounded-xl border border-rose-200 dark:border-rose-900/30 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/20 transition-all"
-          >
-            <Trash2 className="w-4 h-4" /> Delete Group
-          </button>
+          {(!group.shared || isOwner) && (
+            <>
+              <button
+                onClick={openEditModal}
+                className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-2.5 text-xs font-bold rounded-xl border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-350 hover:bg-slate-50 dark:hover:bg-slate-950 transition-all whitespace-nowrap"
+              >
+                <Edit2 className="w-4 h-4" /> Edit Group
+              </button>
+              <button
+                onClick={() => setDeleteTarget(group)}
+                className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-2.5 text-xs font-bold rounded-xl border border-rose-200 dark:border-rose-900/30 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/20 transition-all whitespace-nowrap"
+              >
+                <Trash2 className="w-4 h-4" /> Delete Group
+              </button>
+            </>
+          )}
+          {group.shared && !isOwner && (
+            <button
+              onClick={handleLeaveGroup}
+              className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-2.5 text-xs font-bold rounded-xl border border-rose-200 dark:border-rose-900/30 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/20 transition-all whitespace-nowrap"
+            >
+              <LogOut className="w-4 h-4" /> Leave Group
+            </button>
+          )}
         </div>
       </div>      {/* Statistics Cards */}
       {(() => {
@@ -317,163 +540,35 @@ const GroupDetails: React.FC = () => {
 
       {/* Main Grid: Charts & Transactions List */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Left Column: Stats & Breakdown */}
+        {/* Left Column: Stats & Breakdown (Non-shared) OR Members Card (Shared) */}
         <div className="lg:col-span-1 space-y-6">
-
-            {/* Category Breakdown Card */}
-            <div className="glass-card rounded-2xl p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <BarChart3 className="w-5 h-5 text-cyan-500" />
-                <h3 className="text-sm font-black text-slate-850 dark:text-white uppercase tracking-wider">Category Breakdown</h3>
-              </div>
-
-              <div className="h-[240px] w-full">
-                {categoryChartData.length > 0 ? (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={categoryChartData}
-                        dataKey="value"
-                        nameKey="name"
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={60}
-                        outerRadius={80}
-                        paddingAngle={4}
-                      >
-                        {categoryChartData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
-                        ))}
-                      </Pie>
-                      <Tooltip
-                        formatter={(value: number) => fmt(value)}
-                        contentStyle={{
-                          borderRadius: '12px',
-                          border: '1px solid rgba(148,163,184,0.15)',
-                          backgroundColor: 'var(--theme-surface)',
-                          color: 'var(--theme-text)',
-                          fontSize: 11
-                        }}
-                        itemStyle={{ color: 'var(--theme-text)' }}
-                        labelStyle={{ color: 'var(--theme-text)' }}
-                      />
-                    </PieChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <div className="flex flex-col items-center justify-center h-full text-slate-400 dark:text-slate-555 text-xs">
-                    <p>No category data in this group</p>
-                  </div>
-                )}
-              </div>
-
-              {/* Category breakdown Legend list */}
-              {categoryChartData.length > 0 && (
-                <div className="mt-4 space-y-2 max-h-48 overflow-y-auto pr-1">
-                  {categoryChartData.map((item, idx) => (
-                    <div key={item.name} className="flex justify-between items-center text-xs font-semibold">
-                      <div className="flex items-center gap-2">
-                        <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: PIE_COLORS[idx % PIE_COLORS.length] }}></span>
-                        <span className="text-slate-500 dark:text-slate-400">{item.name}</span>
-                      </div>
-                      <span className="text-slate-800 dark:text-slate-200">{fmt(item.value)}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Subcategory Breakdown Card — shown only when data exists */}
-            {subcategoryChartData.length > 0 && (
+          {group.shared ? (
+            renderMembersCard()
+          ) : (
+            <>
+              {/* Category Breakdown Card */}
               <div className="glass-card rounded-2xl p-6">
                 <div className="flex items-center gap-2 mb-4">
-                  <BarChart3 className="w-5 h-5 text-violet-500" />
-                  <h3 className="text-sm font-black text-slate-850 dark:text-white uppercase tracking-wider">Subcategory Breakdown</h3>
+                  <BarChart3 className="w-5 h-5 text-cyan-500" />
+                  <h3 className="text-sm font-black text-slate-850 dark:text-white uppercase tracking-wider">Category Breakdown</h3>
                 </div>
 
-                <div style={{ height: Math.max(160, subcategoryChartData.length * 36) }} className="w-full">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart
-                      layout="vertical"
-                      data={subcategoryChartData}
-                      margin={{ top: 0, right: 8, left: 0, bottom: 0 }}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.1)" horizontal={false} />
-                      <XAxis
-                        type="number"
-                        tick={{ fontSize: 10, fill: 'var(--theme-text-muted)' }}
-                        tickFormatter={(v: number) => `₹${(v / 1000).toFixed(0)}k`}
-                        axisLine={false}
-                        tickLine={false}
-                      />
-                      <YAxis
-                        type="category"
-                        dataKey="name"
-                        width={88}
-                        tick={{ fontSize: 10, fill: 'var(--theme-text-muted)' }}
-                        axisLine={false}
-                        tickLine={false}
-                      />
-                      <Tooltip
-                        formatter={(value: number) => fmt(value)}
-                        contentStyle={{
-                          borderRadius: '12px',
-                          border: '1px solid rgba(148,163,184,0.15)',
-                          backgroundColor: 'var(--theme-surface)',
-                          color: 'var(--theme-text)',
-                          fontSize: 11
-                        }}
-                        itemStyle={{ color: 'var(--theme-text)' }}
-                        labelStyle={{ color: 'var(--theme-text)' }}
-                        cursor={{ fill: 'rgba(139,92,246,0.06)' }}
-                      />
-                      <Bar dataKey="value" radius={[0, 6, 6, 0]} maxBarSize={18}>
-                        {subcategoryChartData.map((entry, index) => (
-                          <Cell key={`sc-cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
-                        ))}
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-
-                <div className="mt-4 space-y-2 max-h-40 overflow-y-auto pr-1">
-                  {subcategoryChartData.map((item, idx) => (
-                    <div key={item.name} className="flex justify-between items-center text-xs font-semibold">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: PIE_COLORS[idx % PIE_COLORS.length] }}></span>
-                        <span className="text-slate-500 dark:text-slate-400 truncate">{item.name}</span>
-                      </div>
-                      <span className="text-slate-800 dark:text-slate-200 shrink-0 ml-2">{fmt(item.value)}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Item Breakdown Card — shown only when data exists */}
-            {itemChartData.length > 0 && (
-              <div className="glass-card rounded-2xl p-6">
-                <div className="flex items-center gap-2 mb-4">
-                  <BarChart3 className="w-5 h-5 text-amber-500" />
-                  <h3 className="text-sm font-black text-slate-850 dark:text-white uppercase tracking-wider">Item Breakdown</h3>
-                </div>
-
-                {/* Mini pie chart when ≤ 8 items */}
-                {itemChartData.length <= 8 && (
-                  <div className="h-[160px] w-full mb-2">
+                <div className="h-[240px] w-full">
+                  {categoryChartData.length > 0 ? (
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
                         <Pie
-                          data={itemChartData}
+                          data={categoryChartData}
                           dataKey="value"
                           nameKey="name"
                           cx="50%"
                           cy="50%"
-                          innerRadius={44}
-                          outerRadius={62}
-                          paddingAngle={3}
+                          innerRadius={60}
+                          outerRadius={80}
+                          paddingAngle={4}
                         >
-                          {itemChartData.map((entry, index) => (
-                            <Cell key={`item-cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
+                          {categoryChartData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
                           ))}
                         </Pie>
                         <Tooltip
@@ -490,46 +585,178 @@ const GroupDetails: React.FC = () => {
                         />
                       </PieChart>
                     </ResponsiveContainer>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center h-full text-slate-400 dark:text-slate-555 text-xs">
+                      <p>No category data in this group</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Category breakdown Legend list */}
+                {categoryChartData.length > 0 && (
+                  <div className="mt-4 space-y-2 max-h-48 overflow-y-auto pr-1">
+                    {categoryChartData.map((item, idx) => (
+                      <div key={item.name} className="flex justify-between items-center text-xs font-semibold">
+                        <div className="flex items-center gap-2">
+                          <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: PIE_COLORS[idx % PIE_COLORS.length] }}></span>
+                          <span className="text-slate-500 dark:text-slate-400">{item.name}</span>
+                        </div>
+                        <span className="text-slate-800 dark:text-slate-200">{fmt(item.value)}</span>
+                      </div>
+                    ))}
                   </div>
                 )}
-
-                {/* Ranked item list */}
-                <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
-                  {itemChartData.map((item, idx) => {
-                    const totalItems = itemChartData.reduce((s, i) => s + i.value, 0);
-                    const pct = totalItems > 0 ? Math.round((item.value / totalItems) * 100) : 0;
-                    return (
-                      <div key={item.name} className="space-y-1">
-                        <div className="flex justify-between items-center text-xs font-semibold">
-                          <div className="flex items-center gap-2 min-w-0">
-                            <span
-                              className="w-2.5 h-2.5 rounded-full shrink-0"
-                              style={{ backgroundColor: PIE_COLORS[idx % PIE_COLORS.length] }}
-                            />
-                            <span className="text-slate-600 dark:text-slate-350 truncate">{item.name}</span>
-                          </div>
-                          <div className="flex items-center gap-2 shrink-0 ml-2">
-                            <span className="text-slate-400 dark:text-slate-500 text-[10px]">{pct}%</span>
-                            <span className="text-slate-800 dark:text-slate-200">{fmt(item.value)}</span>
-                          </div>
-                        </div>
-                        <div className="h-1 w-full rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
-                          <div
-                            className="h-full rounded-full transition-all duration-500"
-                            style={{
-                              width: `${pct}%`,
-                              backgroundColor: PIE_COLORS[idx % PIE_COLORS.length]
-                            }}
-                          />
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
               </div>
-            )}
 
-          </div>
+              {/* Subcategory Breakdown Card — shown only when data exists */}
+              {subcategoryChartData.length > 0 && (
+                <div className="glass-card rounded-2xl p-6">
+                  <div className="flex items-center gap-2 mb-4">
+                    <BarChart3 className="w-5 h-5 text-violet-500" />
+                    <h3 className="text-sm font-black text-slate-850 dark:text-white uppercase tracking-wider">Subcategory Breakdown</h3>
+                  </div>
+
+                  <div style={{ height: Math.max(160, subcategoryChartData.length * 36) }} className="w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart
+                        layout="vertical"
+                        data={subcategoryChartData}
+                        margin={{ top: 0, right: 8, left: 0, bottom: 0 }}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.1)" horizontal={false} />
+                        <XAxis
+                          type="number"
+                          tick={{ fontSize: 10, fill: 'var(--theme-text-muted)' }}
+                          tickFormatter={(v: number) => `₹${(v / 1000).toFixed(0)}k`}
+                          axisLine={false}
+                          tickLine={false}
+                        />
+                        <YAxis
+                          type="category"
+                          dataKey="name"
+                          width={88}
+                          tick={{ fontSize: 10, fill: 'var(--theme-text-muted)' }}
+                          axisLine={false}
+                          tickLine={false}
+                        />
+                        <Tooltip
+                          formatter={(value: number) => fmt(value)}
+                          contentStyle={{
+                            borderRadius: '12px',
+                            border: '1px solid rgba(148,163,184,0.15)',
+                            backgroundColor: 'var(--theme-surface)',
+                            color: 'var(--theme-text)',
+                            fontSize: 11
+                          }}
+                          itemStyle={{ color: 'var(--theme-text)' }}
+                          labelStyle={{ color: 'var(--theme-text)' }}
+                          cursor={{ fill: 'rgba(139,92,246,0.06)' }}
+                        />
+                        <Bar dataKey="value" radius={[0, 6, 6, 0]} maxBarSize={18}>
+                          {subcategoryChartData.map((entry, index) => (
+                            <Cell key={`sc-cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+
+                  <div className="mt-4 space-y-2 max-h-40 overflow-y-auto pr-1">
+                    {subcategoryChartData.map((item, idx) => (
+                      <div key={item.name} className="flex justify-between items-center text-xs font-semibold">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: PIE_COLORS[idx % PIE_COLORS.length] }}></span>
+                          <span className="text-slate-500 dark:text-slate-400 truncate">{item.name}</span>
+                        </div>
+                        <span className="text-slate-800 dark:text-slate-200 shrink-0 ml-2">{fmt(item.value)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Item Breakdown Card — shown only when data exists */}
+              {itemChartData.length > 0 && (
+                <div className="glass-card rounded-2xl p-6">
+                  <div className="flex items-center gap-2 mb-4">
+                    <BarChart3 className="w-5 h-5 text-amber-500" />
+                    <h3 className="text-sm font-black text-slate-850 dark:text-white uppercase tracking-wider">Item Breakdown</h3>
+                  </div>
+
+                  {/* Mini pie chart when ≤ 8 items */}
+                  {itemChartData.length <= 8 && (
+                    <div className="h-[160px] w-full mb-2">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={itemChartData}
+                            dataKey="value"
+                            nameKey="name"
+                            cx="50%"
+                            cy="50%"
+                            innerRadius={44}
+                            outerRadius={62}
+                            paddingAngle={3}
+                          >
+                            {itemChartData.map((entry, index) => (
+                              <Cell key={`item-cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
+                            ))}
+                          </Pie>
+                          <Tooltip
+                            formatter={(value: number) => fmt(value)}
+                            contentStyle={{
+                              borderRadius: '12px',
+                              border: '1px solid rgba(148,163,184,0.15)',
+                              backgroundColor: 'var(--theme-surface)',
+                              color: 'var(--theme-text)',
+                              fontSize: 11
+                            }}
+                            itemStyle={{ color: 'var(--theme-text)' }}
+                            labelStyle={{ color: 'var(--theme-text)' }}
+                          />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </div>
+                  )}
+
+                  {/* Ranked item list */}
+                  <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+                    {itemChartData.map((item, idx) => {
+                      const totalItems = itemChartData.reduce((s, i) => s + i.value, 0);
+                      const pct = totalItems > 0 ? Math.round((item.value / totalItems) * 100) : 0;
+                      return (
+                        <div key={item.name} className="space-y-1">
+                          <div className="flex justify-between items-center text-xs font-semibold">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <span
+                                className="w-2.5 h-2.5 rounded-full shrink-0"
+                                style={{ backgroundColor: PIE_COLORS[idx % PIE_COLORS.length] }}
+                              />
+                              <span className="text-slate-600 dark:text-slate-355 truncate">{item.name}</span>
+                            </div>
+                            <div className="flex items-center gap-2 shrink-0 ml-2">
+                              <span className="text-slate-400 dark:text-slate-500 text-[10px]">{pct}%</span>
+                              <span className="text-slate-800 dark:text-slate-200">{fmt(item.value)}</span>
+                            </div>
+                          </div>
+                          <div className="h-1 w-full rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                            <div
+                              className="h-full rounded-full transition-all duration-500"
+                              style={{
+                                width: `${pct}%`,
+                                backgroundColor: PIE_COLORS[idx % PIE_COLORS.length]
+                              }}
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </div>
 
         {/* Right Column: Transactions list */}
         <div className="lg:col-span-2 space-y-6">
@@ -541,7 +768,7 @@ const GroupDetails: React.FC = () => {
               </div>
               <div className="flex items-center gap-3">
                 <span className="px-2.5 py-1 text-xs font-bold rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-550 dark:text-slate-400">
-                  {transactions.length} total
+                  {group.shared ? totalCount : transactions.length} total
                 </span>
                 {group.status !== 'CLOSED' && (
                   <button
@@ -555,48 +782,73 @@ const GroupDetails: React.FC = () => {
             </div>
 
             <div className="space-y-3 max-h-[600px] overflow-y-auto pr-1">
-              {transactions.map(t => (
-                <div
-                  key={t.id}
-                  onClick={(e) => {
-                    if ((e.target as HTMLElement).closest('button')) return;
-                    navigate(`/transaction/${t.id}?type=${t.type}`);
-                  }}
-                  className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-50/50 dark:bg-slate-950/20 border border-slate-100 dark:border-slate-850 hover:bg-slate-100/30 dark:hover:bg-slate-800/20 transition-all group/item cursor-pointer"
-                >
-                  <div className="flex items-center gap-3.5 min-w-0">
-                    <CategoryIcon category={t.category} className="w-4 h-4" />
-                    <div className="min-w-0">
-                      <p className="text-sm font-extrabold text-slate-800 dark:text-slate-200 truncate">{t.description}</p>
-                      <div className="flex items-center gap-2.5 mt-0.5 text-[10px] text-slate-450 dark:text-slate-500 font-semibold uppercase tracking-wider">
-                        <span>{new Date(t.transaction_time).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</span>
-                        <span>•</span>
-                        <span>{t.type}</span>
-                        {t.payment_mode && (
-                          <>
-                            <span>•</span>
-                            <span>{t.payment_mode}</span>
-                          </>
-                        )}
+              {transactions.map(t => {
+                const canRemoveTx = t.user?.username === currentUser;
+                return (
+                  <div
+                    key={t.id}
+                    onClick={(e) => {
+                      if (group.shared) return;
+                      if ((e.target as HTMLElement).closest('button')) return;
+                      navigate(`/transaction/${t.id}?type=${t.type}`);
+                    }}
+                    className={`flex items-center justify-between p-3.5 rounded-2xl bg-slate-55/55 dark:bg-slate-950/20 border border-slate-100 dark:border-slate-850 transition-all group/item ${
+                      group.shared 
+                        ? 'cursor-default' 
+                        : 'hover:bg-slate-100/30 dark:hover:bg-slate-800/20 cursor-pointer'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3.5 min-w-0">
+                      <CategoryIcon category={t.category} className="w-4 h-4" />
+                      <div className="min-w-0">
+                        <p className="text-sm font-extrabold text-slate-800 dark:text-slate-200 truncate">{t.description}</p>
+                        <div className="flex flex-wrap items-center gap-2.5 mt-0.5 text-[10px] text-slate-455 dark:text-slate-500 font-semibold uppercase tracking-wider">
+                          <span>{new Date(t.transaction_time).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</span>
+                          <span>•</span>
+                          <span>{t.type}</span>
+                          {t.payment_mode && (
+                            <>
+                              <span>•</span>
+                              <span>{t.payment_mode}</span>
+                            </>
+                          )}
+                          {group.shared && t.user && (
+                            <>
+                              <span>•</span>
+                              <span className="inline-flex items-center gap-1.5 text-cyan-600 dark:text-cyan-400 font-bold normal-case">
+                                <span className="w-5 h-5 rounded-full bg-cyan-100 dark:bg-cyan-950/80 flex items-center justify-center text-[8px] font-extrabold text-cyan-600 dark:text-cyan-400 overflow-hidden shrink-0 border border-cyan-500/20 shadow-sm">
+                                  {t.user.profile_picture ? (
+                                    <img src={t.user.profile_picture} alt="" className="w-full h-full object-cover" />
+                                  ) : (
+                                    (t.user.display_name || t.user.username || 'U').substring(0, 2).toUpperCase()
+                                  )}
+                                </span>
+                                @{t.user.display_name || t.user.username || 'user'}
+                              </span>
+                            </>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  <div className="flex items-center gap-4 shrink-0">
-                    <span className={`text-sm font-black ${getAmountColor(t)}`}>
-                      {getAmountSign(t)}{fmt(t.value)}
-                    </span>
+                    <div className="flex items-center gap-4 shrink-0">
+                      <span className={`text-sm font-black ${getAmountColor(t)}`}>
+                        {getAmountSign(t)}{fmt(t.value)}
+                      </span>
 
-                    <button
-                      onClick={() => handleRemoveTransaction(t)}
-                      className="p-1.5 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 opacity-100 md:opacity-0 group-hover/item:opacity-100 transition-all"
-                      title="Remove from group"
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
+                      {canRemoveTx && (
+                        <button
+                          onClick={() => handleRemoveTransaction(t)}
+                          className="p-1.5 rounded-lg text-slate-405 hover:text-rose-500 hover:bg-rose-500/10 opacity-100 md:opacity-0 group-hover/item:opacity-100 transition-all"
+                          title="Remove from group"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
 
               {transactions.length === 0 && (
                 <div className="flex flex-col items-center justify-center py-12 text-slate-400 dark:text-slate-550 space-y-3">
@@ -615,6 +867,19 @@ const GroupDetails: React.FC = () => {
                 </div>
               )}
             </div>
+
+            {group.shared && totalPages > 1 && (
+              <div className="pt-6 border-t border-slate-100 dark:border-slate-800/60">
+                <Pagination
+                  currentPage={page}
+                  totalPages={totalPages}
+                  hasMore={hasMore}
+                  onPageChange={setPage}
+                  pageSize={pageSize}
+                  onPageSizeChange={handlePageSizeChange}
+                />
+              </div>
+            )}
           </div>
         </div>
       </div>

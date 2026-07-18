@@ -25,6 +25,8 @@ import {
 
 import { useTheme } from './ThemeContext';
 
+import { GroupInvitation } from '../types';
+
 interface LayoutProps {
   userName: string;
   displayName?: string;
@@ -33,6 +35,9 @@ interface LayoutProps {
   children: React.ReactNode;
   onLogout: () => void;
   onImportSuccess?: () => void;
+  pendingInvitations?: GroupInvitation[];
+  onAcceptInvitation?: (id: number) => void;
+  onDeclineInvitation?: (id: number) => void;
 }
 
 const navItems = [
@@ -47,7 +52,18 @@ const navItems = [
 ];
 
 
-const Layout: React.FC<LayoutProps> = ({ userName, displayName, profilePicture, hasRecoveryEmail, children, onLogout, onImportSuccess }) => {
+const Layout: React.FC<LayoutProps> = ({
+  userName,
+  displayName,
+  profilePicture,
+  hasRecoveryEmail,
+  children,
+  onLogout,
+  onImportSuccess,
+  pendingInvitations = [],
+  onAcceptInvitation,
+  onDeclineInvitation
+}) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isPinned, setIsPinned] = useState(true);
   const [isWarningDismissed, setIsWarningDismissed] = useState(() => sessionStorage.getItem('dismissedRecoveryEmailWarning') === 'true');
@@ -313,6 +329,43 @@ const Layout: React.FC<LayoutProps> = ({ userName, displayName, profilePicture, 
                 <ArrowRight className="w-3.5 h-3.5" />
               </Link>
             </div>
+          </div>
+        )}
+
+        {pendingInvitations && pendingInvitations.length > 0 && (
+          <div className="space-y-3 mx-6 mt-4">
+            {pendingInvitations.map((invitation) => (
+              <div
+                key={invitation.id}
+                className="p-4 rounded-2xl bg-cyan-500/10 dark:bg-cyan-500/5 border border-cyan-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-4 animate-in slide-in-from-top duration-300"
+              >
+                <div className="flex items-start gap-3">
+                  <div className="p-2 bg-cyan-500/20 text-cyan-600 dark:text-cyan-400 rounded-xl shrink-0">
+                    <FolderClosed className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-semibold text-cyan-800 dark:text-cyan-300">Group Invitation</h4>
+                    <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5 leading-relaxed">
+                      <b>@{invitation.invited_by_username}</b> has invited you to join the shared group <b>"{invitation.group_name}"</b>.
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 shrink-0 self-end sm:self-center">
+                  <button
+                    onClick={() => onDeclineInvitation && onDeclineInvitation(invitation.id)}
+                    className="px-4 py-2 text-xs font-bold text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 rounded-xl transition-all border border-slate-200 dark:border-slate-800"
+                  >
+                    Decline
+                  </button>
+                  <button
+                    onClick={() => onAcceptInvitation && onAcceptInvitation(invitation.id)}
+                    className="px-4 py-2 text-xs font-bold text-white bg-cyan-500 hover:bg-cyan-600 rounded-xl transition-all shadow-md shadow-cyan-500/15"
+                  >
+                    Accept
+                  </button>
+                </div>
+              </div>
+            ))}
           </div>
         )}
 

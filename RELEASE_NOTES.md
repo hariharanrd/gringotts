@@ -1,4 +1,24 @@
 # 🚀 Release Notes
+
+## [July 18, 2026] Transaction Group Sharing & Collaboration
+
+This release introduces **Group Sharing and Collaboration**, allowing users to co-manage shared groups (like shared trip expenses, shared apartment accounts, etc.), invite members by recovery email or username, and co-log transactions, all while strictly preserving privacy, security, and access control.
+
+### 👥 Shared Groups & Real-time Collaboration
+- **Collaboration Groups**: Mark groups as shared to collaborate with other users on shared events, budgets, or projects.
+- **Member Management**: Invite other users using their username or verified recovery email. Group owners (`ADMIN`) can manage invitations and remove members, while invitees can accept, decline, or leave groups.
+- **Unified Transaction Feed**: Co-log transactions to the shared group, displaying who logged each transaction with profile avatar badges.
+
+### 🛡️ Multi-User Security & Isolation
+- **Strict Access Control**: Transactions added in group can be viewed only joined group members. Only the owner of a transaction can edit it or remove it from the group.
+- **Unique Recovery Emails**: Made recovery email fields unique across all accounts to ensure accurate and secure member identification during invites.
+- **Secure API Filters**: Implemented secure custom repository and service queries to validate group membership status prior to fetching statistics or lists, preventing cross-tenant access.
+
+### 🎨 Visual & UX Refinements
+- **Distinct Shared Card Design**: Shared groups are highlighted with a neon-cyan border strip, glow shadow, and an inline `Shared` badge.
+- **Responsive Group Detail View**: Side-by-side member controls and transaction tables with automatic stack-wrap formatting on mobile viewports.
+- **Privacy Mode**: Automatically hides Category-Subcategory-Item (CSI) analytics and disables transaction click-to-view navigations for transactions logged by other users.
+
 ## [June 27, 2026] Quick Filters and Searchable Lookups
 ### Context-Sensitive Quick Filters & Custom Filter Presets
 - **Quick Filter Bar**: Added a horizontally scrollable strip of filter pills right above the transactions table (All, Expense, Income, Saving, Revolving).
