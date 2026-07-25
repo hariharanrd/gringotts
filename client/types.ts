@@ -413,4 +413,28 @@ export interface GroupMember {
 
 export type GroupInvitation = GroupMember;
 
+export interface MemberBreakdownItem {
+  user_id: number;
+  username: string;
+  display_name: string;
+  total_expenses: number;
+  total_incomes: number;
+  total_savings: number;
+  transaction_count: number;
+  percentage: number;
+  category_breakdown: Record<string, number>;
+}
+
+export interface GroupStatistics {
+  total_expenses: number;
+  total_incomes: number;
+  total_savings: number;
+  category_breakdown: Record<string, number>;
+  subcategory_breakdown?: Record<string, number>;
+  item_breakdown?: Record<string, number>;
+  has_subcategory_data?: boolean;
+  has_item_data?: boolean;
+  member_breakdown?: MemberBreakdownItem[];
+}
+
 

@@ -154,6 +154,25 @@ public class TransactionGroupService {
         boolean hasSubcategoryData = false;
         boolean hasItemData = false;
 
+        // Initialize member stats map using active group members
+        List<GroupMember> groupMembers = getGroupMembers(groupId);
+        Map<Long, Map<String, Object>> memberMap = new java.util.LinkedHashMap<>();
+        for (GroupMember gm : groupMembers) {
+            if (gm.getUser() != null && "ACCEPTED".equals(gm.getStatus())) {
+                User u = gm.getUser();
+                Map<String, Object> mStat = new HashMap<>();
+                mStat.put("user_id", u.getId());
+                mStat.put("username", u.getUsername());
+                mStat.put("display_name", u.getDisplayName() != null && !u.getDisplayName().trim().isEmpty() ? u.getDisplayName() : u.getUsername());
+                mStat.put("total_expenses", 0.0);
+                mStat.put("total_incomes", 0.0);
+                mStat.put("total_savings", 0.0);
+                mStat.put("transaction_count", 0);
+                mStat.put("category_breakdown", new HashMap<String, Double>());
+                memberMap.put(u.getId(), mStat);
+            }
+        }
+
         for (Transaction t : transactions) {
             double val = t.getValue();
 
@@ -175,6 +194,50 @@ public class TransactionGroupService {
                     totalSavings += val;
                 }
             }
+
+            // Member-level aggregation
+            User tUser = t.getUser();
+            if (tUser != null) {
+                Map<String, Object> mStat = memberMap.computeIfAbsent(tUser.getId(), id -> {
+                    Map<String, Object> m = new HashMap<>();
+                    m.put("user_id", tUser.getId());
+                    m.put("username", tUser.getUsername());
+                    m.put("display_name", tUser.getDisplayName() != null && !tUser.getDisplayName().trim().isEmpty() ? tUser.getDisplayName() : tUser.getUsername());
+                    m.put("total_expenses", 0.0);
+                    m.put("total_incomes", 0.0);
+                    m.put("total_savings", 0.0);
+                    m.put("transaction_count", 0);
+                    m.put("category_breakdown", new HashMap<String, Double>());
+                    return m;
+                });
+
+                mStat.put("transaction_count", (int) mStat.get("transaction_count") + 1);
+
+                if ("EXPENSE".equals(t.getType())) {
+                    mStat.put("total_expenses", (double) mStat.get("total_expenses") + val);
+                } else if ("INCOME".equals(t.getType())) {
+                    mStat.put("total_incomes", (double) mStat.get("total_incomes") + val);
+                } else if ("SAVING".equals(t.getType())) {
+                    if (t instanceof Saving s) {
+                        boolean isIn = Boolean.TRUE.equals(s.getIsIn());
+                        mStat.put("total_savings", (double) mStat.get("total_savings") + (isIn ? val : -val));
+                    } else {
+                        mStat.put("total_savings", (double) mStat.get("total_savings") + val);
+                    }
+                }
+
+                @SuppressWarnings("unchecked")
+                Map<String, Double> mCatBreakdown = (Map<String, Double>) mStat.get("category_breakdown");
+                mCatBreakdown.put(categoryName, mCatBreakdown.getOrDefault(categoryName, 0.0) + val);
+            }
+        }
+
+        List<Map<String, Object>> memberBreakdown = new ArrayList<>();
+        for (Map<String, Object> mStat : memberMap.values()) {
+            double mExpenses = (double) mStat.get("total_expenses");
+            double pct = totalExpenses > 0 ? (mExpenses / totalExpenses) * 100.0 : 0.0;
+            mStat.put("percentage", Math.round(pct * 10.0) / 10.0);
+            memberBreakdown.add(mStat);
         }
 
         Map<String, Object> stats = new HashMap<>();
@@ -186,6 +249,7 @@ public class TransactionGroupService {
         stats.put("item_breakdown", itemBreakdown);
         stats.put("has_subcategory_data", hasSubcategoryData);
         stats.put("has_item_data", hasItemData);
+        stats.put("member_breakdown", memberBreakdown);
 
         return stats;
     }

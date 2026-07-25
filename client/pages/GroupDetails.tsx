@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft, FolderClosed, Trash2, Edit2, ChevronRight, BarChart3, Receipt, HeartHandshake, CircleDollarSign, Calendar, Sparkles, X, Plus, Users, Shield, Clock, UserMinus, LogOut, Mail, Tag } from 'lucide-react';
 import { api } from '../services/api';
-import { Transaction, TransactionGroup, TransactionType, Expense, Income, Saving, Revolving, GroupMember, GroupCategory } from '../types';
+import { Transaction, TransactionGroup, TransactionType, Expense, Income, Saving, Revolving, GroupMember, GroupCategory, MemberBreakdownItem } from '../types';
 import { useToast } from '../components/ToastContext';
 import CategoryIcon from '../components/CategoryIcon';
 import ConfirmationDialog from '../components/ConfirmationDialog';
@@ -42,6 +42,7 @@ const GroupDetails: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<string>('');
   const [activeTab, setActiveTab] = useState<'transactions' | 'statistics' | 'members' | 'categories'>('transactions');
   const [members, setMembers] = useState<GroupMember[]>([]);
+  const [selectedMemberFilter, setSelectedMemberFilter] = useState<string>('ALL');
   const [inviteIdentifier, setInviteIdentifier] = useState('');
   const [inviting, setInviting] = useState(false);
 
@@ -69,18 +70,36 @@ const GroupDetails: React.FC = () => {
   };
 
   const renderTransactionsCard = () => {
+    const filteredTransactions = group?.shared && selectedMemberFilter !== 'ALL'
+      ? transactions.filter(t => t.user?.username === selectedMemberFilter)
+      : transactions;
+
     return (
       <div className="glass-card rounded-2xl p-6">
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
           <div className="flex items-center gap-2">
             <Receipt className="w-5 h-5 text-cyan-500" />
             <h3 className="text-sm font-black text-slate-850 dark:text-white uppercase tracking-wider">Linked Transactions</h3>
           </div>
           <div className="flex items-center gap-3">
+            {group?.shared && members.length > 0 && (
+              <select
+                value={selectedMemberFilter}
+                onChange={(e) => setSelectedMemberFilter(e.target.value)}
+                className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700/60 focus:outline-none focus:ring-1 focus:ring-cyan-500"
+              >
+                <option value="ALL">All Members</option>
+                {members.map(m => (
+                  <option key={m.id} value={m.user?.username || ''}>
+                    {m.user?.display_name || m.user?.username} (@{m.user?.username})
+                  </option>
+                ))}
+              </select>
+            )}
             <span className="px-2.5 py-1 text-xs font-bold rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-550 dark:text-slate-400">
-              {group.shared ? totalCount : transactions.length} total
+              {group?.shared ? (selectedMemberFilter === 'ALL' ? totalCount : filteredTransactions.length) : transactions.length} total
             </span>
-            {group.status !== 'CLOSED' && (
+            {group?.status !== 'CLOSED' && (
               <button
                 onClick={() => setIsAddTransactionOpen(true)}
                 className="flex items-center gap-1 px-2.5 py-1 text-[11px] font-extrabold rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-cyan-600 dark:text-cyan-400 transition-all"
@@ -92,7 +111,7 @@ const GroupDetails: React.FC = () => {
         </div>
 
         <div className="space-y-3 max-h-[600px] overflow-y-auto pr-1">
-          {transactions.map(t => {
+          {filteredTransactions.map(t => {
             const canRemoveTx = t.user?.username === currentUser;
             return (
               <div
@@ -216,73 +235,285 @@ const GroupDetails: React.FC = () => {
   };
 
   const renderSharedAnalytics = () => {
+    const memberBreakdownList: MemberBreakdownItem[] = stats?.member_breakdown || [];
+    const memberChartData = memberBreakdownList
+      .filter(m => m.total_expenses > 0)
+      .map((m, idx) => ({
+        name: m.display_name || m.username,
+        username: m.username,
+        value: m.total_expenses,
+        percentage: m.percentage,
+        color: PIE_COLORS[idx % PIE_COLORS.length]
+      }));
+
     return (
-      <div className="glass-card rounded-2xl p-6">
-        <div className="flex items-center gap-2 mb-4">
-          <BarChart3 className="w-5 h-5 text-cyan-500" />
-          <h3 className="text-sm font-black text-slate-850 dark:text-white uppercase tracking-wider">Group Category Breakdown</h3>
+      <div className="space-y-6">
+        {/* Top Charts Row: Category Breakdown & Member Spending Share */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Group Category Breakdown Card */}
+          <div className="glass-card rounded-2xl p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <BarChart3 className="w-5 h-5 text-cyan-500" />
+              <h3 className="text-sm font-black text-slate-850 dark:text-white uppercase tracking-wider">Group Category Breakdown</h3>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+              <div className="h-[240px] w-full">
+                {categoryChartData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={categoryChartData}
+                        dataKey="value"
+                        nameKey="name"
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={65}
+                        outerRadius={88}
+                        paddingAngle={4}
+                      >
+                        {categoryChartData.map((entry, index) => {
+                          const matchedCat = groupCategories.find(c => c.name === entry.name);
+                          return (
+                            <Cell key={`cell-${index}`} fill={matchedCat?.color || PIE_COLORS[index % PIE_COLORS.length]} />
+                          );
+                        })}
+                      </Pie>
+                      <Tooltip
+                        formatter={(value: number) => fmt(value)}
+                        contentStyle={{
+                          borderRadius: '12px',
+                          border: '1px solid rgba(148,163,184,0.15)',
+                          backgroundColor: 'var(--theme-surface)',
+                          color: 'var(--theme-text)',
+                          fontSize: 11
+                        }}
+                        itemStyle={{ color: 'var(--theme-text)' }}
+                        labelStyle={{ color: 'var(--theme-text)' }}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="flex flex-col items-center justify-center h-full text-slate-400 dark:text-slate-555 text-xs">
+                    <p>No category data in this group</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Category breakdown Legend list */}
+              {categoryChartData.length > 0 && (
+                <div className="space-y-3 max-h-60 overflow-y-auto pr-1">
+                  {categoryChartData.map((item, idx) => {
+                    const matchedCat = groupCategories.find(c => c.name === item.name);
+                    return (
+                      <div key={item.name} className="flex justify-between items-center text-sm font-semibold">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: matchedCat?.color || PIE_COLORS[idx % PIE_COLORS.length] }}></span>
+                          <span className="text-slate-600 dark:text-slate-350 truncate">{item.name}</span>
+                        </div>
+                        <span className="text-slate-800 dark:text-slate-200 font-bold shrink-0 ml-2">{fmt(item.value)}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Member Spending Distribution Card */}
+          <div className="glass-card rounded-2xl p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <Users className="w-5 h-5 text-violet-500" />
+              <h3 className="text-sm font-black text-slate-850 dark:text-white uppercase tracking-wider">Member Spending Share</h3>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+              <div className="h-[240px] w-full">
+                {memberChartData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={memberChartData}
+                        dataKey="value"
+                        nameKey="name"
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={65}
+                        outerRadius={88}
+                        paddingAngle={4}
+                      >
+                        {memberChartData.map((entry, index) => (
+                          <Cell key={`mcell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        formatter={(value: number) => fmt(value)}
+                        contentStyle={{
+                          borderRadius: '12px',
+                          border: '1px solid rgba(148,163,184,0.15)',
+                          backgroundColor: 'var(--theme-surface)',
+                          color: 'var(--theme-text)',
+                          fontSize: 11
+                        }}
+                        itemStyle={{ color: 'var(--theme-text)' }}
+                        labelStyle={{ color: 'var(--theme-text)' }}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="flex flex-col items-center justify-center h-full text-slate-400 dark:text-slate-555 text-xs">
+                    <p>No member spending recorded yet</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Member Spending Legend */}
+              {memberBreakdownList.length > 0 && (
+                <div className="space-y-3 max-h-60 overflow-y-auto pr-1">
+                  {memberBreakdownList.map((m, idx) => (
+                    <div key={m.user_id} className="flex justify-between items-center text-sm font-semibold">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: PIE_COLORS[idx % PIE_COLORS.length] }}></span>
+                        <span className="text-slate-600 dark:text-slate-350 truncate">{m.display_name}</span>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0 ml-2">
+                        <span className="px-1.5 py-0.5 text-[10px] font-extrabold rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">
+                          {m.percentage}%
+                        </span>
+                        <span className="text-slate-800 dark:text-slate-200 font-bold">{fmt(m.total_expenses)}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
-          <div className="h-[260px] w-full">
-            {categoryChartData.length > 0 ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={categoryChartData}
-                    dataKey="value"
-                    nameKey="name"
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={70}
-                    outerRadius={95}
-                    paddingAngle={4}
-                  >
-                    {categoryChartData.map((entry, index) => {
-                      const matchedCat = groupCategories.find(c => c.name === entry.name);
-                      return (
-                        <Cell key={`cell-${index}`} fill={matchedCat?.color || PIE_COLORS[index % PIE_COLORS.length]} />
-                      );
-                    })}
-                  </Pie>
-                  <Tooltip
-                    formatter={(value: number) => fmt(value)}
-                    contentStyle={{
-                      borderRadius: '12px',
-                      border: '1px solid rgba(148,163,184,0.15)',
-                      backgroundColor: 'var(--theme-surface)',
-                      color: 'var(--theme-text)',
-                      fontSize: 11
-                    }}
-                    itemStyle={{ color: 'var(--theme-text)' }}
-                    labelStyle={{ color: 'var(--theme-text)' }}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="flex flex-col items-center justify-center h-full text-slate-400 dark:text-slate-555 text-xs">
-                <p>No category data in this group</p>
+        {/* Category Breakdown by Member Cards */}
+        <div className="glass-card rounded-2xl p-6 space-y-6">
+          <div className="flex items-center justify-between">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <BarChart3 className="w-5 h-5 text-cyan-500" />
+                <h3 className="text-sm font-black text-slate-850 dark:text-white uppercase tracking-wider">Member Category Breakdown</h3>
+              </div>
+              <p className="text-xs text-slate-400 dark:text-slate-500 font-semibold">
+                Category spending distribution for each member in the group.
+              </p>
+            </div>
+            <span className="px-2.5 py-1 text-xs font-bold rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">
+              {memberBreakdownList.length} member{memberBreakdownList.length !== 1 ? 's' : ''}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {memberBreakdownList.map((m, idx) => {
+              const memberColor = PIE_COLORS[idx % PIE_COLORS.length];
+              const memberCatData = Object.entries(m.category_breakdown || {})
+                .map(([catName, catVal]) => {
+                  const matchedCat = groupCategories.find(c => c.name === catName);
+                  return {
+                    name: catName,
+                    value: catVal,
+                    color: matchedCat?.color || PIE_COLORS[idx % PIE_COLORS.length]
+                  };
+                })
+                .sort((a, b) => b.value - a.value);
+
+              return (
+                <div
+                  key={m.user_id}
+                  className="p-5 rounded-2xl bg-slate-50/50 dark:bg-slate-900/40 border border-slate-200/60 dark:border-slate-800 space-y-4 hover:border-cyan-500/30 transition-all"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div
+                        className="w-9 h-9 rounded-full flex items-center justify-center font-black text-xs text-white shadow-sm shrink-0"
+                        style={{ backgroundColor: memberColor }}
+                      >
+                        {m.display_name.charAt(0).toUpperCase()}
+                      </div>
+                      <div className="min-w-0">
+                        <h4 className="text-sm font-extrabold text-slate-850 dark:text-slate-200 truncate">
+                          {m.display_name}
+                        </h4>
+                        <p className="text-[11px] text-slate-400 dark:text-slate-500 font-semibold truncate">
+                          @{m.username}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-black text-slate-900 dark:text-white">
+                        {fmt(m.total_expenses)}
+                      </p>
+                      <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider">
+                        {m.transaction_count} txn{m.transaction_count !== 1 ? 's' : ''}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Horizontal Bar Chart for Member Category Breakdown */}
+                  {memberCatData.length > 0 ? (
+                    <div style={{ height: Math.max(140, memberCatData.length * 40) }} className="w-full pt-1">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart
+                          layout="vertical"
+                          data={memberCatData}
+                          margin={{ top: 0, right: 12, left: -8, bottom: 0 }}
+                        >
+                          <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.1)" horizontal={false} />
+                          <XAxis
+                            type="number"
+                            tick={{ fontSize: 10, fill: 'var(--theme-text-muted)' }}
+                            tickFormatter={(v: number) => `₹${v}`}
+                            axisLine={false}
+                            tickLine={false}
+                          />
+                          <YAxis
+                            type="category"
+                            dataKey="name"
+                            width={95}
+                            tick={{ fontSize: 11, fill: 'var(--theme-text-muted)', fontWeight: 600 }}
+                            axisLine={false}
+                            tickLine={false}
+                          />
+                          <Tooltip
+                            formatter={(value: number) => fmt(value)}
+                            contentStyle={{
+                              borderRadius: '12px',
+                              border: '1px solid rgba(148,163,184,0.15)',
+                              backgroundColor: 'var(--theme-surface)',
+                              color: 'var(--theme-text)',
+                              fontSize: 11
+                            }}
+                            itemStyle={{ color: 'var(--theme-text)' }}
+                            labelStyle={{ color: 'var(--theme-text)' }}
+                            cursor={{ fill: 'rgba(6,182,212,0.06)' }}
+                          />
+                          <Bar dataKey="value" radius={[0, 6, 6, 0]} maxBarSize={20}>
+                            {memberCatData.map((entry, index) => (
+                              <Cell key={`mcat-cell-${index}`} fill={entry.color} />
+                            ))}
+                          </Bar>
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  ) : (
+                    <div className="py-6 text-center text-slate-400 dark:text-slate-555 text-xs italic">
+                      No category spending recorded for this member.
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+
+            {memberBreakdownList.length === 0 && (
+              <div className="col-span-full py-8 text-center text-slate-400 dark:text-slate-555 text-xs">
+                No member category breakdowns available.
               </div>
             )}
           </div>
-
-          {/* Category breakdown Legend list */}
-          {categoryChartData.length > 0 && (
-            <div className="space-y-3 max-h-60 overflow-y-auto pr-1">
-              {categoryChartData.map((item, idx) => {
-                const matchedCat = groupCategories.find(c => c.name === item.name);
-                return (
-                  <div key={item.name} className="flex justify-between items-center text-sm font-semibold">
-                    <div className="flex items-center gap-2.5">
-                      <span className="w-3 h-3 rounded-full" style={{ backgroundColor: matchedCat?.color || PIE_COLORS[idx % PIE_COLORS.length] }}></span>
-                      <span className="text-slate-500 dark:text-slate-400">{item.name}</span>
-                    </div>
-                    <span className="text-slate-800 dark:text-slate-200 font-bold">{fmt(item.value)}</span>
-                  </div>
-                );
-              })}
-            </div>
-          )}
         </div>
       </div>
     );
