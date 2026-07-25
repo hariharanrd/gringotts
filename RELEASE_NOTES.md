@@ -1,5 +1,18 @@
 # 🚀 Release Notes
 
+## [July 25, 2026] Group Member Analytics & Spending Breakdown
+
+This release introduces **Member-Wise Spending Analytics & Category Breakdown Charts** for shared groups, providing deep visibility into individual group member contributions, spending shares, and category distributions.
+
+### 📊 Member Spending Analytics & Share
+- **Member Spending Distribution**: Interactive donut charts and color-coded member legend badges displaying each member's total expense share and percentage contribution.
+- **Member Category Breakdown**: Per-member horizontal bar charts (`layout="vertical"`) mapping category spending distributions for each group member with custom category color palettes.
+- **Member Transaction Filtering**: Instant member filter dropdown on the Transactions tab (`All Members`, `@username`), allowing quick filtering of group transactions by member.
+
+### ⚡ Optimized Backend & Security
+- **Access-Controlled Statistics API**: Aggregates per-member total expenses, incomes, savings, transaction counts, and category breakdowns while enforcing strict multi-user access control (`IAMService.getCurrentUser()`).
+- **Polymorphic Type Aggregations**: Handled transaction sub-type discriminators (`Expense`, `Income`, `Saving`, `Revolving`) securely within service layer aggregation workflows.
+
 ## [July 18, 2026] Transaction Group Sharing & Collaboration
 
 This release introduces **Group Sharing and Collaboration**, allowing users to co-manage shared groups (like shared trip expenses, shared apartment accounts, etc.), invite members by recovery email or username, and co-log transactions, all while strictly preserving privacy, security, and access control.
