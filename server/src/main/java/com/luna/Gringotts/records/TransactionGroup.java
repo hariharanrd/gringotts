@@ -56,6 +56,11 @@ public class TransactionGroup {
     @Column(nullable = false)
     private boolean shared = false;
 
+    @Column(name = "use_group_categories", nullable = false)
+    @JsonProperty("use_group_categories")
+    private boolean useGroupCategories = false;
+
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
@@ -190,4 +195,14 @@ public class TransactionGroup {
     public void setShared(boolean shared) {
         this.shared = shared;
     }
+
+    @JsonProperty("use_group_categories")
+    public boolean isUseGroupCategories() {
+        return useGroupCategories;
+    }
+
+    public void setUseGroupCategories(boolean useGroupCategories) {
+        this.useGroupCategories = useGroupCategories;
+    }
 }
+

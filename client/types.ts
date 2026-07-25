@@ -35,6 +35,51 @@ export interface GroupCategory {
   created_at?: string;
 }
 
+export type GroupBudgetType = 'OVERALL' | 'RECURRING_MONTHLY';
+
+export interface GroupBudgetCategoryAllocation {
+  id?: number;
+  group_category?: GroupCategory;
+  allocated_amount: number;
+}
+
+export interface GroupBudget {
+  id?: number;
+  group_id?: number;
+  name: string;
+  budget_type: GroupBudgetType;
+  month?: number | null;
+  year?: number | null;
+  total_amount: number;
+  notes?: string;
+  created_at?: string;
+  allocations?: GroupBudgetCategoryAllocation[];
+}
+
+export interface GroupCategoryAllocationUtilization {
+  allocation_id?: number;
+  group_category?: GroupCategory;
+  allocated_amount: number;
+  spent_amount: number;
+  remaining_amount: number;
+  percentage_used: number;
+}
+
+export interface GroupBudgetUtilization {
+  has_budget: boolean;
+  budget?: GroupBudget;
+  budget_type?: GroupBudgetType;
+  total_budget?: number;
+  total_spent?: number;
+  remaining?: number;
+  percentage_used?: number;
+  uncategorized_spent?: number;
+  target_month?: number;
+  target_year?: number;
+  allocations?: GroupCategoryAllocationUtilization[];
+}
+
+
 export interface SubCategory {
   id: number;
   categoryId: number;
@@ -64,7 +109,9 @@ export interface TransactionGroup {
   allows_revolving: boolean;
   thumbnail?: string;
   shared?: boolean;
+  use_group_categories?: boolean;
 }
+
 
 export interface Transaction {
   id: number;

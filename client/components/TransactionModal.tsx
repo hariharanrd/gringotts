@@ -262,15 +262,20 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
     fetchDropdownData();
   }, [isOpen, transaction, defaultType, defaultDate, defaultGroupId, allowedTypes?.join(',')]);
 
+  const selectedGroup = groups.find(g => g.id === formData.group_id);
+  const isGroupCategoryEnabled = selectedGroup ? (selectedGroup.shared || Boolean(selectedGroup.use_group_categories)) : false;
+
   useEffect(() => {
-    if (formData.group_id) {
+    if (formData.group_id && isGroupCategoryEnabled) {
       api.getGroupCategories(formData.group_id)
         .then(res => setGroupCategories(res.data || []))
         .catch(err => console.error('Failed to fetch group categories:', err));
     } else {
       setGroupCategories([]);
+      setFormData(prev => (prev.group_category ? { ...prev, group_category: undefined } : prev));
     }
-  }, [formData.group_id]);
+  }, [formData.group_id, isGroupCategoryEnabled]);
+
 
   const handleCategoryChange = async (catId: number) => {
     const category = categories.find(c => c.id === catId);
@@ -790,7 +795,7 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
                   </select>
                 </div>
 
-                {formData.group_id && groupCategories.length > 0 && (
+                {formData.group_id && isGroupCategoryEnabled && (
                   <div className="space-y-1.5">
                     <label className="text-sm font-medium text-slate-600 dark:text-slate-300">Group Category (Optional)</label>
                     <select

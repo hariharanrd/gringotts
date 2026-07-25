@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, FolderClosed, Trash2, Edit2, ChevronRight, BarChart3, Receipt, HeartHandshake, CircleDollarSign, Calendar, Sparkles, X, Plus, Users, Shield, Clock, UserMinus, LogOut, Mail, Tag } from 'lucide-react';
+import { ArrowLeft, FolderClosed, Trash2, Edit2, ChevronRight, BarChart3, Receipt, HeartHandshake, CircleDollarSign, Calendar, Sparkles, X, Plus, Users, Shield, Clock, UserMinus, LogOut, Mail, Tag, Wallet } from 'lucide-react';
 import { api } from '../services/api';
-import { Transaction, TransactionGroup, TransactionType, Expense, Income, Saving, Revolving, GroupMember, GroupCategory, MemberBreakdownItem } from '../types';
+import { Transaction, TransactionGroup, TransactionType, Expense, Income, Saving, Revolving, GroupMember, GroupCategory, MemberBreakdownItem, GroupBudget, GroupBudgetUtilization } from '../types';
 import { useToast } from '../components/ToastContext';
 import CategoryIcon from '../components/CategoryIcon';
 import ConfirmationDialog from '../components/ConfirmationDialog';
@@ -11,6 +11,7 @@ import { GROUP_COLORS } from './Groups';
 import TransactionModal from '../components/TransactionModal';
 import LazyGroupThumbnail from '../components/LazyGroupThumbnail';
 import Pagination from '../components/Pagination';
+import GroupBudgetModal from '../components/GroupBudgetModal';
 import {
   ResponsiveContainer,
   BarChart,
@@ -40,7 +41,7 @@ const GroupDetails: React.FC = () => {
 
   // User and Tab states
   const [currentUser, setCurrentUser] = useState<string>('');
-  const [activeTab, setActiveTab] = useState<'transactions' | 'statistics' | 'members' | 'categories'>('transactions');
+  const [activeTab, setActiveTab] = useState<'transactions' | 'statistics' | 'members' | 'categories' | 'budget'>('transactions');
   const [members, setMembers] = useState<GroupMember[]>([]);
   const [selectedMemberFilter, setSelectedMemberFilter] = useState<string>('ALL');
   const [inviteIdentifier, setInviteIdentifier] = useState('');
@@ -56,6 +57,14 @@ const GroupDetails: React.FC = () => {
   const [catIcon, setCatIcon] = useState('Tag');
   const [catColor, setCatColor] = useState('#06b6d4');
   const [catSaving, setCatSaving] = useState(false);
+
+  // Group Budget States
+  const [budgetUtilization, setBudgetUtilization] = useState<GroupBudgetUtilization | null>(null);
+  const [loadingBudget, setLoadingBudget] = useState(false);
+  const [isBudgetModalOpen, setIsBudgetModalOpen] = useState(false);
+  const [selectedBudgetMonth, setSelectedBudgetMonth] = useState<number>(new Date().getMonth() + 1);
+  const [selectedBudgetYear, setSelectedBudgetYear] = useState<number>(new Date().getFullYear());
+
 
   // Pagination states
   const [page, setPage] = useState(1);
@@ -234,7 +243,220 @@ const GroupDetails: React.FC = () => {
     );
   };
 
+  const renderPersonalAnalytics = () => {
+    return (
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Category Breakdown Card */}
+        <div className="glass-card rounded-2xl p-6">
+          <div className="flex items-center gap-2 mb-4">
+            <BarChart3 className="w-5 h-5 text-cyan-500" />
+            <h3 className="text-sm font-black text-slate-850 dark:text-white uppercase tracking-wider">Category Breakdown</h3>
+          </div>
+
+          <div className="h-[240px] w-full">
+            {categoryChartData.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={categoryChartData}
+                    dataKey="value"
+                    nameKey="name"
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={80}
+                    paddingAngle={4}
+                  >
+                    {categoryChartData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    formatter={(value: number) => fmt(value)}
+                    contentStyle={{
+                      borderRadius: '12px',
+                      border: '1px solid rgba(148,163,184,0.15)',
+                      backgroundColor: 'var(--theme-surface)',
+                      color: 'var(--theme-text)',
+                      fontSize: 11
+                    }}
+                    itemStyle={{ color: 'var(--theme-text)' }}
+                    labelStyle={{ color: 'var(--theme-text)' }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex flex-col items-center justify-center h-full text-slate-400 dark:text-slate-555 text-xs">
+                <p>No category data in this group</p>
+              </div>
+            )}
+          </div>
+
+          {categoryChartData.length > 0 && (
+            <div className="mt-4 space-y-2 max-h-48 overflow-y-auto pr-1">
+              {categoryChartData.map((item, idx) => (
+                <div key={item.name} className="flex justify-between items-center text-xs font-semibold">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: PIE_COLORS[idx % PIE_COLORS.length] }}></span>
+                    <span className="text-slate-500 dark:text-slate-400">{item.name}</span>
+                  </div>
+                  <span className="text-slate-800 dark:text-slate-200">{fmt(item.value)}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Subcategory Breakdown Card */}
+        {subcategoryChartData.length > 0 && (
+          <div className="glass-card rounded-2xl p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <BarChart3 className="w-5 h-5 text-violet-500" />
+              <h3 className="text-sm font-black text-slate-850 dark:text-white uppercase tracking-wider">Subcategory Breakdown</h3>
+            </div>
+
+            <div style={{ height: Math.max(160, subcategoryChartData.length * 36) }} className="w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  layout="vertical"
+                  data={subcategoryChartData}
+                  margin={{ top: 0, right: 8, left: 0, bottom: 0 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.1)" horizontal={false} />
+                  <XAxis
+                    type="number"
+                    tick={{ fontSize: 10, fill: 'var(--theme-text-muted)' }}
+                    tickFormatter={(v: number) => `₹${(v / 1000).toFixed(0)}k`}
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <YAxis
+                    type="category"
+                    dataKey="name"
+                    width={88}
+                    tick={{ fontSize: 10, fill: 'var(--theme-text-muted)' }}
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <Tooltip
+                    formatter={(value: number) => fmt(value)}
+                    contentStyle={{
+                      borderRadius: '12px',
+                      border: '1px solid rgba(148,163,184,0.15)',
+                      backgroundColor: 'var(--theme-surface)',
+                      color: 'var(--theme-text)',
+                      fontSize: 11
+                    }}
+                    itemStyle={{ color: 'var(--theme-text)' }}
+                    labelStyle={{ color: 'var(--theme-text)' }}
+                    cursor={{ fill: 'rgba(139,92,246,0.06)' }}
+                  />
+                  <Bar dataKey="value" radius={[0, 6, 6, 0]} maxBarSize={18}>
+                    {subcategoryChartData.map((entry, index) => (
+                      <Cell key={`sc-cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+
+            <div className="mt-4 space-y-2 max-h-40 overflow-y-auto pr-1">
+              {subcategoryChartData.map((item, idx) => (
+                <div key={item.name} className="flex justify-between items-center text-xs font-semibold">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: PIE_COLORS[idx % PIE_COLORS.length] }}></span>
+                    <span className="text-slate-500 dark:text-slate-400 truncate">{item.name}</span>
+                  </div>
+                  <span className="text-slate-800 dark:text-slate-200 shrink-0 ml-2">{fmt(item.value)}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Item Breakdown Card */}
+        {itemChartData.length > 0 && (
+          <div className="glass-card rounded-2xl p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <BarChart3 className="w-5 h-5 text-amber-500" />
+              <h3 className="text-sm font-black text-slate-850 dark:text-white uppercase tracking-wider">Item Breakdown</h3>
+            </div>
+
+            {itemChartData.length <= 8 && (
+              <div className="h-[160px] w-full mb-2">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={itemChartData}
+                      dataKey="value"
+                      nameKey="name"
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={44}
+                      outerRadius={62}
+                      paddingAngle={3}
+                    >
+                      {itemChartData.map((entry, index) => (
+                        <Cell key={`item-cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      formatter={(value: number) => fmt(value)}
+                      contentStyle={{
+                        borderRadius: '12px',
+                        border: '1px solid rgba(148,163,184,0.15)',
+                        backgroundColor: 'var(--theme-surface)',
+                        color: 'var(--theme-text)',
+                        fontSize: 11
+                      }}
+                      itemStyle={{ color: 'var(--theme-text)' }}
+                      labelStyle={{ color: 'var(--theme-text)' }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+
+            <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+              {itemChartData.map((item, idx) => {
+                const totalItems = itemChartData.reduce((s, i) => s + i.value, 0);
+                const pct = totalItems > 0 ? Math.round((item.value / totalItems) * 100) : 0;
+                return (
+                  <div key={item.name} className="space-y-1">
+                    <div className="flex justify-between items-center text-xs font-semibold">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span
+                          className="w-2.5 h-2.5 rounded-full shrink-0"
+                          style={{ backgroundColor: PIE_COLORS[idx % PIE_COLORS.length] }}
+                        />
+                        <span className="text-slate-600 dark:text-slate-355 truncate">{item.name}</span>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0 ml-2">
+                        <span className="text-slate-400 dark:text-slate-500 text-[10px]">{pct}%</span>
+                        <span className="text-slate-800 dark:text-slate-200">{fmt(item.value)}</span>
+                      </div>
+                    </div>
+                    <div className="h-1 w-full rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                      <div
+                        className="h-full rounded-full transition-all duration-500"
+                        style={{
+                          width: `${pct}%`,
+                          backgroundColor: PIE_COLORS[idx % PIE_COLORS.length]
+                        }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   const renderSharedAnalytics = () => {
+
     const memberBreakdownList: MemberBreakdownItem[] = stats?.member_breakdown || [];
     const memberChartData = memberBreakdownList
       .filter(m => m.total_expenses > 0)
@@ -606,6 +828,225 @@ const GroupDetails: React.FC = () => {
     );
   };
 
+  const renderBudgetCard = () => {
+    const hasBudget = budgetUtilization?.has_budget && budgetUtilization?.budget;
+    const isMonthly = budgetUtilization?.budget_type === 'RECURRING_MONTHLY';
+
+    const totalBudget = budgetUtilization?.total_budget || 0;
+    const totalSpent = budgetUtilization?.total_spent || 0;
+    const remaining = budgetUtilization?.remaining || 0;
+    const percentageUsed = budgetUtilization?.percentage_used || 0;
+
+    let progressColor = 'bg-cyan-500';
+    if (percentageUsed >= 100) {
+      progressColor = 'bg-rose-500';
+    } else if (percentageUsed >= 80) {
+      progressColor = 'bg-amber-500';
+    }
+
+    return (
+      <div className="glass-card rounded-2xl p-4 sm:p-6 space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-start sm:items-center gap-3">
+            <div className="p-2.5 rounded-2xl bg-cyan-500/10 text-cyan-500 shrink-0">
+              <Wallet className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
+                <h3 className="text-sm font-black text-slate-850 dark:text-white uppercase tracking-wider">Group Budget & Spending</h3>
+                {hasBudget && (
+                  <span className={`px-2.5 py-0.5 text-[10px] font-black rounded-full uppercase tracking-wide shrink-0 ${
+                    isMonthly ? 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20' : 'bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border border-cyan-500/20'
+                  }`}>
+                    {isMonthly ? 'Monthly Reset' : 'Overall Spend'}
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-slate-500 font-medium leading-relaxed">Track total group expenses against allocated category budgets</p>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center justify-between sm:justify-end gap-2.5 w-full sm:w-auto pt-2.5 sm:pt-0 border-t border-slate-100 dark:border-slate-800/80 sm:border-0">
+            {isMonthly && hasBudget && (
+              <div className="flex items-center gap-2">
+                <select
+                  value={selectedBudgetMonth}
+                  onChange={(e) => {
+                    const m = Number(e.target.value);
+                    setSelectedBudgetMonth(m);
+                    fetchGroupBudget(m, selectedBudgetYear);
+                  }}
+                  className="px-2.5 py-1.5 text-xs font-semibold rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700/60 focus:outline-none"
+                >
+                  {[
+                    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+                  ].map((monthName, idx) => (
+                    <option key={monthName} value={idx + 1}>{monthName}</option>
+                  ))}
+                </select>
+                <select
+                  value={selectedBudgetYear}
+                  onChange={(e) => {
+                    const y = Number(e.target.value);
+                    setSelectedBudgetYear(y);
+                    fetchGroupBudget(selectedBudgetMonth, y);
+                  }}
+                  className="px-2.5 py-1.5 text-xs font-semibold rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700/60 focus:outline-none"
+                >
+                  {[2024, 2025, 2026, 2027].map(y => (
+                    <option key={y} value={y}>{y}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {hasBudget ? (
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  onClick={() => setIsBudgetModalOpen(true)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-extrabold rounded-xl bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-600 dark:text-cyan-400 transition-all"
+                >
+                  <Edit2 className="w-3.5 h-3.5" /> Edit Budget
+                </button>
+                <button
+                  onClick={handleDeleteBudget}
+                  className="p-2 text-slate-400 hover:text-rose-500 rounded-xl hover:bg-rose-500/10 transition-colors"
+                  title="Delete Group Budget"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setIsBudgetModalOpen(true)}
+                className="flex items-center gap-1.5 px-4 py-2 text-xs font-extrabold rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white shadow-md shadow-cyan-500/20 transition-all shrink-0"
+              >
+                <Plus className="w-4 h-4" /> Configure Budget
+              </button>
+            )}
+          </div>
+        </div>
+
+
+        {hasBudget ? (
+          <div className="space-y-6">
+            {/* Overall Budget Progress Card */}
+            <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Total Group Spend</p>
+                  <div className="flex items-baseline gap-2 mt-0.5">
+                    <span className="text-2xl font-black text-slate-850 dark:text-white">{fmt(totalSpent)}</span>
+                    <span className="text-sm font-extrabold text-slate-400">/ {fmt(totalBudget)}</span>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Remaining Cap</p>
+                  <p className={`text-lg font-black ${remaining <= 0 ? 'text-rose-500' : 'text-emerald-500'}`}>
+                    {fmt(remaining)}
+                  </p>
+                </div>
+              </div>
+
+              {/* Progress Bar */}
+              <div className="space-y-1.5">
+                <div className="w-full h-3 rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden">
+                  <div
+                    className={`h-full transition-all duration-500 ${progressColor}`}
+                    style={{ width: `${Math.min(100, percentageUsed)}%` }}
+                  />
+                </div>
+                <div className="flex justify-between items-center text-[11px] font-extrabold text-slate-400">
+                  <span>{percentageUsed.toFixed(1)}% utilized</span>
+                  {percentageUsed >= 100 && (
+                    <span className="text-rose-500 font-black">Over Budget Warning!</span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Group Category Allocations */}
+            {budgetUtilization.allocations && budgetUtilization.allocations.length > 0 && (
+              <div className="space-y-3">
+                <h4 className="text-xs font-black uppercase tracking-wider text-slate-500">Group Category Allocations</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {budgetUtilization.allocations.map((alloc) => {
+                    const cat = alloc.group_category;
+                    const IconComponent = (ICONS as any)[cat?.icon || 'Tag'] || Tag;
+                    const isCatOver = alloc.spent_amount > alloc.allocated_amount;
+                    const catPct = Math.min(100, alloc.percentage_used || 0);
+
+                    return (
+                      <div
+                        key={alloc.allocation_id || cat?.id}
+                        className="p-4 rounded-2xl bg-white dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800/80 space-y-2.5"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <div className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 shrink-0">
+                              <IconComponent className="w-4 h-4" style={{ color: cat?.color || '#06b6d4' }} />
+                            </div>
+                            <span className="text-xs font-extrabold text-slate-850 dark:text-slate-200 truncate">
+                              {cat?.name}
+                            </span>
+                          </div>
+                          <span className="text-xs font-black text-slate-850 dark:text-white">
+                            {fmt(alloc.spent_amount)} <span className="text-[10px] text-slate-400 font-bold">/ {fmt(alloc.allocated_amount)}</span>
+                          </span>
+                        </div>
+
+                        <div className="w-full h-2 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                          <div
+                            className={`h-full transition-all duration-500 ${isCatOver ? 'bg-rose-500' : 'bg-cyan-500'}`}
+                            style={{ width: `${catPct}%` }}
+                          />
+                        </div>
+
+                        <div className="flex justify-between items-center text-[10px] font-bold text-slate-400">
+                          <span>{alloc.percentage_used.toFixed(1)}% used</span>
+                          <span className={isCatOver ? 'text-rose-500 font-black' : 'text-emerald-500 font-bold'}>
+                            {isCatOver ? `+${fmt(alloc.spent_amount - alloc.allocated_amount)} over` : `${fmt(alloc.remaining_amount)} left`}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {budgetUtilization.uncategorized_spent && budgetUtilization.uncategorized_spent > 0 ? (
+              <div className="p-3.5 rounded-xl bg-slate-100 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 flex justify-between items-center text-xs font-bold text-slate-500">
+                <span>Uncategorized Group Expenses:</span>
+                <span className="text-slate-850 dark:text-white font-extrabold">{fmt(budgetUtilization.uncategorized_spent)}</span>
+              </div>
+            ) : null}
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center py-12 px-4 rounded-2xl bg-slate-50 dark:bg-slate-900/40 border border-dashed border-slate-200 dark:border-slate-800 text-center space-y-3">
+            <div className="p-3.5 rounded-full bg-cyan-500/10 text-cyan-500">
+              <Wallet className="w-6 h-6" />
+            </div>
+            <div>
+              <h4 className="text-sm font-extrabold text-slate-850 dark:text-white">No Budget Set for this Group</h4>
+              <p className="text-xs text-slate-500 mt-1 max-w-sm">
+                Set a total budget cap and allocate spending limits for group categories to stay on top of group expenses.
+              </p>
+            </div>
+            <button
+              onClick={() => setIsBudgetModalOpen(true)}
+              className="mt-2 flex items-center gap-1.5 px-4 py-2 text-xs font-extrabold rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md shadow-cyan-500/20 hover:opacity-90 transition-all"
+            >
+              <Plus className="w-4 h-4" /> Configure Group Budget
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+
   // Edit / Delete states
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<TransactionGroup | null>(null);
@@ -623,7 +1064,9 @@ const GroupDetails: React.FC = () => {
   const [allowsIncome, setAllowsIncome] = useState(true);
   const [allowsSaving, setAllowsSaving] = useState(true);
   const [allowsRevolving, setAllowsRevolving] = useState(true);
+  const [useGroupCategories, setUseGroupCategories] = useState(false);
   const [thumbnail, setThumbnail] = useState<string | null>(null);
+
 
   const fetchCurrentUser = async () => {
     try {
@@ -634,6 +1077,42 @@ const GroupDetails: React.FC = () => {
       }
     } catch (err) {
       console.error('Failed to fetch user context:', err);
+    }
+  };
+
+  const fetchGroupBudget = async (m?: number, y?: number) => {
+    if (!groupId) return;
+    setLoadingBudget(true);
+    try {
+      const res = await api.getGroupBudgetUtilization(groupId, m, y);
+      setBudgetUtilization(res);
+    } catch (e: any) {
+      console.error('Failed to load group budget', e);
+    } finally {
+      setLoadingBudget(false);
+    }
+  };
+
+  const handleSaveBudget = async (budgetData: Partial<GroupBudget>) => {
+    if (!groupId) return;
+    try {
+      await api.saveGroupBudget(groupId, budgetData);
+      showToast('Group budget saved successfully', 'success');
+      fetchGroupBudget(selectedBudgetMonth, selectedBudgetYear);
+    } catch (e: any) {
+      showToast(e.message || 'Failed to save group budget', 'error');
+      throw e;
+    }
+  };
+
+  const handleDeleteBudget = async () => {
+    if (!groupId || !budgetUtilization?.budget?.id) return;
+    try {
+      await api.deleteGroupBudget(groupId, budgetUtilization.budget.id);
+      showToast('Group budget deleted successfully', 'success');
+      fetchGroupBudget();
+    } catch (e: any) {
+      showToast(e.message || 'Failed to delete group budget', 'error');
     }
   };
 
@@ -650,6 +1129,9 @@ const GroupDetails: React.FC = () => {
         const membersRes = await api.getGroupMembers(groupId);
         setMembers(membersRes.data ?? []);
       }
+
+      fetchGroupCategories();
+      fetchGroupBudget(selectedBudgetMonth, selectedBudgetYear);
     } catch (e: any) {
       showToast(e.message || 'Failed to load group details', 'error');
       navigate('/groups');
@@ -704,6 +1186,7 @@ const GroupDetails: React.FC = () => {
     setAllowsIncome(group.allows_income ?? true);
     setAllowsSaving(group.allows_saving ?? true);
     setAllowsRevolving(group.allows_revolving ?? true);
+    setUseGroupCategories(group.use_group_categories ?? false);
     setThumbnail(group.thumbnail || null);
     setIsEditModalOpen(true);
   };
@@ -731,9 +1214,11 @@ const GroupDetails: React.FC = () => {
         allows_income: allowsIncome,
         allows_saving: allowsSaving,
         allows_revolving: allowsRevolving,
+        use_group_categories: useGroupCategories,
         thumbnail: thumbnail || undefined
       };
       const updated = await api.updateTransactionGroup(groupId, payload);
+
       setGroup(updated);
       setIsEditModalOpen(false);
       showToast('Group updated successfully', 'success');
@@ -949,7 +1434,11 @@ const GroupDetails: React.FC = () => {
     if (t.type === 'SAVING') return (t as any).is_in ? '+' : '-';
     if (t.type === 'REVOLVING') return (t as any).is_give ? '-' : '+';
     return '';
-  };  const isOwner = members.find(m => m.role === 'ADMIN')?.user?.username === currentUser;
+  };
+
+  const isOwner = !group?.shared || members.find(m => m.role === 'ADMIN')?.user?.username === currentUser || (group as any)?.user?.username === currentUser;
+
+
   const presetColor = GROUP_COLORS.find(c => c.hex === group.color) || GROUP_COLORS[0];
   const IconComponent = (ICONS as any)[group.icon || 'Tag'] || FolderClosed;
 
@@ -1173,255 +1662,40 @@ const GroupDetails: React.FC = () => {
         );
       })()}
 
-      {group.shared && (
-        <div className="flex border-b border-slate-200 dark:border-slate-800 gap-6 overflow-x-auto no-scrollbar whitespace-nowrap">
-          {(['transactions', 'statistics', 'categories', 'members'] as const).map(tab => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              type="button"
-              className={`pb-3 text-sm font-extrabold uppercase tracking-wider border-b-2 transition-colors shrink-0 ${
-                activeTab === tab
-                  ? 'border-cyan-500 text-slate-850 dark:text-white'
-                  : 'border-transparent text-slate-400 hover:text-slate-605 dark:text-slate-550'
-              }`}
-            >
-              {tab === 'statistics' ? 'Analytics' : tab}
-            </button>
-          ))}
+      <div className="flex border-b border-slate-200 dark:border-slate-800 gap-6 overflow-x-auto no-scrollbar whitespace-nowrap">
+        {(group.shared
+          ? ['transactions', 'statistics', 'categories', 'budget', 'members']
+          : group.use_group_categories
+          ? ['transactions', 'statistics', 'categories', 'budget']
+          : ['transactions', 'statistics', 'budget']
+        ).map(tab => (
+          <button
+            key={tab}
+            onClick={() => setActiveTab(tab as any)}
+            type="button"
+            className={`pb-3 text-sm font-extrabold uppercase tracking-wider border-b-2 transition-colors shrink-0 ${
+              activeTab === tab
+                ? 'border-cyan-500 text-slate-850 dark:text-white'
+                : 'border-transparent text-slate-400 hover:text-slate-605 dark:text-slate-550'
+            }`}
+          >
+            {tab === 'statistics' ? 'Analytics' : tab}
+          </button>
+        ))}
+      </div>
+
+      {activeTab === 'budget' && renderBudgetCard()}
+      {activeTab === 'transactions' && renderTransactionsCard()}
+      {activeTab === 'categories' && (group.shared || group.use_group_categories) && renderCategoriesCard()}
+      {activeTab === 'members' && group.shared && (
+        <div className="max-w-3xl mx-auto">
+          {renderMembersCard()}
         </div>
       )}
-
-      {group.shared ? (
-        <div className="space-y-6">
-          {activeTab === 'transactions' && renderTransactionsCard()}
-          {activeTab === 'statistics' && renderSharedAnalytics()}
-          {activeTab === 'categories' && renderCategoriesCard()}
-          {activeTab === 'members' && (
-            <div className="max-w-3xl mx-auto">
-              {renderMembersCard()}
-            </div>
-          )}
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Left Column: Stats & Breakdown (Non-shared) */}
-          <div className="lg:col-span-1 space-y-6">
-            {/* Category Breakdown Card */}
-            <div className="glass-card rounded-2xl p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <BarChart3 className="w-5 h-5 text-cyan-500" />
-                <h3 className="text-sm font-black text-slate-850 dark:text-white uppercase tracking-wider">Category Breakdown</h3>
-              </div>
-
-              <div className="h-[240px] w-full">
-                {categoryChartData.length > 0 ? (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={categoryChartData}
-                        dataKey="value"
-                        nameKey="name"
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={60}
-                        outerRadius={80}
-                        paddingAngle={4}
-                      >
-                        {categoryChartData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
-                        ))}
-                      </Pie>
-                      <Tooltip
-                        formatter={(value: number) => fmt(value)}
-                        contentStyle={{
-                          borderRadius: '12px',
-                          border: '1px solid rgba(148,163,184,0.15)',
-                          backgroundColor: 'var(--theme-surface)',
-                          color: 'var(--theme-text)',
-                          fontSize: 11
-                        }}
-                        itemStyle={{ color: 'var(--theme-text)' }}
-                        labelStyle={{ color: 'var(--theme-text)' }}
-                      />
-                    </PieChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <div className="flex flex-col items-center justify-center h-full text-slate-400 dark:text-slate-555 text-xs">
-                    <p>No category data in this group</p>
-                  </div>
-                )}
-              </div>
-
-              {categoryChartData.length > 0 && (
-                <div className="mt-4 space-y-2 max-h-48 overflow-y-auto pr-1">
-                  {categoryChartData.map((item, idx) => (
-                    <div key={item.name} className="flex justify-between items-center text-xs font-semibold">
-                      <div className="flex items-center gap-2">
-                        <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: PIE_COLORS[idx % PIE_COLORS.length] }}></span>
-                        <span className="text-slate-500 dark:text-slate-400">{item.name}</span>
-                      </div>
-                      <span className="text-slate-800 dark:text-slate-200">{fmt(item.value)}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Subcategory Breakdown Card */}
-            {subcategoryChartData.length > 0 && (
-              <div className="glass-card rounded-2xl p-6">
-                <div className="flex items-center gap-2 mb-4">
-                  <BarChart3 className="w-5 h-5 text-violet-500" />
-                  <h3 className="text-sm font-black text-slate-850 dark:text-white uppercase tracking-wider">Subcategory Breakdown</h3>
-                </div>
-
-                <div style={{ height: Math.max(160, subcategoryChartData.length * 36) }} className="w-full">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart
-                      layout="vertical"
-                      data={subcategoryChartData}
-                      margin={{ top: 0, right: 8, left: 0, bottom: 0 }}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.1)" horizontal={false} />
-                      <XAxis
-                        type="number"
-                        tick={{ fontSize: 10, fill: 'var(--theme-text-muted)' }}
-                        tickFormatter={(v: number) => `₹${(v / 1000).toFixed(0)}k`}
-                        axisLine={false}
-                        tickLine={false}
-                      />
-                      <YAxis
-                        type="category"
-                        dataKey="name"
-                        width={88}
-                        tick={{ fontSize: 10, fill: 'var(--theme-text-muted)' }}
-                        axisLine={false}
-                        tickLine={false}
-                      />
-                      <Tooltip
-                        formatter={(value: number) => fmt(value)}
-                        contentStyle={{
-                          borderRadius: '12px',
-                          border: '1px solid rgba(148,163,184,0.15)',
-                          backgroundColor: 'var(--theme-surface)',
-                          color: 'var(--theme-text)',
-                          fontSize: 11
-                        }}
-                        itemStyle={{ color: 'var(--theme-text)' }}
-                        labelStyle={{ color: 'var(--theme-text)' }}
-                        cursor={{ fill: 'rgba(139,92,246,0.06)' }}
-                      />
-                      <Bar dataKey="value" radius={[0, 6, 6, 0]} maxBarSize={18}>
-                        {subcategoryChartData.map((entry, index) => (
-                          <Cell key={`sc-cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
-                        ))}
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-
-                <div className="mt-4 space-y-2 max-h-40 overflow-y-auto pr-1">
-                  {subcategoryChartData.map((item, idx) => (
-                    <div key={item.name} className="flex justify-between items-center text-xs font-semibold">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: PIE_COLORS[idx % PIE_COLORS.length] }}></span>
-                        <span className="text-slate-500 dark:text-slate-400 truncate">{item.name}</span>
-                      </div>
-                      <span className="text-slate-800 dark:text-slate-200 shrink-0 ml-2">{fmt(item.value)}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Item Breakdown Card */}
-            {itemChartData.length > 0 && (
-              <div className="glass-card rounded-2xl p-6">
-                <div className="flex items-center gap-2 mb-4">
-                  <BarChart3 className="w-5 h-5 text-amber-500" />
-                  <h3 className="text-sm font-black text-slate-850 dark:text-white uppercase tracking-wider">Item Breakdown</h3>
-                </div>
-
-                {itemChartData.length <= 8 && (
-                  <div className="h-[160px] w-full mb-2">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
-                          data={itemChartData}
-                          dataKey="value"
-                          nameKey="name"
-                          cx="50%"
-                          cy="50%"
-                          innerRadius={44}
-                          outerRadius={62}
-                          paddingAngle={3}
-                        >
-                          {itemChartData.map((entry, index) => (
-                            <Cell key={`item-cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
-                          ))}
-                        </Pie>
-                        <Tooltip
-                          formatter={(value: number) => fmt(value)}
-                          contentStyle={{
-                            borderRadius: '12px',
-                            border: '1px solid rgba(148,163,184,0.15)',
-                            backgroundColor: 'var(--theme-surface)',
-                            color: 'var(--theme-text)',
-                            fontSize: 11
-                          }}
-                          itemStyle={{ color: 'var(--theme-text)' }}
-                          labelStyle={{ color: 'var(--theme-text)' }}
-                        />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </div>
-                )}
-
-                <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
-                  {itemChartData.map((item, idx) => {
-                    const totalItems = itemChartData.reduce((s, i) => s + i.value, 0);
-                    const pct = totalItems > 0 ? Math.round((item.value / totalItems) * 100) : 0;
-                    return (
-                      <div key={item.name} className="space-y-1">
-                        <div className="flex justify-between items-center text-xs font-semibold">
-                          <div className="flex items-center gap-2 min-w-0">
-                            <span
-                              className="w-2.5 h-2.5 rounded-full shrink-0"
-                              style={{ backgroundColor: PIE_COLORS[idx % PIE_COLORS.length] }}
-                            />
-                            <span className="text-slate-600 dark:text-slate-355 truncate">{item.name}</span>
-                          </div>
-                          <div className="flex items-center gap-2 shrink-0 ml-2">
-                            <div className="flex items-center gap-2 shrink-0 ml-2">
-                              <span className="text-slate-400 dark:text-slate-500 text-[10px]">{pct}%</span>
-                              <span className="text-slate-800 dark:text-slate-200">{fmt(item.value)}</span>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="h-1 w-full rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
-                          <div
-                            className="h-full rounded-full transition-all duration-500"
-                            style={{
-                              width: `${pct}%`,
-                              backgroundColor: PIE_COLORS[idx % PIE_COLORS.length]
-                            }}
-                          />
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Right Column: Transactions card */}
-          <div className="lg:col-span-2 space-y-6">
-            {renderTransactionsCard()}
-          </div>
-        </div>
+      {activeTab === 'statistics' && (
+        group.shared ? renderSharedAnalytics() : renderPersonalAnalytics()
       )}
+
 
       {/* Edit Group Modal */}
       {isEditModalOpen && (
@@ -1581,6 +1855,42 @@ const GroupDetails: React.FC = () => {
                   </div>
                 </div>
               </div>
+
+              {/* Group Category Option (Personal Groups Only) */}
+              {!group?.shared && (
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Categorization Mode</label>
+                  <div className="flex items-center justify-between p-3.5 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-200 dark:border-slate-800">
+                    <div>
+                      <label htmlFor="editUseGroupCategories" className="text-xs font-bold text-slate-700 dark:text-slate-300 cursor-pointer select-none block">
+                        Enable Group-Specific Categories
+                      </label>
+                      <p className="text-[10px] text-slate-400 font-medium leading-relaxed">
+                        If disabled, transactions in this group use standard CSI configured in setup.
+                      </p>
+                    </div>
+                    <div className="relative flex items-center shrink-0 ml-3">
+                      <input
+                        type="checkbox"
+                        id="editUseGroupCategories"
+                        checked={useGroupCategories}
+                        onChange={(e) => setUseGroupCategories(e.target.checked)}
+                        className="w-5 h-5 rounded-lg border-slate-300 dark:border-slate-700 text-cyan-500 focus:ring-cyan-500/40 bg-slate-100 dark:bg-slate-800 transition-all cursor-pointer appearance-none checked:bg-cyan-500 border"
+                      />
+                      {useGroupCategories && (
+                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                          <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="4">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                          </svg>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+
+
 
               {/* Thumbnail Image Upload */}
               <div className="space-y-2">
@@ -1867,8 +2177,21 @@ const GroupDetails: React.FC = () => {
           })()}
         />
       )}
+
+      {/* Group Budget Modal */}
+      {group && (
+        <GroupBudgetModal
+          isOpen={isBudgetModalOpen}
+          onClose={() => setIsBudgetModalOpen(false)}
+          onSave={handleSaveBudget}
+          existingBudget={budgetUtilization?.budget}
+          groupCategories={groupCategories}
+          groupType={group.type}
+        />
+      )}
     </div>
   );
 };
 
 export default GroupDetails;
+

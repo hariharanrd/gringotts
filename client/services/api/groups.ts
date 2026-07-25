@@ -1,5 +1,5 @@
 import { BASE_URL, fetchWithCredentials, handleResponse } from './common';
-import { TransactionGroup, Transaction, GroupMember, GroupInvitation, GroupCategory } from '../../types';
+import { TransactionGroup, Transaction, GroupMember, GroupInvitation, GroupCategory, GroupBudget, GroupBudgetUtilization } from '../../types';
 
 export const groupsApi = {
   getTransactionGroups: async (): Promise<{ data: TransactionGroup[], total_count: number }> => {
@@ -134,5 +134,36 @@ export const groupsApi = {
       method: 'DELETE',
     });
     await handleResponse(response);
+  },
+
+  getGroupBudget: async (groupId: number, month?: number, year?: number): Promise<GroupBudget | null> => {
+    const query = month && year ? `?month=${month}&year=${year}` : '';
+    const response = await fetchWithCredentials(`${BASE_URL}/transaction-groups/${groupId}/budget${query}`);
+    const result = await handleResponse(response);
+    return result.data && Object.keys(result.data).length > 0 ? result.data : null;
+  },
+
+  saveGroupBudget: async (groupId: number, data: Partial<GroupBudget>): Promise<GroupBudget> => {
+    const response = await fetchWithCredentials(`${BASE_URL}/transaction-groups/${groupId}/budget`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    const result = await handleResponse(response);
+    return result.data;
+  },
+
+  deleteGroupBudget: async (groupId: number, budgetId: number): Promise<void> => {
+    const response = await fetchWithCredentials(`${BASE_URL}/transaction-groups/${groupId}/budget/${budgetId}`, {
+      method: 'DELETE',
+    });
+    await handleResponse(response);
+  },
+
+  getGroupBudgetUtilization: async (groupId: number, month?: number, year?: number): Promise<GroupBudgetUtilization> => {
+    const query = month && year ? `?month=${month}&year=${year}` : '';
+    const response = await fetchWithCredentials(`${BASE_URL}/transaction-groups/${groupId}/budget/utilization${query}`);
+    const result = await handleResponse(response);
+    return result.data;
   }
 };
+

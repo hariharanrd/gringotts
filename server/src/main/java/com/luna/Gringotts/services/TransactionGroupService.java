@@ -84,6 +84,9 @@ public class TransactionGroupService {
         if (group.getType() == null) {
             group.setType("CUSTOM");
         }
+        if (group.isShared()) {
+            group.setUseGroupCategories(true);
+        }
         validateGroupAllowedTypes(group);
         return transactionGroupRepository.save(group);
     }
@@ -107,11 +110,17 @@ public class TransactionGroupService {
         existing.setAllowsIncome(incoming.isAllowsIncome());
         existing.setAllowsSaving(incoming.isAllowsSaving());
         existing.setAllowsRevolving(incoming.isAllowsRevolving());
+        if (existing.isShared()) {
+            existing.setUseGroupCategories(true);
+        } else {
+            existing.setUseGroupCategories(incoming.isUseGroupCategories());
+        }
         existing.setThumbnail(incoming.getThumbnail());
 
         validateGroupAllowedTypes(existing);
         return transactionGroupRepository.save(existing);
     }
+
 
     @Transactional
     public void deleteGroup(Long id) {
@@ -176,11 +185,32 @@ public class TransactionGroupService {
         for (Transaction t : transactions) {
             double val = t.getValue();
 
+            boolean shouldUseGroupCategory = group.isShared() || group.isUseGroupCategories();
+
             String categoryName = "Uncategorized";
-            if (t.getGroupCategory() != null) {
-                categoryName = t.getGroupCategory().getName();
+            if (shouldUseGroupCategory) {
+                if (t.getGroupCategory() != null) {
+                    categoryName = t.getGroupCategory().getName();
+                }
+            } else {
+                if (t.getCategory() != null) {
+                    categoryName = t.getCategory().getName();
+                }
+                if (t.getSubCategory() != null) {
+                    String subName = t.getSubCategory().getName();
+                    subcategoryBreakdown.put(subName, subcategoryBreakdown.getOrDefault(subName, 0.0) + val);
+                    hasSubcategoryData = true;
+                }
+                if (t.getItem() != null) {
+                    String itemName = t.getItem().getName();
+                    itemBreakdown.put(itemName, itemBreakdown.getOrDefault(itemName, 0.0) + val);
+                    hasItemData = true;
+                }
             }
             categoryBreakdown.put(categoryName, categoryBreakdown.getOrDefault(categoryName, 0.0) + val);
+
+
+
 
             if ("EXPENSE".equals(t.getType())) {
                 totalExpenses += val;

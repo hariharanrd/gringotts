@@ -75,7 +75,7 @@ public interface TransactionRepository<T extends Transaction> extends JpaReposit
     // Unified access-aware group transaction query.
     // When isShared=true (group is shared), all group transactions are returned regardless of owner.
     // When isShared=false, only the requesting user's transactions in the group are returned.
-    @EntityGraph(attributePaths = {"category", "subCategory", "item", "group"})
+    @EntityGraph(attributePaths = {"category", "subCategory", "item", "group", "groupCategory"})
     @Query("""
         SELECT t FROM Transaction t
         WHERE t.group = :group
@@ -87,7 +87,7 @@ public interface TransactionRepository<T extends Transaction> extends JpaReposit
         @Param("user") User user,
         @Param("isShared") boolean isShared);
 
-    @EntityGraph(attributePaths = {"category", "subCategory", "item", "group"})
+    @EntityGraph(attributePaths = {"category", "subCategory", "item", "group", "groupCategory"})
     @Query("""
         SELECT t FROM Transaction t
         WHERE t.group = :group
