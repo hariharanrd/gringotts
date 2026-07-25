@@ -55,6 +55,7 @@ public interface TransactionRepository<T extends Transaction> extends JpaReposit
     boolean existsByCategoryId(Long categoryId);
     boolean existsBySubCategoryId(Long subCategoryId);
     boolean existsByItemId(Long itemId);
+    boolean existsByGroupCategoryId(Long groupCategoryId);
 
     @EntityGraph(attributePaths = {"category", "subCategory", "item", "group"})
     List<T> findByGroupAndUserOrderByTransactionTimeDesc(TransactionGroup group, User user);

@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Save, TrendingDown, TrendingUp, PiggyBank, RefreshCw, AlertTriangle, CreditCard as CardIcon, ChevronDown } from 'lucide-react';
 import { api } from '../services/api';
-import { Category, SubCategory, Item, TransactionType, Expense, Income, Saving, Revolving, Transaction, CreditCard, InvestmentGoal, Loan, TransactionGroup } from '../types';
+import { Category, SubCategory, Item, TransactionType, Expense, Income, Saving, Revolving, Transaction, CreditCard, InvestmentGoal, Loan, TransactionGroup, GroupCategory } from '../types';
 import { useToast } from '../components/ToastContext';
 import { PAYMENT_MODES } from '../constants';
 import { toLocalISOString } from '../services/dateUtils';
@@ -33,6 +33,7 @@ type TransactionFormState = Omit<Partial<Transaction>, 'value' | 'credit_card'> 
   funding_goal_id?: number;
   loan_id?: number;
   group_id?: number;
+  group_category?: GroupCategory;
 };
 
 const TransactionModal: React.FC<TransactionModalProps> = ({
@@ -57,6 +58,7 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
   const [creditCards, setCreditCards] = useState<CreditCard[]>([]);
   const [goals, setGoals] = useState<InvestmentGoal[]>([]);
   const [groups, setGroups] = useState<TransactionGroup[]>([]);
+  const [groupCategories, setGroupCategories] = useState<GroupCategory[]>([]);
 
   const [formData, setFormData] = useState<TransactionFormState>({
     value: 0,
@@ -74,7 +76,8 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
     include_in_budget: true,
     funding_goal_id: undefined,
     loan_id: undefined,
-    group_id: undefined
+    group_id: undefined,
+    group_category: undefined
   });
 
   const [loading, setLoading] = useState(false);
@@ -124,7 +127,8 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
       include_in_budget: true,
       funding_goal_id: undefined,
       loan_id: undefined,
-      group_id: defaultGroupId || undefined
+      group_id: defaultGroupId || undefined,
+      group_category: undefined
     });
     setSubCategories([]);
     setItems([]);
@@ -195,7 +199,8 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
             include_in_budget: transaction.include_in_budget ?? true,
             funding_goal_id: transaction.funding_goal?.id,
             loan_id: transaction.loan_id,
-            group_id: transaction.group?.id
+            group_id: transaction.group?.id,
+            group_category: transaction.group_category
           });
         } else {
           const initialDate = defaultDate ? (() => {
@@ -221,7 +226,8 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
             include_in_budget: true,
             funding_goal_id: undefined,
             loan_id: undefined,
-            group_id: defaultGroupId || undefined
+            group_id: defaultGroupId || undefined,
+            group_category: undefined
           });
         }
 
@@ -255,6 +261,16 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
 
     fetchDropdownData();
   }, [isOpen, transaction, defaultType, defaultDate, defaultGroupId, allowedTypes?.join(',')]);
+
+  useEffect(() => {
+    if (formData.group_id) {
+      api.getGroupCategories(formData.group_id)
+        .then(res => setGroupCategories(res.data || []))
+        .catch(err => console.error('Failed to fetch group categories:', err));
+    } else {
+      setGroupCategories([]);
+    }
+  }, [formData.group_id]);
 
   const handleCategoryChange = async (catId: number) => {
     const category = categories.find(c => c.id === catId);
@@ -320,7 +336,8 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
         include_in_budget: formData.funding_goal_id ? false : formData.include_in_budget,
         funding_goal: formData.funding_goal_id ? { id: formData.funding_goal_id } : undefined,
         loan: formData.loan_id ? { id: formData.loan_id } : undefined,
-        group: formData.group_id ? { id: formData.group_id } : null
+        group: formData.group_id ? { id: formData.group_id } : null,
+        group_category: formData.group_id && formData.group_category ? { id: formData.group_category.id } : null
       };
 
       let savedResponse: any;
@@ -772,6 +789,28 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
                     }
                   </select>
                 </div>
+
+                {formData.group_id && groupCategories.length > 0 && (
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium text-slate-600 dark:text-slate-300">Group Category (Optional)</label>
+                    <select
+                      className="w-full px-4 py-2.5 bg-slate-100 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 rounded-xl focus:ring-2 focus:ring-cyan-500/40 outline-none text-slate-900 dark:text-white"
+                      value={formData.group_category?.id || ''}
+                      onChange={(e) => {
+                        const catId = e.target.value ? Number(e.target.value) : undefined;
+                        const selectedCat = groupCategories.find(c => c.id === catId);
+                        setFormData(prev => ({ ...prev, group_category: selectedCat }));
+                      }}
+                    >
+                      <option value="">Uncategorized</option>
+                      {groupCategories.map(c => (
+                        <option key={c.id} value={c.id}>
+                          {c.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
 
                 <div className="space-y-1.5">
                   <label className="text-sm font-medium text-slate-600 dark:text-slate-300">Notes (Optional)</label>

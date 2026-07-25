@@ -25,6 +25,16 @@ export interface Category {
   color?: string;
 }
 
+export interface GroupCategory {
+  id: number;
+  group_id: number;
+  name: string;
+  description?: string;
+  icon?: string;
+  color?: string;
+  created_at?: string;
+}
+
 export interface SubCategory {
   id: number;
   categoryId: number;
@@ -77,6 +87,7 @@ export interface Transaction {
   loan_payment_type?: 'EMI' | 'PART_PAYMENT';
   loan_name?: string;
   group?: TransactionGroup;
+  group_category?: GroupCategory;
   user?: {
     id: number;
     username: string;
@@ -386,9 +397,12 @@ export interface GroupMember {
   id: number;
   group_id: number;
   group_name: string;
-  user_id: number;
-  username: string;
-  display_name?: string;
+  user?: {
+    id: number;
+    username: string;
+    display_name: string;
+    profile_picture?: string;
+  };
   role: 'ADMIN' | 'MEMBER';
   status: 'PENDING' | 'ACCEPTED' | 'DECLINED' | 'REMOVED' | 'LEFT';
   invited_at: string;

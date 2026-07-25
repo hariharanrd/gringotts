@@ -121,6 +121,11 @@ public class Transaction {
     @JsonProperty("group")
     TransactionGroup group;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "group_category_id")
+    @JsonProperty("group_category")
+    GroupCategory groupCategory;
+
     public Long getId() {
         return id;
     }
@@ -222,7 +227,6 @@ public class Transaction {
         details.put("id", user.getId());
         details.put("username", user.getUsername());
         details.put("display_name", user.getDisplayName() != null && !user.getDisplayName().isEmpty() ? user.getDisplayName() : user.getUsername());
-        details.put("profile_picture", user.getProfilePicture());
         return details;
     }
 
@@ -320,5 +324,13 @@ public class Transaction {
 
     public void setGroup(TransactionGroup group) {
         this.group = group;
+    }
+
+    public GroupCategory getGroupCategory() {
+        return groupCategory;
+    }
+
+    public void setGroupCategory(GroupCategory groupCategory) {
+        this.groupCategory = groupCategory;
     }
 }

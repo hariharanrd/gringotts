@@ -1,5 +1,5 @@
 import { BASE_URL, fetchWithCredentials, handleResponse } from './common';
-import { TransactionGroup, Transaction, GroupMember, GroupInvitation } from '../../types';
+import { TransactionGroup, Transaction, GroupMember, GroupInvitation, GroupCategory } from '../../types';
 
 export const groupsApi = {
   getTransactionGroups: async (): Promise<{ data: TransactionGroup[], total_count: number }> => {
@@ -102,6 +102,36 @@ export const groupsApi = {
   declineGroupInvitation: async (memberId: number): Promise<void> => {
     const response = await fetchWithCredentials(`${BASE_URL}/transaction-groups/invitations/${memberId}/decline`, {
       method: 'POST',
+    });
+    await handleResponse(response);
+  },
+
+  getGroupCategories: async (groupId: number): Promise<{ data: GroupCategory[], total_count: number }> => {
+    const response = await fetchWithCredentials(`${BASE_URL}/transaction-groups/${groupId}/categories`);
+    return handleResponse(response);
+  },
+
+  createGroupCategory: async (groupId: number, data: Partial<GroupCategory>): Promise<GroupCategory> => {
+    const response = await fetchWithCredentials(`${BASE_URL}/transaction-groups/${groupId}/categories`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    const result = await handleResponse(response);
+    return result.data;
+  },
+
+  updateGroupCategory: async (groupId: number, catId: number, data: Partial<GroupCategory>): Promise<GroupCategory> => {
+    const response = await fetchWithCredentials(`${BASE_URL}/transaction-groups/${groupId}/categories/${catId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+    const result = await handleResponse(response);
+    return result.data;
+  },
+
+  deleteGroupCategory: async (groupId: number, catId: number): Promise<void> => {
+    const response = await fetchWithCredentials(`${BASE_URL}/transaction-groups/${groupId}/categories/${catId}`, {
+      method: 'DELETE',
     });
     await handleResponse(response);
   }
