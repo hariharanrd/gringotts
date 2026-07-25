@@ -1,5 +1,28 @@
 # 🚀 Release Notes
 
+## [July 25, 2026] Group Member Analytics & Spending Breakdown, Group Budgets & Flexible Group Categorization
+
+This release introduces **Member-Wise Spending Analytics & Category Breakdown Charts** for shared groups, providing deep visibility into individual group member contributions, spending shares, and category distributions. It also introduces **Group Budgets** (Overall Spend vs. Recurring Monthly Reset) with category-level budget allocations, along with **Flexible Group Categorization** for Personal Groups and member privacy enforcement for Shared Groups.
+
+### 📊 Member Spending Analytics & Share
+- **Member Spending Distribution**: Interactive donut charts and color-coded member legend badges displaying each member's total expense share and percentage contribution.
+- **Member Category Breakdown**: Per-member horizontal bar charts (`layout="vertical"`) mapping category spending distributions for each group member with custom category color palettes.
+- **Member Transaction Filtering**: Instant member filter dropdown on the Transactions tab (`All Members`, `@username`), allowing quick filtering of group transactions by member.
+
+### 💰 Group Budgets (Overall Spend & Monthly Reset)
+- **Flexible Budget Types**: Create one-time budgets for trips/events (`OVERALL` total spend cap) or recurring budgets for household/family groups (`RECURRING_MONTHLY` reset spend budget).
+- **Category-Level Budget Allocations**: Allocate custom budget amounts across group categories with real-time percentage progress bars, budget health badges, and spend utilization tracking.
+- **Monthly Filter Dropdown**: Easily review historical monthly spend utilization for recurring monthly group budgets using integrated Month and Year selectors.
+- **Budget Management Modal**: Interactive modal dialog for creating, editing, and deleting group budgets and category allocations.
+
+### 🏷️ Flexible Group Categorization & CSI Breakdown Restoration
+- **Optional Group Categorization for Personal Groups**: Personal groups can toggle between custom Group-Specific Categories or standard personal CSI (Category, SubCategory, Item) categories.
+- **CSI Category Breakdown Restoration**: When group-specific categories are disabled for personal groups, group analytics dynamically restores the full Category, Subcategory, and Item breakdown charts.
+- **Smart UI & Modal Adaptations**:
+  - Hides the `CATEGORIES` subtab and `Group Category` transaction field when group-specific categories are disabled.
+  - Automatically enforces Group-Specific Categories for all Shared Groups to safeguard member privacy and prevent personal CSI category exposure.
+  - Enables full category management (Add, Edit, Delete Group Categories) for personal group owners under the Categories subtab.
+
 ## [July 18, 2026] Transaction Group Sharing & Collaboration
 
 This release introduces **Group Sharing and Collaboration**, allowing users to co-manage shared groups (like shared trip expenses, shared apartment accounts, etc.), invite members by recovery email or username, and co-log transactions, all while strictly preserving privacy, security, and access control.

@@ -78,6 +78,7 @@ const Groups: React.FC = () => {
   const [allowsRevolving, setAllowsRevolving] = useState(true);
   const [thumbnail, setThumbnail] = useState<string | null>(null);
   const [shared, setShared] = useState(false);
+  const [useGroupCategories, setUseGroupCategories] = useState(false);
 
   const fetchGroups = async () => {
     setLoading(true);
@@ -109,6 +110,7 @@ const Groups: React.FC = () => {
     setAllowsRevolving(true);
     setThumbnail(null);
     setShared(false);
+    setUseGroupCategories(false);
     setIsModalOpen(true);
   };
 
@@ -127,6 +129,7 @@ const Groups: React.FC = () => {
     setAllowsRevolving(group.allows_revolving ?? true);
     setThumbnail(group.thumbnail || null);
     setShared(group.shared || false);
+    setUseGroupCategories(group.use_group_categories || false);
     setIsModalOpen(true);
   };
 
@@ -171,8 +174,10 @@ const Groups: React.FC = () => {
         allows_saving: allowsSaving,
         allows_revolving: allowsRevolving,
         thumbnail: thumbnail || undefined,
-        shared
+        shared,
+        use_group_categories: useGroupCategories
       };
+
 
       if (editingGroup) {
         await api.updateTransactionGroup(editingGroup.id, payload);
@@ -504,6 +509,41 @@ const Groups: React.FC = () => {
                 />
               </div>
 
+              {/* Shared Group Toggle */}
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Group Collaboration</label>
+                <div className="flex items-center gap-3 p-3.5 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-200 dark:border-slate-800">
+                  <div className="relative flex items-center">
+                    <input
+                      type="checkbox"
+                      id="sharedGroup"
+                      checked={shared}
+                      onChange={(e) => setShared(e.target.checked)}
+                      disabled={!!editingGroup}
+                      className="w-5 h-5 rounded-lg border-slate-300 dark:border-slate-700 text-cyan-500 focus:ring-cyan-500/40 bg-slate-100 dark:bg-slate-800 transition-all cursor-pointer appearance-none checked:bg-cyan-500 border disabled:opacity-50 disabled:cursor-not-allowed"
+                    />
+                    {shared && (
+                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                        <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="4">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <label htmlFor="sharedGroup" className="text-xs font-bold text-slate-705 dark:text-slate-300 cursor-pointer select-none block">
+                      Shared Group
+                    </label>
+                    <span className="text-[10px] text-slate-500 dark:text-slate-400 block leading-tight">
+                      {editingGroup 
+                        ? "Shared status cannot be changed after creation." 
+                        : "Allow other users to join this group, see transactions, and tag their own transactions."}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Classification</label>
@@ -624,39 +664,42 @@ const Groups: React.FC = () => {
                 </div>
               </div>
 
-              {/* Shared Group Toggle */}
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Group Collaboration</label>
-                <div className="flex items-center gap-3 p-3.5 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-200 dark:border-slate-800">
-                  <div className="relative flex items-center">
-                    <input
-                      type="checkbox"
-                      id="sharedGroup"
-                      checked={shared}
-                      onChange={(e) => setShared(e.target.checked)}
-                      disabled={!!editingGroup}
-                      className="w-5 h-5 rounded-lg border-slate-300 dark:border-slate-700 text-cyan-500 focus:ring-cyan-500/40 bg-slate-100 dark:bg-slate-800 transition-all cursor-pointer appearance-none checked:bg-cyan-500 border disabled:opacity-50 disabled:cursor-not-allowed"
-                    />
-                    {shared && (
-                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                        <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="4">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                        </svg>
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <label htmlFor="sharedGroup" className="text-xs font-bold text-slate-705 dark:text-slate-300 cursor-pointer select-none block">
-                      Shared Group
-                    </label>
-                    <span className="text-[10px] text-slate-500 dark:text-slate-400 block leading-tight">
-                      {editingGroup 
-                        ? "Shared status cannot be changed after creation." 
-                        : "Allow other users to join this group, see transactions, and tag their own transactions."}
-                    </span>
+              {/* Categorization Mode (Personal Groups Only) */}
+              {!shared && (
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Categorization Mode</label>
+                  <div className="flex items-center justify-between p-3.5 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-200 dark:border-slate-800">
+                    <div>
+                      <label htmlFor="useGroupCategories" className="text-xs font-bold text-slate-700 dark:text-slate-300 cursor-pointer select-none block">
+                        Group-Specific Categories
+                      </label>
+                      <p className="text-[10px] text-slate-400 font-medium leading-relaxed">
+                        Enable custom group specific categories. If disabled, transactions use your configured CSI.
+                      </p>
+                    </div>
+                    <div className="relative flex items-center shrink-0 ml-3">
+                      <input
+                        type="checkbox"
+                        id="useGroupCategories"
+                        checked={useGroupCategories}
+                        onChange={(e) => setUseGroupCategories(e.target.checked)}
+                        className="w-5 h-5 rounded-lg border-slate-300 dark:border-slate-700 text-cyan-500 focus:ring-cyan-500/40 bg-slate-100 dark:bg-slate-800 transition-all cursor-pointer appearance-none checked:bg-cyan-500 border"
+                      />
+                      {useGroupCategories && (
+                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                          <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="4">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                          </svg>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
+
+
+
+
 
               {/* Thumbnail Image Upload */}
               <div className="space-y-2">
