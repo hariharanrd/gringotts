@@ -2,6 +2,7 @@ package com.luna.Gringotts.services;
 
 import com.luna.Gringotts.records.*;
 import com.luna.Gringotts.repository.ExpenseRepository;
+import com.luna.Gringotts.repository.GroupCategoryRepository;
 import com.luna.Gringotts.repository.IncomeRepository;
 import com.luna.Gringotts.repository.SavingRepository;
 import com.luna.Gringotts.repository.RevolvingRepository;
@@ -90,6 +91,9 @@ public class TransactionService {
     @Autowired
     private TransactionGroupRepository transactionGroupRepository;
 
+    @Autowired
+    private GroupCategoryRepository groupCategoryRepository;
+
     public Transaction getTransactionById(Long id) {
         return transactionRepository.findByIdAndUser(id, iamService.getCurrentUser()).orElse(null);
     }
@@ -147,6 +151,7 @@ public class TransactionService {
             e.setPaymentMode(Expense.ExpenseMode.OTHERS.name());
         }
         e.setUser(iamService.getCurrentUser());
+        resolveAndValidateGroupAndCategory(e);
         handleGoalFunding(e);
         expenseRepository.save(e);
         handleCreditCardDebit(e);
@@ -160,6 +165,7 @@ public class TransactionService {
         i.setIncludeInBudget(true);
         i.setFundingGoal(null); // Ensure income cannot be goal funded
         i.setUser(iamService.getCurrentUser());
+        resolveAndValidateGroupAndCategory(i);
         incomeRepository.save(i);
         handleCreditCardDebit(i);
     }
@@ -169,6 +175,7 @@ public class TransactionService {
             s.setIncludeInBudget(true);
         }
         s.setUser(iamService.getCurrentUser());
+        resolveAndValidateGroupAndCategory(s);
         handleGoalFunding(s);
         savingRepository.save(s);
         // Auto-credit linked investment goals.
@@ -182,6 +189,7 @@ public class TransactionService {
             r.setIncludeInBudget(true);
         }
         r.setUser(iamService.getCurrentUser());
+        resolveAndValidateGroupAndCategory(r);
         handleGoalFunding(r);
         revolvingRepository.save(r);
 
@@ -431,17 +439,30 @@ public class TransactionService {
         }
         target.setLoanPaymentType(source.getLoanPaymentType());
 
-        if (source.getGroup() != null && source.getGroup().getId() != null) {
-            TransactionGroup group = transactionGroupRepository.findById(source.getGroup().getId()).orElse(null);
-            if (group != null && group.getUser() != null && group.getUser().getId().equals(currentUser.getId())) {
-                target.setGroup(group);
+        target.setGroup(source.getGroup());
+        target.setGroupCategory(source.getGroupCategory());
+        resolveAndValidateGroupAndCategory(target);
+    }
+
+    private void resolveAndValidateGroupAndCategory(Transaction t) {
+        User currentUser = iamService.getCurrentUser();
+        if (t.getGroup() != null && t.getGroup().getId() != null) {
+            TransactionGroup group = transactionGroupRepository.findByIdAccessibleByUser(t.getGroup().getId(), currentUser)
+                    .orElseThrow(() -> new IllegalArgumentException("Group not found or access denied"));
+            t.setGroup(group);
+
+            if (t.getGroupCategory() != null && t.getGroupCategory().getId() != null) {
+                GroupCategory groupCat = groupCategoryRepository.findByIdAndGroup(t.getGroupCategory().getId(), group)
+                        .orElseThrow(() -> new IllegalArgumentException("Group Category not found in this group"));
+                t.setGroupCategory(groupCat);
             } else {
-                target.setGroup(null);
+                t.setGroupCategory(null);
             }
         } else {
-            target.setGroup(null);
+            t.setGroup(null);
+            t.setGroupCategory(null);
         }
-        validateTransactionGroupRelation(target);
+        validateTransactionGroupRelation(t);
     }
 
     private void validateTransactionGroupRelation(Transaction transaction) {

@@ -4,9 +4,11 @@ import com.luna.Gringotts.records.Saving;
 import com.luna.Gringotts.records.Transaction;
 import com.luna.Gringotts.records.TransactionGroup;
 import com.luna.Gringotts.records.User;
+import com.luna.Gringotts.records.GroupCategory;
 import com.luna.Gringotts.records.GroupMember;
 import com.luna.Gringotts.repository.TransactionGroupRepository;
 import com.luna.Gringotts.repository.TransactionRepository;
+import com.luna.Gringotts.repository.GroupCategoryRepository;
 import com.luna.Gringotts.repository.GroupMemberRepository;
 import com.luna.Gringotts.repository.UserRepository;
 import com.luna.Gringotts.repository.UserRecoveryInfoRepository;
@@ -44,6 +46,9 @@ public class TransactionGroupService {
 
     @Autowired
     private IAMService iamService;
+
+    @Autowired
+    private GroupCategoryRepository groupCategoryRepository;
 
     public List<TransactionGroup> getAllGroups() {
         User user = iamService.getCurrentUser();
@@ -152,10 +157,11 @@ public class TransactionGroupService {
         for (Transaction t : transactions) {
             double val = t.getValue();
 
-            if (t.getCategory() != null) {
-                String categoryName = t.getCategory().getName();
-                categoryBreakdown.put(categoryName, categoryBreakdown.getOrDefault(categoryName, 0.0) + val);
+            String categoryName = "Uncategorized";
+            if (t.getGroupCategory() != null) {
+                categoryName = t.getGroupCategory().getName();
             }
+            categoryBreakdown.put(categoryName, categoryBreakdown.getOrDefault(categoryName, 0.0) + val);
 
             if ("EXPENSE".equals(t.getType())) {
                 totalExpenses += val;
@@ -168,18 +174,6 @@ public class TransactionGroupService {
                 } else {
                     totalSavings += val;
                 }
-            }
-
-            if (t.getSubCategory() != null) {
-                hasSubcategoryData = true;
-                String subCategoryName = t.getSubCategory().getName();
-                subcategoryBreakdown.put(subCategoryName, subcategoryBreakdown.getOrDefault(subCategoryName, 0.0) + val);
-            }
-
-            if (t.getItem() != null) {
-                hasItemData = true;
-                String itemName = t.getItem().getName();
-                itemBreakdown.put(itemName, itemBreakdown.getOrDefault(itemName, 0.0) + val);
             }
         }
 
@@ -194,6 +188,58 @@ public class TransactionGroupService {
         stats.put("has_item_data", hasItemData);
 
         return stats;
+    }
+
+    public List<GroupCategory> getGroupCategories(Long groupId) {
+        User user = iamService.getCurrentUser();
+        TransactionGroup group = getGroupForUser(groupId, user);
+        return groupCategoryRepository.findByGroupOrderByNameAsc(group);
+    }
+
+    public GroupCategory createGroupCategory(Long groupId, GroupCategory category) {
+        User user = iamService.getCurrentUser();
+        TransactionGroup group = transactionGroupRepository.findByIdAndUser(groupId, user)
+                .orElseThrow(() -> new IllegalArgumentException("Group not found or access denied"));
+
+        if (groupCategoryRepository.findByNameIgnoreCaseAndGroup(category.getName(), group).isPresent()) {
+            throw new IllegalArgumentException("A category with this name already exists in this group");
+        }
+
+        category.setGroup(group);
+        category.setUser(user);
+        return groupCategoryRepository.save(category);
+    }
+
+    public GroupCategory updateGroupCategory(Long groupId, Long catId, GroupCategory incoming) {
+        User user = iamService.getCurrentUser();
+        TransactionGroup group = transactionGroupRepository.findByIdAndUser(groupId, user)
+                .orElseThrow(() -> new IllegalArgumentException("Group not found or access denied"));
+
+        GroupCategory existing = groupCategoryRepository.findByIdAndGroup(catId, group)
+                .orElseThrow(() -> new IllegalArgumentException("Category not found in this group"));
+
+        Optional<GroupCategory> duplicate = groupCategoryRepository.findByNameIgnoreCaseAndGroup(incoming.getName(), group);
+        if (duplicate.isPresent() && !duplicate.get().getId().equals(catId)) {
+            throw new IllegalArgumentException("A category with this name already exists in this group");
+        }
+
+        existing.setName(incoming.getName());
+        existing.setDescription(incoming.getDescription());
+        existing.setIcon(incoming.getIcon());
+        existing.setColor(incoming.getColor());
+        return groupCategoryRepository.save(existing);
+    }
+
+    @Transactional
+    public void deleteGroupCategory(Long groupId, Long catId) {
+        User user = iamService.getCurrentUser();
+        TransactionGroup group = transactionGroupRepository.findByIdAndUser(groupId, user)
+                .orElseThrow(() -> new IllegalArgumentException("Group not found or access denied"));
+
+        GroupCategory category = groupCategoryRepository.findByIdAndGroup(catId, group)
+                .orElseThrow(() -> new IllegalArgumentException("Category not found in this group"));
+
+        groupCategoryRepository.delete(category);
     }
 
     public String getGroupThumbnail(Long groupId) {

@@ -2,6 +2,7 @@ package com.luna.Gringotts.controller;
 
 import com.luna.Gringotts.records.Transaction;
 import com.luna.Gringotts.records.TransactionGroup;
+import com.luna.Gringotts.records.GroupCategory;
 import com.luna.Gringotts.services.TransactionGroupService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -140,5 +141,33 @@ public class TransactionGroupController {
     public ResponseEntity<Map<String, Object>> leaveGroup(@PathVariable Long id) {
         transactionGroupService.leaveGroup(id);
         return ResponseEntity.ok(Map.of("status", "success", "message", "Left group successfully"));
+    }
+
+    @GetMapping("/transaction-groups/{id}/categories")
+    public ResponseEntity<Map<String, Object>> getGroupCategories(@PathVariable Long id) {
+        List<GroupCategory> categories = transactionGroupService.getGroupCategories(id);
+        Map<String, Object> response = new HashMap<>();
+        response.put("data", categories);
+        response.put("total_count", categories.size());
+        response.put("has_more", false);
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/transaction-groups/{id}/categories")
+    public ResponseEntity<Map<String, Object>> createGroupCategory(@PathVariable Long id, @RequestBody GroupCategory category) {
+        GroupCategory created = transactionGroupService.createGroupCategory(id, category);
+        return ResponseEntity.ok(Map.of("data", created, "status", "success"));
+    }
+
+    @PutMapping("/transaction-groups/{id}/categories/{catId}")
+    public ResponseEntity<Map<String, Object>> updateGroupCategory(@PathVariable Long id, @PathVariable Long catId, @RequestBody GroupCategory category) {
+        GroupCategory updated = transactionGroupService.updateGroupCategory(id, catId, category);
+        return ResponseEntity.ok(Map.of("data", updated, "status", "success"));
+    }
+
+    @DeleteMapping("/transaction-groups/{id}/categories/{catId}")
+    public ResponseEntity<Map<String, Object>> deleteGroupCategory(@PathVariable Long id, @PathVariable Long catId) {
+        transactionGroupService.deleteGroupCategory(id, catId);
+        return ResponseEntity.ok(Map.of("status", "success", "message", "Category deleted successfully"));
     }
 }

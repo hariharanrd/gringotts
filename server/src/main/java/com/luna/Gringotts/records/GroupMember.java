@@ -131,19 +131,17 @@ public class GroupMember {
         return group != null ? group.getName() : null;
     }
 
-    @JsonProperty("username")
-    public String getUsername() {
-        return user != null ? user.getUsername() : null;
-    }
-
-    @JsonProperty("display_name")
-    public String getDisplayName() {
-        return user != null ? (user.getDisplayName() != null && !user.getDisplayName().isEmpty() ? user.getDisplayName() : user.getUsername()) : null;
-    }
-
-    @JsonProperty("user_id")
-    public Long getUserId() {
-        return user != null ? user.getId() : null;
+    @JsonProperty("user")
+    public java.util.Map<String, Object> getUserDetails() {
+        if (user == null) {
+            return null;
+        }
+        java.util.Map<String, Object> details = new java.util.HashMap<>();
+        details.put("id", user.getId());
+        details.put("username", user.getUsername());
+        details.put("display_name", user.getDisplayName() != null && !user.getDisplayName().isEmpty() ? user.getDisplayName() : user.getUsername());
+        details.put("profile_picture", user.getProfilePicture());
+        return details;
     }
 
     @JsonProperty("invited_by_username")
