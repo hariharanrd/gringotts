@@ -39,10 +39,10 @@ public class GeminiService {
     @Value("${ai.provider:gemini}")
     private String aiProvider;
 
-    @Value("${ai.local.url:http://localhost:11434/api/generate}")
+    @Value("${ai.local.url:}")
     private String localUrl;
 
-    @Value("${ai.local.model:qwen2.5:7b}")
+    @Value("${ai.local.model:}")
     private String localModel;
 
     @Autowired
