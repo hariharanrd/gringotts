@@ -61,14 +61,31 @@ export const parseTransactionWithGoblin = async (
     return await api.parseTransactionWithGoblin(userMessage, chatHistory);
   } catch (error: any) {
     console.error("Goblin AI Parse Error:", error);
+    const serverPayload = error?.serverPayload;
+    if (serverPayload && (serverPayload.goblinResponse || serverPayload.goblin_response)) {
+      const resp = serverPayload.goblinResponse || serverPayload.goblin_response;
+      return {
+        goblinResponse: resp,
+        actionPayload: serverPayload.actionPayload || serverPayload.action_payload || { action_type: 'CONVERSATIONAL', goblin_response: resp }
+      };
+    }
+
     const errString = String(error?.message || error || '');
-    if (errString.includes('429') || errString.includes('RESOURCE_EXHAUSTED') || errString.includes('quota')) {
+    if (error?.message && !errString.startsWith('Error 429') && !errString.includes('RESOURCE_EXHAUSTED') && !errString.includes('quota')) {
+      return {
+        goblinResponse: error.message,
+        actionPayload: { action_type: 'CONVERSATIONAL', goblin_response: error.message }
+      };
+    }
+
+    if (errString.includes('RESOURCE_EXHAUSTED') || errString.includes('quota')) {
       const errResp = "*grumbles loudly* Bah! Gemini API Quota is exhausted (HTTP 429)! Check server configuration.";
       return {
         goblinResponse: errResp,
         actionPayload: { action_type: 'CONVERSATIONAL', goblin_response: errResp }
       };
     }
+
     const fallbackMsg = "*adjusts spectacles in confusion* Blasted quill slipped! I couldn't process that entry properly, wizard. Try again?";
     return {
       goblinResponse: fallbackMsg,

@@ -34,13 +34,19 @@ export async function handleResponse(response: Response) {
   }
   if (!response.ok) {
     let errorMessage = `Error ${response.status}: ${response.statusText}`;
+    let serverPayload: any = null;
     try {
       const errorData = await response.json();
-      errorMessage = errorData.message || (errorData.details ? `${errorData.message || 'Error'}: ${errorData.details}` : null) || errorMessage;
+      serverPayload = errorData;
+      errorMessage = errorData.goblinResponse || errorData.goblin_response || errorData.message || (errorData.details ? `${errorData.message || 'Error'}: ${errorData.details}` : null) || errorMessage;
     } catch (e) {
       // Body not JSON or empty
     }
-    throw new Error(errorMessage);
+    const err: any = new Error(errorMessage);
+    if (serverPayload) {
+      err.serverPayload = serverPayload;
+    }
+    throw err;
   }
   
   try {
