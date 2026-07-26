@@ -21,7 +21,9 @@ import { Login } from './pages/Login';
 import { Register } from './pages/Register';
 import { ForgotPassword } from './pages/ForgotPassword';
 import { ResetPassword } from './pages/ResetPassword';
-import { Transaction, TransactionType, GroupInvitation } from './types';
+import AIChatPage from './pages/AIChatPage';
+import { Transaction, TransactionType, GroupInvitation, ParsedTransaction } from './types';
+
 import { api } from './services/api';
 import { ToastProvider, useToast } from './components/ToastContext';
 import { ThemeProvider } from './components/ThemeContext';
@@ -88,6 +90,7 @@ const GringottsApp: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const [pendingInvitations, setPendingInvitations] = useState<GroupInvitation[]>([]);
+  const [goblinMsgId, setGoblinMsgId] = useState<string | undefined>(undefined);
 
   const fetchPendingInvitations = async () => {
     try {
@@ -167,6 +170,7 @@ const GringottsApp: React.FC = () => {
     setSelectedTransaction(transaction);
     setModalDefaultType(undefined);
     setModalDefaultDate(undefined);
+    setGoblinMsgId(undefined);
     setIsModalOpen(true);
   }
 
@@ -174,10 +178,47 @@ const GringottsApp: React.FC = () => {
     setSelectedTransaction(null);
     setModalDefaultType(type);
     setModalDefaultDate(date);
+    setGoblinMsgId(undefined);
     setIsModalOpen(true);
   }
 
-  const handleTransactionSuccess = (_savedType?: TransactionType, _savedId?: number) => {
+  const handleGoblinOpenFullModal = (parsedTx: ParsedTransaction, msgId?: string) => {
+    setGoblinMsgId(msgId);
+    const mockTx: any = {
+      id: (parsedTx as any).id,
+      type: parsedTx.transaction_type,
+      value: parsedTx.value,
+      description: parsedTx.description,
+      transaction_time: parsedTx.transaction_date ? `${parsedTx.transaction_date}T${new Date().toTimeString().split(' ')[0]}` : new Date().toISOString(),
+      payment_mode: parsedTx.payment_mode || 'UPI',
+      notes: parsedTx.notes,
+      category: parsedTx.category_id ? { id: parsedTx.category_id, name: parsedTx.category_name || '' } : undefined,
+      subcategory: parsedTx.subcategory_id ? { id: parsedTx.subcategory_id, name: parsedTx.subcategory_name || '' } : undefined,
+      item: parsedTx.item_id ? { id: parsedTx.item_id, name: parsedTx.item_name || '' } : undefined,
+      credit_card: parsedTx.credit_card_id ? { id: parsedTx.credit_card_id, nickname: parsedTx.credit_card_nickname || '' } : undefined,
+    };
+    setSelectedTransaction(mockTx);
+    setModalDefaultType(parsedTx.transaction_type);
+    setIsModalOpen(true);
+  };
+
+  const handleTransactionSuccess = (_savedType?: TransactionType, savedId?: number) => {
+    if (goblinMsgId) {
+      try {
+        const stored = sessionStorage.getItem('gringotts_goblin_chat_messages');
+        if (stored) {
+          const messages = JSON.parse(stored);
+          const updated = messages.map((m: any) =>
+            m.id === goblinMsgId
+              ? { ...m, transactionSaved: true, savedTransactionId: savedId }
+              : m
+          );
+          sessionStorage.setItem('gringotts_goblin_chat_messages', JSON.stringify(updated));
+          window.dispatchEvent(new Event('gringotts-goblin-chat-updated'));
+        }
+      } catch (e) {}
+      setGoblinMsgId(undefined);
+    }
     setRefreshKey(prev => prev + 1);
   };
 
@@ -190,6 +231,7 @@ const GringottsApp: React.FC = () => {
     setSelectedTransaction(null);
     setModalDefaultType(undefined);
     setModalDefaultDate(undefined);
+    setGoblinMsgId(undefined);
   };
 
   return (
@@ -209,6 +251,8 @@ const GringottsApp: React.FC = () => {
               hasRecoveryEmail={hasRecoveryEmail}
               onLogout={handleLogout}
               onImportSuccess={handleImportSuccess}
+              onTransactionSuccess={handleTransactionSuccess}
+              onOpenFullModal={handleGoblinOpenFullModal}
               pendingInvitations={pendingInvitations}
               onAcceptInvitation={handleAcceptInvitation}
               onDeclineInvitation={handleDeclineInvitation}
@@ -216,7 +260,9 @@ const GringottsApp: React.FC = () => {
               <Routes>
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/transactions" element={<Transactions onEdit={handleEditTransaction} onAdd={handleAddTransaction} refreshTrigger={refreshKey} />} />
+                <Route path="/ai-chat" element={<AIChatPage userName={displayName || username} profilePicture={profilePicture} onOpenFullModal={handleGoblinOpenFullModal} />} />
                 <Route path="/transaction/:id" element={<TransactionDetails />} />
+
                 <Route path="/schedules" element={<ScheduledTransactions />} />
                 <Route path="/schedules/:id" element={<ScheduleDetails />} />
                 <Route path="/budget" element={<Budget />} />

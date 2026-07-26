@@ -8,7 +8,7 @@ export const categoriesApi = {
     return handleResponseAndGetData(response);
   },
 
-  getCategoriesPaginated: async (page: number = 0, type?: string, search?: string): Promise<{data: Category[], has_more: boolean}> => {
+  getCategoriesPaginated: async (page: number = 1, type?: string, search?: string): Promise<{data: Category[], has_more: boolean}> => {
     let url = `${BASE_URL}/categories?page=${page}&size=50`;
     if (type) url += `&type=${type}`;
     if (search) url += `&search=${encodeURIComponent(search)}`;
@@ -22,7 +22,7 @@ export const categoriesApi = {
     return data.data;
   },
 
-  getAllSubCategoriesPaginated: async (page: number = 0, type?: string, search?: string): Promise<{data: SubCategory[], has_more: boolean}> => {
+  getAllSubCategoriesPaginated: async (page: number = 1, type?: string, search?: string): Promise<{data: SubCategory[], has_more: boolean}> => {
     let url = `${BASE_URL}/subcategories/all?page=${page}&size=50`;
     if (type) url += `&type=${type}`;
     if (search) url += `&search=${encodeURIComponent(search)}`;
@@ -36,7 +36,7 @@ export const categoriesApi = {
     return data.data;
   },
 
-  getAllItemsPaginated: async (page: number = 0, type?: string, search?: string): Promise<{data: Item[], has_more: boolean}> => {
+  getAllItemsPaginated: async (page: number = 1, type?: string, search?: string): Promise<{data: Item[], has_more: boolean}> => {
     let url = `${BASE_URL}/items/all?page=${page}&size=50`;
     if (type) url += `&type=${type}`;
     if (search) url += `&search=${encodeURIComponent(search)}`;

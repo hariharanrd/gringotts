@@ -1,5 +1,6 @@
 package com.luna.Gringotts.config;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.luna.Gringotts.repository.UserRepository;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -46,6 +47,11 @@ public class ApplicationConfig {
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
+    }
+
+    @Bean
+    public ObjectMapper objectMapper() {
+        return new ObjectMapper();
     }
 
     @Bean(name = "importExecutor")

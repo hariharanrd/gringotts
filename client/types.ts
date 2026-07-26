@@ -484,4 +484,77 @@ export interface GroupStatistics {
   member_breakdown?: MemberBreakdownItem[];
 }
 
+export interface ParsedTransaction {
+  transaction_type: TransactionType;
+  value: number;
+  description: string;
+  transaction_date: string;
+  payment_mode?: string;
+  category_id?: number;
+  category_name?: string;
+  subcategory_id?: number;
+  subcategory_name?: string;
+  item_id?: number;
+  item_name?: string;
+  credit_card_id?: number;
+  credit_card_nickname?: string;
+  notes?: string;
+  confidence?: 'HIGH' | 'MEDIUM' | 'LOW';
+  reasoning?: string;
+}
+
+export type GoblinActionType = 'CREATE' | 'READ' | 'UPDATE' | 'DELETE' | 'CONVERSATIONAL';
+
+export interface ApiSearchCriteria {
+  field: string;
+  condition: string;
+  value: string;
+}
+
+export interface TransactionSearchFilter {
+  target_api?: 'EXPENSE' | 'INCOME' | 'SAVING' | 'REVOLVING' | 'TRANSACTION';
+  page?: number;
+  size?: number;
+  direction?: 'ASC' | 'DESC';
+  criteria?: ApiSearchCriteria[];
+  query?: string;
+  type?: TransactionType;
+  category_id?: number;
+  startDate?: string;
+  endDate?: string;
+  minAmount?: number;
+  maxAmount?: number;
+}
+
+export interface GoblinActionPayload {
+  action_type: GoblinActionType;
+  goblin_response: string;
+  parsed_transaction?: ParsedTransaction;
+  target_transaction_id?: number;
+  target_transaction?: Transaction;
+  search_filter?: TransactionSearchFilter;
+  update_fields?: Partial<ParsedTransaction>;
+}
+
+export interface GoblinParseResult {
+  goblinResponse: string;
+  actionPayload: GoblinActionPayload;
+}
+
+export interface ChatMessage {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  parsedTransaction?: ParsedTransaction;
+  goblinAction?: GoblinActionPayload;
+  queryResults?: Transaction[];
+  transactionSaved?: boolean;
+  transactionUpdated?: boolean;
+  transactionDeleted?: boolean;
+  savedTransactionId?: number;
+  timestamp: string;
+}
+
+
+
 

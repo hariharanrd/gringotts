@@ -72,4 +72,5 @@ public class CreditCard {
     public void setUser(User user) { this.user = user; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+
 }

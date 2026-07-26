@@ -26,10 +26,10 @@ public class CSIController {
     private CSIService CSIService;
 
     @GetMapping("/categories")
-    public ResponseEntity<Map<String, Object>> getCategories(@RequestParam(defaultValue = "0") int page,
+    public ResponseEntity<Map<String, Object>> getCategories(@RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "50") int size, @RequestParam(required = false) String type,
             @RequestParam(required = false) String search) {
-        Pageable pageable = PageRequest.of(page, size);
+        Pageable pageable = PageRequest.of(Math.max(0, page - 1), size);
         Page<Category> categories;
         if (search != null && !search.isEmpty()) {
             if (type != null && !type.isEmpty()) {
@@ -45,7 +45,7 @@ public class CSIController {
         HashMap<String, Object> response = new HashMap<>();
         response.put("data", categories.getContent());
         response.put("total_count", categories.getTotalElements());
-        response.put("page", pageable.getPageNumber());
+        response.put("page", pageable.getPageNumber() + 1);
         response.put("has_more", categories.hasNext());
         return ResponseEntity.ok(response);
     }
@@ -61,7 +61,7 @@ public class CSIController {
         HashMap<String, Object> response = new HashMap<>();
         response.put("data", result.getContent());
         response.put("total_count", result.getTotalElements());
-        response.put("page", pageable.getPageNumber());
+        response.put("page", pageable.getPageNumber() + 1);
         response.put("has_more", result.hasNext());
         return ResponseEntity.ok(response);
     }
@@ -79,16 +79,16 @@ public class CSIController {
         HashMap<String, Object> response = new HashMap<>();
         response.put("data", result.getContent());
         response.put("total_count", result.getTotalElements());
-        response.put("page", pageable.getPageNumber());
+        response.put("page", pageable.getPageNumber() + 1);
         response.put("has_more", result.hasNext());
         return ResponseEntity.ok(response);
     }
 
     @GetMapping("/subcategories/all")
-    public ResponseEntity<Map<String, Object>> getAllUserSubCategories(@RequestParam(defaultValue = "0") int page,
+    public ResponseEntity<Map<String, Object>> getAllUserSubCategories(@RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "50") int size, @RequestParam(required = false) String type,
             @RequestParam(required = false) String search) {
-        Pageable pageable = PageRequest.of(page, size);
+        Pageable pageable = PageRequest.of(Math.max(0, page - 1), size);
         Page<SubCategory> result;
         if (search != null && !search.isEmpty()) {
             if (type != null && !type.isEmpty()) {
@@ -104,16 +104,16 @@ public class CSIController {
         HashMap<String, Object> response = new HashMap<>();
         response.put("data", result.getContent());
         response.put("total_count", result.getTotalElements());
-        response.put("page", pageable.getPageNumber());
+        response.put("page", pageable.getPageNumber() + 1);
         response.put("has_more", result.hasNext());
         return ResponseEntity.ok(response);
     }
 
     @GetMapping("/items/all")
-    public ResponseEntity<Map<String, Object>> getAllUserItems(@RequestParam(defaultValue = "0") int page,
+    public ResponseEntity<Map<String, Object>> getAllUserItems(@RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "50") int size, @RequestParam(required = false) String type,
             @RequestParam(required = false) String search) {
-        Pageable pageable = PageRequest.of(page, size);
+        Pageable pageable = PageRequest.of(Math.max(0, page - 1), size);
         Page<Item> result;
         if (search != null && !search.isEmpty()) {
             if (type != null && !type.isEmpty()) {
@@ -129,7 +129,7 @@ public class CSIController {
         HashMap<String, Object> response = new HashMap<>();
         response.put("data", result.getContent());
         response.put("total_count", result.getTotalElements());
-        response.put("page", pageable.getPageNumber());
+        response.put("page", pageable.getPageNumber() + 1);
         response.put("has_more", result.hasNext());
         return ResponseEntity.ok(response);
     }

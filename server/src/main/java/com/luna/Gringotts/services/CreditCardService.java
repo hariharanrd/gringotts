@@ -39,6 +39,11 @@ public class CreditCardService {
         return cards.stream().map(this::toDto).collect(Collectors.toList());
     }
 
+    public List<CreditCard> getAllCardsRaw() {
+        User user = iamService.getCurrentUser();
+        return creditCardRepository.findAllByUserOrderByCreatedAtDesc(user);
+    }
+
     public Map<String, Object> getCardById(Long id) {
         CreditCard card = requireCard(id);
         Map<String, Object> dto = toDto(card);

@@ -1,5 +1,25 @@
 # 🚀 Release Notes
 
+## [July 26, 2026] Goblin AI Vault Keeper, Full Natural Language CRUD & AI Security Hardening
+
+This release introduces **Goblin AI**, a sharp-witted Gringotts Bank Teller assistant for natural language financial management. Users can log transactions, search ledger records with criteria, update entry values/descriptions, or delete transactions in character—all with interactive confirmation cards and strict security protections.
+
+### 🧙 Goblin AI Assistant & Conversational Ledger Management
+- **Full CRUD Natural Language Support**: Expressive financial parsing for creating transactions (*"Spent 350 on Coffee via UPI"*), reading/searching (*"Show my Groceries expenses"*, *"List all my Dividends"*), updating (*"Update last Uber ride to 420"*), and deleting (*"Delete transaction #42"*).
+- **Dedicated AI Chat & Floating Assistant Drawer**: Access Goblin AI via the full-page `/ai-chat` view or the bottom-right floating AI drawer from anywhere in the application.
+- **Interactive Action Cards**: Interactive UI cards for transaction previews, confirmation steps, and search query results with direct action triggers.
+- **Standalone SubCategory & Item Resolution**: Deep catalogue lookup enabling Goblin to resolve queries referencing only a subcategory (*"Dividend"*) or item (*"Milk"*) without needing the parent category explicitly specified.
+- **Humorous Vault Teller Personality**: Out-of-scope fallback messaging and animated typing effect on load and ledger clear for an engaging, immersive experience.
+
+### 🔒 AI Security Hardening & Rate Limiting
+- **Per-User Rate Limiter**: Enforces strict sliding-window rate limits of **2 requests per minute**, **20 requests per hour**, and **50 requests per day** per user, returning HTTP 429 status with Goblin's vault limit warning.
+- **Prompt Injection & Input Sanitization**: Comprehensive input escaping and sanitization for control characters and special prompt injection sequences in user prompts and chat history.
+- **Strict Chat History Window**: Restricts sent chat history to the **last 5 messages**, preventing payload inflation and context-stuffing exploits.
+- **Data Privacy Protection**: Full omission of user transaction history snapshots from external LLM prompts; LLM yields structured search filters that are safely evaluated locally against database records.
+- **Search Field Whitelisting**: Strict JPA field name whitelisting (`category.name`, `subCategory.name`, `item.name`, `description`, `value`, `transactionTime`, `paymentMode`) preventing arbitrary database field access.
+
+---
+
 ## [July 25, 2026] Group Member Analytics & Spending Breakdown, Group Budgets & Flexible Group Categorization
 
 This release introduces **Member-Wise Spending Analytics & Category Breakdown Charts** for shared groups, providing deep visibility into individual group member contributions, spending shares, and category distributions. It also introduces **Group Budgets** (Overall Spend vs. Recurring Monthly Reset) with category-level budget allocations, along with **Flexible Group Categorization** for Personal Groups and member privacy enforcement for Shared Groups.
