@@ -10,6 +10,7 @@ import { personalizationApi } from './api/personalization';
 import { sessionsApi } from './api/sessions';
 import { loansApi } from './api/loans';
 import { groupsApi } from './api/groups';
+import { aiApi } from './api/ai';
 
 export const api = {
   ...authApi,
@@ -23,5 +24,6 @@ export const api = {
   ...personalizationApi,
   ...sessionsApi,
   ...loansApi,
-  ...groupsApi
+  ...groupsApi,
+  ...aiApi
 };

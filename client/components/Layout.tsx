@@ -20,12 +20,15 @@ import {
   Table2,
   FolderClosed,
   AlertTriangle,
-  ArrowRight
+  ArrowRight,
+  Sparkles
 } from 'lucide-react';
 
 import { useTheme } from './ThemeContext';
 
-import { GroupInvitation } from '../types';
+import { GoblinAvatar } from './GoblinAvatar';
+import { AIChatPanel } from './AIChatPanel';
+import { GroupInvitation, ParsedTransaction } from '../types';
 
 interface LayoutProps {
   userName: string;
@@ -35,12 +38,15 @@ interface LayoutProps {
   children: React.ReactNode;
   onLogout: () => void;
   onImportSuccess?: () => void;
+  onTransactionSuccess?: () => void;
+  onOpenFullModal?: (tx: ParsedTransaction, msgId?: string) => void;
   pendingInvitations?: GroupInvitation[];
   onAcceptInvitation?: (id: number) => void;
   onDeclineInvitation?: (id: number) => void;
 }
 
 const navItems = [
+  { id: 'ai-chat', label: 'Goblin AI', icon: Sparkles, path: '/ai-chat' },
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },
   { id: 'transactions', label: 'Transactions', icon: ReceiptText, path: '/transactions' },
   { id: 'groups', label: 'Groups', icon: FolderClosed, path: '/groups' },
@@ -60,17 +66,29 @@ const Layout: React.FC<LayoutProps> = ({
   children,
   onLogout,
   onImportSuccess,
+  onTransactionSuccess,
+  onOpenFullModal,
   pendingInvitations = [],
   onAcceptInvitation,
   onDeclineInvitation
 }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isPinned, setIsPinned] = useState(true);
+  const [isGoblinChatOpen, setIsGoblinChatOpen] = useState(false);
   const [isWarningDismissed, setIsWarningDismissed] = useState(() => sessionStorage.getItem('dismissedRecoveryEmailWarning') === 'true');
+
   const location = useLocation();
   const { theme, toggleTheme, isDark } = useTheme();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const isAIChatPage = location.pathname === '/ai-chat';
+
+  useEffect(() => {
+    if (isAIChatPage) {
+      setIsGoblinChatOpen(false);
+    }
+  }, [isAIChatPage]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -94,6 +112,7 @@ const Layout: React.FC<LayoutProps> = ({
     if (root === 'transaction') return 'Transaction Details';
     if (root === 'schedules' && parts.length > 1) return 'Schedule Details';
     if (root === 'credit-cards' && parts.length > 2 && parts[2] === 'history') return 'Billing History';
+    if (root === 'ai-chat') return 'Goblin AI';
 
     return root.split('-')
       .map(word => word.charAt(0).toUpperCase() + word.slice(1))
@@ -372,9 +391,36 @@ const Layout: React.FC<LayoutProps> = ({
         <div className="p-4 md:p-8">
           {children}
         </div>
+
+        {/* Floating Goblin AI Drawer Trigger Button & Slide-in Panel */}
+        {!isAIChatPage && (
+          <>
+            <button
+              onClick={() => setIsGoblinChatOpen(!isGoblinChatOpen)}
+              className="fixed bottom-6 right-6 z-40 p-3 rounded-2xl bg-gradient-to-r from-slate-900 via-emerald-950 to-slate-900 border border-emerald-500/40 text-emerald-300 shadow-2xl shadow-emerald-950/80 hover:scale-110 active:scale-95 transition-all duration-300 flex items-center gap-2.5 group goblin-glow goblin-trigger-btn"
+              title="Ask Goblin AI Vault Keeper"
+            >
+              <GoblinAvatar size="sm" />
+              <span className="text-xs font-extrabold tracking-wide hidden sm:inline text-emerald-300 group-hover:text-white">
+                Goblin AI
+              </span>
+            </button>
+
+            <AIChatPanel
+              isOpen={isGoblinChatOpen}
+              onClose={() => setIsGoblinChatOpen(false)}
+              onTransactionSuccess={onTransactionSuccess}
+              userName={userName || ''}
+              profilePicture={profilePicture}
+              onOpenFullModal={onOpenFullModal}
+            />
+          </>
+        )}
       </main>
     </div>
   );
 };
 
+
 export default Layout;
+

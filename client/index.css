@@ -446,3 +446,39 @@ html body {
   -ms-overflow-style: none;  /* IE and Edge */
   scrollbar-width: none;  /* Firefox */
 }
+
+/* ── Goblin AI Effects ──────────────────────────────────────────────────── */
+@keyframes goblinGlowPulse {
+  0%, 100% {
+    box-shadow: 0 0 10px rgba(16, 185, 129, 0.4), 0 0 20px rgba(245, 158, 11, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 18px rgba(16, 185, 129, 0.7), 0 0 30px rgba(245, 158, 11, 0.4);
+  }
+}
+
+@keyframes coinShimmer {
+  0% {
+    transform: rotate(0deg) scale(1);
+  }
+  50% {
+    transform: rotate(15deg) scale(1.15);
+  }
+  100% {
+    transform: rotate(0deg) scale(1);
+  }
+}
+
+.goblin-glow {
+  animation: goblinGlowPulse 3s infinite ease-in-out;
+}
+
+.goblin-trigger-btn:hover .goblin-coin {
+  animation: coinShimmer 0.6s ease-in-out;
+}
+
+.goblin-badge {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(245, 158, 11, 0.15));
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+

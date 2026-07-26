@@ -300,7 +300,7 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
     }
   };
 
-  const isEditing = !!transaction;
+  const isEditing = !!(transaction && transaction.id);
 
   const handleSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();

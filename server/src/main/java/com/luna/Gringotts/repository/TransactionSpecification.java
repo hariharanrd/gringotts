@@ -17,6 +17,16 @@ import java.sql.Timestamp;
 
 public class TransactionSpecification {
 
+    private static final Set<String> ALLOWED_SEARCH_FIELDS = Set.of(
+            "description",
+            "category.name",
+            "subcategory.name",
+            "item.name",
+            "value",
+            "transactiontime",
+            "paymentmode"
+    );
+
     public static <T extends Transaction> Specification<T> getSpecification(List<SearchCriteria> criteriaList) {
         return (root, query, builder) -> {
             if (criteriaList == null || criteriaList.isEmpty()) {
@@ -26,6 +36,9 @@ public class TransactionSpecification {
             List<Predicate> predicates = new ArrayList<>();
             for (SearchCriteria criteria : criteriaList) {
                 try {
+                    if (criteria.getField() == null || !ALLOWED_SEARCH_FIELDS.contains(criteria.getField().toLowerCase())) {
+                        continue;
+                    }
                     Path<?> path = getPath(root, criteria.getField());
                     String condition = criteria.getCondition().toLowerCase();
                     String value = criteria.getValue();
@@ -101,24 +114,22 @@ public class TransactionSpecification {
     }
 
     private static String resolveFieldName(Class<?> clazz, String fieldName) {
-        // First try finding a field with a matching @JsonProperty annotation
         Class<?> current = clazz;
         while (current != null && current != Object.class) {
             for (Field field : current.getDeclaredFields()) {
                 if (field.isAnnotationPresent(JsonProperty.class)) {
                     String jsonValue = field.getAnnotation(JsonProperty.class).value();
-                    if (fieldName.equals(jsonValue)) {
+                    if (fieldName.equalsIgnoreCase(jsonValue)) {
                         return field.getName();
                     }
                 }
-                // Also explicitly check if the field name matches (standard case)
-                if (field.getName().equals(fieldName)) {
+                if (field.getName().equalsIgnoreCase(fieldName)) {
                     return field.getName();
                 }
             }
             current = current.getSuperclass();
         }
-        return fieldName; // Fallback to original
+        return fieldName;
     }
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
