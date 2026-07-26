@@ -47,7 +47,7 @@ Gringotts is a full-stack personal finance and group expense management applicat
 - **Natural Language Parsing**: Text-based interface for transaction creation, search queries, entry updates, and deletions.
 - **Structured Filter Generation**: Conversion of user queries into structured JPA database search filters without exposing user transaction records to external model APIs.
 - **Standalone Term Resolution**: Catalogue lookup resolving standalone subcategory (*"Dividend"*) or item (*"Milk"*) queries to their parent category and corresponding target API.
-- **Rate Limiting and Sanitization**: Per-user sliding-window rate limiting (5 requests/minute, 100 requests/day) and input sanitization against prompt injection.
+- **Rate Limiting and Sanitization**: Per-user sliding-window rate limiting (2 requests/minute, 20 requests/hour, 50 requests/day) and input sanitization against prompt injection.
 
 ### 🛡️ Security and Multi-User Isolation
 - **Authentication and MFA**: JWT-based session handling stored in HttpOnly cookies with optional TOTP-based Multi-Factor Authentication.

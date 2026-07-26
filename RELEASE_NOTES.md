@@ -12,7 +12,7 @@ This release introduces **Goblin AI**, a sharp-witted Gringotts Bank Teller assi
 - **Humorous Vault Teller Personality**: Out-of-scope fallback messaging and animated typing effect on load and ledger clear for an engaging, immersive experience.
 
 ### 🔒 AI Security Hardening & Rate Limiting
-- **Per-User Rate Limiter**: Enforces strict sliding-window rate limits of **5 requests per minute** and **100 requests per day** per user, returning HTTP 429 status with Goblin's vault limit warning.
+- **Per-User Rate Limiter**: Enforces strict sliding-window rate limits of **2 requests per minute**, **20 requests per hour**, and **50 requests per day** per user, returning HTTP 429 status with Goblin's vault limit warning.
 - **Prompt Injection & Input Sanitization**: Comprehensive input escaping and sanitization for control characters and special prompt injection sequences in user prompts and chat history.
 - **Strict Chat History Window**: Restricts sent chat history to the **last 5 messages**, preventing payload inflation and context-stuffing exploits.
 - **Data Privacy Protection**: Full omission of user transaction history snapshots from external LLM prompts; LLM yields structured search filters that are safely evaluated locally against database records.
