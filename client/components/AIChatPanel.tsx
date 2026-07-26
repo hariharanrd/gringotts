@@ -470,19 +470,19 @@ export const AIChatPanel: React.FC<AIChatPanelProps> = ({
       />
 
       {/* Slide-In Drawer Panel */}
-      <aside className="fixed top-0 right-0 bottom-0 w-full sm:w-[440px] z-50 bg-slate-950/95 border-l border-emerald-500/30 shadow-2xl flex flex-col backdrop-blur-xl animate-in slide-in-from-right duration-300">
+      <aside className="fixed top-0 right-0 bottom-0 w-full sm:w-[440px] z-50 bg-white/95 dark:bg-slate-950/95 border-l border-slate-200 dark:border-emerald-500/30 text-slate-900 dark:text-slate-100 shadow-2xl flex flex-col backdrop-blur-xl animate-in slide-in-from-right duration-300">
         {/* Panel Header */}
-        <header className="p-4 border-b border-emerald-500/20 bg-gradient-to-r from-slate-950 via-emerald-950/40 to-slate-950 flex items-center justify-between shrink-0">
+        <header className="p-4 border-b border-slate-200 dark:border-emerald-500/20 bg-gradient-to-r from-emerald-50/80 via-slate-50 to-teal-50/60 dark:from-slate-950 dark:via-emerald-950/40 dark:to-slate-950 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
             <GoblinAvatar size="md" />
             <div>
               <div className="flex items-center gap-1.5">
-                <h3 className="text-sm font-extrabold text-emerald-300 tracking-tight">Goblin</h3>
-                <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                <h3 className="text-sm font-extrabold text-emerald-800 dark:text-emerald-300 tracking-tight">Goblin</h3>
+                <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/30">
                   AI Vault Keeper
                 </span>
               </div>
-              <p className="text-[11px] text-slate-400">Gringotts Wizarding Financial Assistant</p>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400">Gringotts Wizarding Financial Assistant</p>
             </div>
           </div>
 
@@ -490,7 +490,7 @@ export const AIChatPanel: React.FC<AIChatPanelProps> = ({
             {/* Clear ledger */}
             <button
               onClick={handleClearHistory}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-slate-900 transition-colors"
+              className="p-1.5 rounded-lg text-slate-500 dark:text-slate-400 hover:text-rose-500 dark:hover:text-rose-400 hover:bg-slate-100 dark:hover:bg-slate-900 transition-colors"
               title="Clear ledger history"
             >
               <Trash2 className="w-4 h-4" />
@@ -499,7 +499,7 @@ export const AIChatPanel: React.FC<AIChatPanelProps> = ({
             {/* Expand to full page (hidden on mobile) */}
             <button
               onClick={handleExpandToFullPage}
-              className="hidden sm:inline-flex p-1.5 rounded-lg text-slate-400 hover:text-emerald-400 hover:bg-slate-900 transition-colors"
+              className="hidden sm:inline-flex p-1.5 rounded-lg text-slate-500 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-slate-100 dark:hover:bg-slate-900 transition-colors"
               title="Expand to Full Page Chat (/ai-chat)"
             >
               <Maximize2 className="w-4 h-4" />
@@ -508,7 +508,7 @@ export const AIChatPanel: React.FC<AIChatPanelProps> = ({
             {/* Close drawer */}
             <button
               onClick={onClose}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-900 transition-colors"
+              className="p-1.5 rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-900 transition-colors"
             >
               <X className="w-5 h-5" />
             </button>
@@ -534,8 +534,8 @@ export const AIChatPanel: React.FC<AIChatPanelProps> = ({
                 <div
                   className={`max-w-[85%] rounded-2xl p-3.5 text-xs sm:text-sm leading-relaxed ${
                     msg.role === 'user'
-                      ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-medium rounded-tr-none shadow-md shadow-emerald-950/40'
-                      : 'bg-slate-900/90 border border-slate-800 text-slate-200 rounded-tl-none shadow-lg'
+                      ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-medium rounded-tr-none shadow-md shadow-emerald-950/20 dark:shadow-emerald-950/40'
+                      : 'bg-emerald-50/80 dark:bg-slate-900/90 border border-emerald-500/20 dark:border-slate-800 text-slate-800 dark:text-slate-200 rounded-tl-none shadow-sm dark:shadow-lg'
                   }`}
                 >
                   <div className="whitespace-pre-wrap">{msg.content}</div>
@@ -592,7 +592,7 @@ export const AIChatPanel: React.FC<AIChatPanelProps> = ({
 
                   <div
                     className={`mt-1.5 text-[10px] ${
-                      msg.role === 'user' ? 'text-emerald-200 text-right' : 'text-slate-500'
+                      msg.role === 'user' ? 'text-emerald-200 text-right' : 'text-slate-400 dark:text-slate-500'
                     }`}
                   >
                     {msg.timestamp}
@@ -616,13 +616,13 @@ export const AIChatPanel: React.FC<AIChatPanelProps> = ({
           {loading && (
             <div className="flex gap-3 justify-start animate-in fade-in duration-200">
               <GoblinAvatar size="sm" className="mt-1" animateHover={false} />
-              <div className="bg-slate-900 border border-emerald-500/30 rounded-2xl rounded-tl-none p-3 text-xs text-emerald-400 flex items-center gap-2">
+              <div className="bg-emerald-50/80 dark:bg-slate-900 border border-emerald-500/30 rounded-2xl rounded-tl-none p-3 text-xs text-emerald-700 dark:text-emerald-400 flex items-center gap-2">
                 <div className="flex gap-1 items-center">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-bounce" style={{ animationDelay: '0ms' }} />
-                  <span className="w-2 h-2 rounded-full bg-amber-400 animate-bounce" style={{ animationDelay: '150ms' }} />
-                  <span className="w-2 h-2 rounded-full bg-teal-400 animate-bounce" style={{ animationDelay: '300ms' }} />
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-bounce" style={{ animationDelay: '0ms' }} />
+                  <span className="w-2 h-2 rounded-full bg-amber-500 animate-bounce" style={{ animationDelay: '150ms' }} />
+                  <span className="w-2 h-2 rounded-full bg-teal-500 animate-bounce" style={{ animationDelay: '300ms' }} />
                 </div>
-                <span className="italic text-[11px] text-slate-400">Goblin is scritching in ledger...</span>
+                <span className="italic text-[11px] text-slate-500 dark:text-slate-400">Goblin is scritching in ledger...</span>
               </div>
             </div>
           )}
@@ -632,12 +632,12 @@ export const AIChatPanel: React.FC<AIChatPanelProps> = ({
 
         {/* Suggestion Chips */}
         {messages.length < 4 && !loading && (
-          <div className="px-4 py-2 border-t border-slate-900 flex gap-1.5 overflow-x-auto no-scrollbar shrink-0">
+          <div className="px-4 py-2 border-t border-slate-200 dark:border-slate-900 flex gap-1.5 overflow-x-auto no-scrollbar shrink-0">
             {SUGGESTION_CHIPS.map((chip, idx) => (
               <button
                 key={idx}
                 onClick={() => handleSend(chip)}
-                className="whitespace-nowrap px-2.5 py-1 rounded-full bg-emerald-950/60 border border-emerald-500/30 hover:border-emerald-400 text-emerald-300 hover:text-white text-[11px] transition-all shrink-0"
+                className="whitespace-nowrap px-2.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-500/30 hover:border-emerald-500 text-emerald-700 dark:text-emerald-300 hover:text-emerald-900 dark:hover:text-white text-[11px] transition-all shrink-0"
               >
                 ⚡ {chip}
               </button>
@@ -646,7 +646,7 @@ export const AIChatPanel: React.FC<AIChatPanelProps> = ({
         )}
 
         {/* Input Bar */}
-        <footer className="p-3 border-t border-slate-900 bg-slate-950 shrink-0">
+        <footer className="p-3 border-t border-slate-200 dark:border-slate-900 bg-slate-50/80 dark:bg-slate-950 shrink-0">
           <form
             onSubmit={e => {
               e.preventDefault();
@@ -661,12 +661,12 @@ export const AIChatPanel: React.FC<AIChatPanelProps> = ({
               onChange={e => setInput(e.target.value)}
               placeholder={GOBLIN_INPUT_PLACEHOLDER}
               disabled={loading}
-              className="flex-1 bg-slate-900 border border-slate-800 focus:border-emerald-500 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-slate-200 placeholder-slate-500 focus:outline-none transition-colors"
+              className="flex-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 focus:border-emerald-500 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none transition-colors"
             />
             <button
               type="submit"
               disabled={!input.trim() || loading}
-              className="p-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white disabled:opacity-40 transition-all shadow-md shadow-emerald-950/50"
+              className="p-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white disabled:opacity-40 transition-all shadow-md shadow-emerald-600/20"
             >
               <Send className="w-4 h-4" />
             </button>

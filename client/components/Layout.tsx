@@ -28,7 +28,10 @@ import { useTheme } from './ThemeContext';
 
 import { GoblinAvatar } from './GoblinAvatar';
 import { AIChatPanel } from './AIChatPanel';
+import { GoblinFeatureIntroModal } from './GoblinFeatureIntroModal';
 import { GroupInvitation, ParsedTransaction } from '../types';
+
+const GOBLIN_INTRO_STORAGE_KEY = 'gringotts_seen_goblin_ai_intro_v1';
 
 interface LayoutProps {
   userName: string;
@@ -75,12 +78,24 @@ const Layout: React.FC<LayoutProps> = ({
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isPinned, setIsPinned] = useState(true);
   const [isGoblinChatOpen, setIsGoblinChatOpen] = useState(false);
+  const [showGoblinIntro, setShowGoblinIntro] = useState(() => localStorage.getItem(GOBLIN_INTRO_STORAGE_KEY) !== 'true');
   const [isWarningDismissed, setIsWarningDismissed] = useState(() => sessionStorage.getItem('dismissedRecoveryEmailWarning') === 'true');
 
   const location = useLocation();
   const { theme, toggleTheme, isDark } = useTheme();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const handleDismissGoblinIntro = () => {
+    localStorage.setItem(GOBLIN_INTRO_STORAGE_KEY, 'true');
+    setShowGoblinIntro(false);
+  };
+
+  const handleOpenGoblinAIFromIntro = () => {
+    localStorage.setItem(GOBLIN_INTRO_STORAGE_KEY, 'true');
+    setShowGoblinIntro(false);
+    setIsGoblinChatOpen(true);
+  };
 
   const isAIChatPage = location.pathname === '/ai-chat';
 
@@ -416,6 +431,13 @@ const Layout: React.FC<LayoutProps> = ({
             />
           </>
         )}
+
+        {/* Feature Release One-Time Intro Modal */}
+        <GoblinFeatureIntroModal
+          isOpen={showGoblinIntro}
+          onClose={handleDismissGoblinIntro}
+          onOpenChat={handleOpenGoblinAIFromIntro}
+        />
       </main>
     </div>
   );
