@@ -7,27 +7,42 @@ import org.springframework.data.jpa.domain.Specification;
 
 import jakarta.persistence.criteria.*;
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
-import java.util.Date;
 import java.lang.reflect.Field;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import java.sql.Timestamp;
 
 public class TransactionSpecification {
 
     private static final Set<String> ALLOWED_SEARCH_FIELDS = Set.of(
             "description",
-            "category.name",
-            "subcategory.name",
-            "item.name",
+            "notes",
             "value",
             "transactiontime",
-            "paymentmode"
+            "createdat",
+            "category.name",
+            "category.id",
+            "subcategory.name",
+            "subcategory.id",
+            "item.name",
+            "item.id",
+            "paymentmode",
+            "creditcard.id",
+            "creditcard.nickname",
+            "creditcard.name",
+            "isin",
+            "isgive",
+            "closed",
+            "group.id",
+            "group.name",
+            "fundinggoal.id",
+            "loan.id",
+            "includeinbudget",
+            "createdby"
     );
 
+    @SuppressWarnings({ "unchecked", "rawtypes" })
     public static <T extends Transaction> Specification<T> getSpecification(List<SearchCriteria> criteriaList) {
         return (root, query, builder) -> {
             if (criteriaList == null || criteriaList.isEmpty()) {
@@ -37,38 +52,75 @@ public class TransactionSpecification {
             List<Predicate> predicates = new ArrayList<>();
             for (SearchCriteria criteria : criteriaList) {
                 try {
-                    if (criteria.getField() == null || !ALLOWED_SEARCH_FIELDS.contains(criteria.getField().toLowerCase())) {
+                    if (criteria.getField() == null || criteria.getCondition() == null || criteria.getValue() == null) {
                         continue;
                     }
+                    String normalizedField = criteria.getField().toLowerCase().replace("_", "");
+                    if (!ALLOWED_SEARCH_FIELDS.contains(normalizedField)) {
+                        continue;
+                    }
+
                     Path<?> path = getPath(root, criteria.getField());
                     String condition = criteria.getCondition().toLowerCase();
                     String value = criteria.getValue();
 
-                    switch (condition) {
-                        case "eq":
-                            predicates.add(builder.equal(path, castToRequiredType(path.getJavaType(), value)));
-                            break;
-                        case "like":
-                        case "contains":
-                            predicates.add(builder.like(builder.lower(path.as(String.class)),
-                                    "%" + value.toLowerCase() + "%"));
-                            break;
-                        case "gt":
-                            predicates.add(builder.greaterThan((Expression<Comparable>) path,
-                                    (Comparable) castToRequiredType(path.getJavaType(), value)));
-                            break;
-                        case "ge":
-                            predicates.add(builder.greaterThanOrEqualTo((Expression<Comparable>) path,
-                                    (Comparable) castToRequiredType(path.getJavaType(), value)));
-                            break;
-                        case "lt":
-                            predicates.add(builder.lessThan((Expression<Comparable>) path,
-                                    (Comparable) castToRequiredType(path.getJavaType(), value)));
-                            break;
-                        case "le":
-                            predicates.add(builder.lessThanOrEqualTo((Expression<Comparable>) path,
-                                    (Comparable) castToRequiredType(path.getJavaType(), value)));
-                            break;
+                    Class<?> targetType = path.getJavaType();
+
+                    if (targetType.equals(LocalDateTime.class)) {
+                        switch (condition) {
+                            case "eq":
+                                if (value.length() == 10) {
+                                    LocalDateTime startOfDay = LocalDateTime.parse(value + "T00:00:00");
+                                    LocalDateTime endOfDay = LocalDateTime.parse(value + "T23:59:59.999999999");
+                                    predicates.add(builder.between((Expression<LocalDateTime>) path, startOfDay, endOfDay));
+                                } else {
+                                    predicates.add(builder.equal(path, LocalDateTime.parse(value)));
+                                }
+                                break;
+                            case "gt":
+                                LocalDateTime gtTime = value.length() == 10 ? LocalDateTime.parse(value + "T23:59:59.999999999") : LocalDateTime.parse(value);
+                                predicates.add(builder.greaterThan((Expression<LocalDateTime>) path, gtTime));
+                                break;
+                            case "ge":
+                                LocalDateTime geTime = value.length() == 10 ? LocalDateTime.parse(value + "T00:00:00") : LocalDateTime.parse(value);
+                                predicates.add(builder.greaterThanOrEqualTo((Expression<LocalDateTime>) path, geTime));
+                                break;
+                            case "lt":
+                                LocalDateTime ltTime = value.length() == 10 ? LocalDateTime.parse(value + "T00:00:00") : LocalDateTime.parse(value);
+                                predicates.add(builder.lessThan((Expression<LocalDateTime>) path, ltTime));
+                                break;
+                            case "le":
+                                LocalDateTime leTime = value.length() == 10 ? LocalDateTime.parse(value + "T23:59:59.999999999") : LocalDateTime.parse(value);
+                                predicates.add(builder.lessThanOrEqualTo((Expression<LocalDateTime>) path, leTime));
+                                break;
+                        }
+                    } else {
+                        switch (condition) {
+                            case "eq":
+                                predicates.add(builder.equal(path, castToRequiredType(targetType, value)));
+                                break;
+                            case "like":
+                            case "contains":
+                                predicates.add(builder.like(builder.lower(path.as(String.class)),
+                                        "%" + value.toLowerCase() + "%"));
+                                break;
+                            case "gt":
+                                predicates.add(builder.greaterThan((Expression<Comparable>) path,
+                                        (Comparable) castToRequiredType(targetType, value)));
+                                break;
+                            case "ge":
+                                predicates.add(builder.greaterThanOrEqualTo((Expression<Comparable>) path,
+                                        (Comparable) castToRequiredType(targetType, value)));
+                                break;
+                            case "lt":
+                                predicates.add(builder.lessThan((Expression<Comparable>) path,
+                                        (Comparable) castToRequiredType(targetType, value)));
+                                break;
+                            case "le":
+                                predicates.add(builder.lessThanOrEqualTo((Expression<Comparable>) path,
+                                        (Comparable) castToRequiredType(targetType, value)));
+                                break;
+                        }
                     }
                 } catch (IllegalArgumentException ignored) {
                     // Ignore criteria if the field doesn't exist for the current transaction type
@@ -116,15 +168,16 @@ public class TransactionSpecification {
 
     private static String resolveFieldName(Class<?> clazz, String fieldName) {
         Class<?> current = clazz;
+        String normalizedInput = fieldName.replace("_", "");
         while (current != null && current != Object.class) {
             for (Field field : current.getDeclaredFields()) {
                 if (field.isAnnotationPresent(JsonProperty.class)) {
                     String jsonValue = field.getAnnotation(JsonProperty.class).value();
-                    if (fieldName.equalsIgnoreCase(jsonValue)) {
+                    if (fieldName.equalsIgnoreCase(jsonValue) || normalizedInput.equalsIgnoreCase(jsonValue.replace("_", ""))) {
                         return field.getName();
                     }
                 }
-                if (field.getName().equalsIgnoreCase(fieldName)) {
+                if (fieldName.equalsIgnoreCase(field.getName()) || normalizedInput.equalsIgnoreCase(field.getName().replace("_", ""))) {
                     return field.getName();
                 }
             }
@@ -145,8 +198,7 @@ public class TransactionSpecification {
             if (fieldType.isAssignableFrom(Boolean.class) || fieldType.isAssignableFrom(boolean.class))
                 return Boolean.valueOf(value);
             if (fieldType.isAssignableFrom(LocalDateTime.class)) {
-                // Handle common ISO formats
-                if (value.length() == 10) { // e.g., 2023-01-01
+                if (value.length() == 10) {
                     return LocalDateTime.parse(value + "T00:00:00");
                 }
                 return LocalDateTime.parse(value);
@@ -159,3 +211,4 @@ public class TransactionSpecification {
         return value;
     }
 }
+
