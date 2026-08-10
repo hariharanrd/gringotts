@@ -60,6 +60,14 @@ public class InvestmentGoal {
     @JsonProperty("closed_at")
     LocalDateTime closedAt;
 
+    @Column(name = "current_value")
+    @JsonProperty("current_value")
+    Double currentValue;
+
+    @Column(name = "last_value_updated_at")
+    @JsonProperty("last_value_updated_at")
+    LocalDateTime lastValueUpdatedAt;
+
     @Transient
     @JsonProperty(value = "tags", access = JsonProperty.Access.WRITE_ONLY)
     List<TagRequest> tagsPayload;
@@ -108,6 +116,8 @@ public class InvestmentGoal {
     public List<TagRequest> getTagsPayload() { return tagsPayload; }
     public User getUser() { return user; }
     public GoalType getGoalType() { return goalType; }
+    public Double getCurrentValue() { return currentValue; }
+    public LocalDateTime getLastValueUpdatedAt() { return lastValueUpdatedAt; }
 
     // ── Setters ───────────────────────────────────────────────────────────────
 
@@ -127,4 +137,6 @@ public class InvestmentGoal {
     public void setTagsPayload(List<TagRequest> tagsPayload) { this.tagsPayload = tagsPayload; }
     public void setUser(User user) { this.user = user; }
     public void setGoalType(GoalType goalType) { this.goalType = goalType; }
+    public void setCurrentValue(Double currentValue) { this.currentValue = currentValue; }
+    public void setLastValueUpdatedAt(LocalDateTime lastValueUpdatedAt) { this.lastValueUpdatedAt = lastValueUpdatedAt; }
 }

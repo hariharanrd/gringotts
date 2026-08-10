@@ -87,6 +87,28 @@ public class InvestmentGoalController {
         }
     }
 
+    // ── PATCH: lightweight current-value update ────────────────────────────────
+
+    @PatchMapping("/{id}/current-value")
+    public ResponseEntity<Map<String, Object>> updateCurrentValue(
+            @PathVariable Long id,
+            @RequestBody Map<String, Object> body) {
+        try {
+            Double newValue = body.get("current_value") == null
+                    ? null
+                    : Double.parseDouble(body.get("current_value").toString());
+            Map<String, Object> updated = investmentGoalService.updateCurrentValue(id, newValue);
+            return ResponseEntity.ok(Map.of("data", updated));
+        } catch (java.util.NoSuchElementException e) {
+            return ResponseEntity.status(404).body(Map.of("error", e.getMessage()));
+        } catch (SecurityException e) {
+            return ResponseEntity.status(403).body(Map.of("error", e.getMessage()));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+
     // ── GOAL TRANSACTIONS ──────────────────────────────────────────────────────
 
     @GetMapping("/{id}/transactions")

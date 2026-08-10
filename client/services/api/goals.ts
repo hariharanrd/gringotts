@@ -28,6 +28,14 @@ export const goalsApi = {
     return handleResponseAndGetData(response);
   },
 
+  updateGoalCurrentValue: async (id: number, currentValue: number | null): Promise<InvestmentGoal> => {
+    const response = await fetchWithCredentials(`${BASE_URL}/investment-goals/${id}/current-value`, {
+      method: 'PATCH',
+      body: JSON.stringify({ current_value: currentValue }),
+    });
+    return handleResponseAndGetData(response);
+  },
+
   deleteGoal: async (id: number) => {
     const response = await fetchWithCredentials(`${BASE_URL}/investment-goals/${id}`, {
       method: 'DELETE',
@@ -40,3 +48,4 @@ export const goalsApi = {
     return handleResponse(response);
   }
 };
+
