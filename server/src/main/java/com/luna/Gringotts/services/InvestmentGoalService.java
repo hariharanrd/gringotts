@@ -337,8 +337,20 @@ public class InvestmentGoalService {
                 goal.getAnnualRate(), goal.getMonthlyContribution());
         dto.put("years_to_goal", years);
 
-        // Progress toward target: prefer current_value (market worth) when set
-        double effectiveValue = goal.getCurrentValue() != null ? goal.getCurrentValue() : goal.getCurrentAmount();
+        // Active Invested Capital:
+        // For ONE_TIME goals, spending (totalFunded) reduces the active capital remaining invested.
+        // For PERSISTENT goals, currentAmount is already decremented by deductFromGoal upon spending.
+        double activeInvested = GoalType.ONE_TIME.equals(goal.getGoalType())
+                ? Math.max(0.0, goal.getCurrentAmount() - totalFunded)
+                : goal.getCurrentAmount();
+        dto.put("active_invested", Math.round(activeInvested * 100.0) / 100.0);
+
+        // Progress toward target:
+        // For ONE_TIME goals: achievement is based on total accumulated principal (current_amount vs target_amount).
+        // For PERSISTENT goals: achievement is based on current market value (or balance).
+        double effectiveValue = GoalType.ONE_TIME.equals(goal.getGoalType())
+                ? goal.getCurrentAmount()
+                : (goal.getCurrentValue() != null ? goal.getCurrentValue() : goal.getCurrentAmount());
         double pct = goal.getTargetAmount() > 0
                 ? (effectiveValue / goal.getTargetAmount()) * 100.0
                 : 0.0;
@@ -346,14 +358,14 @@ public class InvestmentGoalService {
 
         // Invested-only progress (for dual-segment bar on frontend)
         double investedPct = goal.getTargetAmount() > 0
-                ? (goal.getCurrentAmount() / goal.getTargetAmount()) * 100.0
+                ? (activeInvested / goal.getTargetAmount()) * 100.0
                 : 0.0;
         dto.put("percent_invested", Math.min(Math.round(investedPct * 10.0) / 10.0, 100.0));
 
-        // Returns (only meaningful when current_value is explicitly set)
-        if (goal.getCurrentValue() != null && goal.getCurrentAmount() > 0) {
-            double returnsAmount = goal.getCurrentValue() - goal.getCurrentAmount();
-            double returnsPct = (returnsAmount / goal.getCurrentAmount()) * 100.0;
+        // Returns (only meaningful when current_value is explicitly set and activeInvested > 0)
+        if (goal.getCurrentValue() != null && activeInvested > 0) {
+            double returnsAmount = goal.getCurrentValue() - activeInvested;
+            double returnsPct = (returnsAmount / activeInvested) * 100.0;
             dto.put("returns_amount", Math.round(returnsAmount * 100.0) / 100.0);
             dto.put("returns_percent", Math.round(returnsPct * 100.0) / 100.0);
         } else {
@@ -421,21 +433,29 @@ public class InvestmentGoalService {
                 "Transaction value (₹" + amount + ") exceeds the goal's available balance (₹" + available + ")");
         }
 
-        if (!GoalType.PERSISTENT.equals(goal.getGoalType())) return;
-        goal.setCurrentAmount(goal.getCurrentAmount() - amount);
+        if (GoalType.PERSISTENT.equals(goal.getGoalType())) {
+            goal.setCurrentAmount(Math.max(0.0, goal.getCurrentAmount() - amount));
+        }
+
+        // Deduct spent delta from current_value for all goal types when current_value is set
+        if (goal.getCurrentValue() != null) {
+            goal.setCurrentValue(Math.max(0.0, goal.getCurrentValue() - amount));
+            goal.setLastValueUpdatedAt(LocalDateTime.now());
+        }
+
         goalRepository.save(goal);
     }
 
     /**
-     * Restore amount to a PERSISTENT goal's current_amount.
-     * No-op for ONE_TIME goals.
+     * Restore amount to goal's current_amount (for PERSISTENT) and current_value (if set).
      */
     @Transactional
     public void restoreToGoal(Long goalId, double amount) {
         InvestmentGoal goal = requireGoalWithLock(goalId);
-        if (!GoalType.PERSISTENT.equals(goal.getGoalType())) return;
-        goal.setCurrentAmount(goal.getCurrentAmount() + amount);
-        // Option C: propagate restore to current_value when set
+        if (GoalType.PERSISTENT.equals(goal.getGoalType())) {
+            goal.setCurrentAmount(goal.getCurrentAmount() + amount);
+        }
+        // Restore spent delta to current_value for all goal types when current_value is set
         if (goal.getCurrentValue() != null) {
             goal.setCurrentValue(goal.getCurrentValue() + amount);
             goal.setLastValueUpdatedAt(LocalDateTime.now());

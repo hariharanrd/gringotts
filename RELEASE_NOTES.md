@@ -1,5 +1,24 @@
 # 🚀 Release Notes
 
+## [August 10, 2026] Investment Planner: Market Value Tracking, Portfolio Returns & Dual-Progress Visualization
+
+This release enhances the **Investment Planner** with full market-linked portfolio tracking capabilities. Users can now track both their principal **Invested Amount** and live **Current Market Value**, visualize investment gains/losses with a dual-segment progress indicator, and perform quick market value updates.
+
+### 📈 Two-Column Portfolio & Returns Tracking
+- **Invested vs. Current Value Split**: Disambiguates contributed principal (*Invested Amount*) from today's market value (*Current Market Value*), allowing users to track market-linked instruments like Mutual Funds, Stocks, and Fixed Deposits accurately.
+- **Active Invested Capital Model for Withdrawals/Spending**: Automatically computes `Active Invested` capital (`Total Invested − Total Spent`) for One-Time spending goals, ensuring that partial withdrawals or goal-funded purchases do not falsely register as market losses.
+- **Automatic Market Value Adjustment on Spending**: Goal-funded transactions automatically deduct the spent delta from both `Active Invested` capital and `Current Market Value` (when set), preserving net monetary profit/loss while maintaining return yield accuracy.
+- **Computed Returns & Percentage Badges**: Real-time computation of net gain or loss (`Current Value − Active Invested Capital`) with color-coded directional badges (`+₹60K / +13.3%` in green, or losses in red).
+- **Option C Auto-Credit Delta Propagation**: Tagged savings transactions auto-increment the Invested Amount and automatically propagate the contribution delta to Current Market Value when set.
+
+### 🎨 Dual-Segment Progress Indicator & Visual Redesign
+- **Dual-Segment Progress Bar**: Replaces static progress bars with a layered progress track—muted band representing invested principal progress and a bright band extending to current market value, including green gain extensions or red loss overlays.
+- **Quick "Update Market Value" Action**: Lightweight single-number modal accessible via a dedicated pencil button on goal cards and detail views for rapid NAV/portfolio updates without opening full edit flows.
+- **4-Column Goal Detail Metrics**: Enhanced detail dialog presenting Target, Invested, Current Value, and Returns side-by-side with timestamped update history (*"Updated 3d ago"*).
+- **Portfolio-Level Summary Stats**: Page-level metrics bar expanded with **Total Invested**, **Portfolio Value**, and total portfolio return highlights.
+
+---
+
 ## [July 26, 2026] Goblin AI Vault Keeper, Full Natural Language CRUD & AI Security Hardening
 
 This release introduces **Goblin AI**, a sharp-witted Gringotts Bank Teller assistant for natural language financial management. Users can log transactions, search ledger records with criteria, update entry values/descriptions, or delete transactions in character—all with interactive confirmation cards and strict security protections.

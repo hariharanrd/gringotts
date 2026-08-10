@@ -242,12 +242,15 @@ interface GoalCardProps {
 }
 
 const GoalCard: React.FC<GoalCardProps> = ({ goal, onEdit, onDelete, onArchive, onUpdateValue, onClick }) => {
+  const isOneTime = goal.goal_type === 'ONE_TIME';
   const pct = goal.percent_achieved ?? 0;
   const investedPct = goal.percent_invested ?? pct;
   const color = goal.is_closed ? '#94a3b8' : (goal.color ?? '#6366f1');
-  const remaining = Math.max(goal.target_amount - (goal.current_value ?? goal.current_amount), 0);
+  const remaining = isOneTime
+    ? Math.max(goal.target_amount - goal.current_amount, 0)
+    : Math.max(goal.target_amount - (goal.current_value ?? goal.current_amount), 0);
   const hasCurrentValue = goal.current_value != null;
-  const effectiveValue = hasCurrentValue ? goal.current_value! : goal.current_amount;
+  const displayValue = isOneTime ? goal.current_amount : (hasCurrentValue ? goal.current_value! : goal.current_amount);
 
   return (
     <div
@@ -314,6 +317,11 @@ const GoalCard: React.FC<GoalCardProps> = ({ goal, onEdit, onDelete, onArchive, 
           <div className="rounded-xl px-3 py-2 bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800/40">
             <p className="text-[9px] uppercase font-bold text-slate-400 tracking-wider">💰 Invested</p>
             <p className="text-sm font-black tabular-nums text-slate-700 dark:text-slate-200 mt-0.5">{fmtCompact(goal.current_amount)}</p>
+            {goal.goal_type === 'ONE_TIME' && goal.total_funded && goal.total_funded > 0 ? (
+              <p className="text-[9px] text-slate-400 dark:text-slate-500 font-medium truncate mt-0.5" title={`Active: ${fmt(goal.active_invested ?? (goal.current_amount - goal.total_funded))} · Spent: ${fmt(goal.total_funded)}`}>
+                {fmtCompact(goal.active_invested ?? (goal.current_amount - goal.total_funded))} active · {fmtCompact(goal.total_funded)} spent
+              </p>
+            ) : null}
           </div>
           <div className={`rounded-xl px-3 py-2 border ${hasCurrentValue
             ? 'bg-slate-50 dark:bg-slate-800/60 border-slate-100 dark:border-slate-800/40'
@@ -342,7 +350,7 @@ const GoalCard: React.FC<GoalCardProps> = ({ goal, onEdit, onDelete, onArchive, 
         <div className="mt-3 space-y-2">
           <div className="flex justify-between items-baseline">
             <div className="text-xs font-semibold text-slate-800 dark:text-slate-200">
-              <span className="font-bold text-sm tabular-nums text-slate-900 dark:text-white">{fmtCompact(effectiveValue)}</span>
+              <span className="font-bold text-sm tabular-nums text-slate-900 dark:text-white">{fmtCompact(displayValue)}</span>
               <span className="mx-1 text-slate-400 dark:text-slate-500">/</span>
               <span className="font-medium text-xs tabular-nums text-slate-500 dark:text-slate-400">{fmtCompact(goal.target_amount)}</span>
               <span className="ml-1.5 text-[10px] text-slate-400 dark:text-slate-500 font-bold">({pct.toFixed(0)}%)</span>
@@ -451,9 +459,10 @@ const UpdateValueModal: React.FC<UpdateValueModalProps> = ({ goal, onClose, onSa
   if (!goal) return null;
 
   const numValue = parseFloat(value) || 0;
-  const invested = goal.current_amount;
-  const returnsAmount = value !== '' ? numValue - invested : null;
-  const returnsPct = returnsAmount != null && invested > 0 ? (returnsAmount / invested) * 100 : null;
+  const totalInvested = goal.current_amount;
+  const activeInvested = goal.active_invested ?? (goal.goal_type === 'ONE_TIME' && goal.total_funded ? Math.max(0, goal.current_amount - goal.total_funded) : goal.current_amount);
+  const returnsAmount = value !== '' ? numValue - activeInvested : null;
+  const returnsPct = returnsAmount != null && activeInvested > 0 ? (returnsAmount / activeInvested) * 100 : null;
   const color = goal.color ?? '#6366f1';
 
   const handleSave = async () => {
@@ -510,9 +519,17 @@ const UpdateValueModal: React.FC<UpdateValueModalProps> = ({ goal, onClose, onSa
           </div>
 
           {/* Invested context */}
-          <div className="flex items-center justify-between py-2 px-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700/50">
-            <span className="text-xs text-slate-500 dark:text-slate-400">Invested Amount</span>
-            <span className="text-sm font-black tabular-nums text-slate-800 dark:text-slate-200">{fmtCompact(invested)}</span>
+          <div className="space-y-1 py-2 px-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700/50">
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-slate-500 dark:text-slate-400">Total Invested</span>
+              <span className="font-bold tabular-nums text-slate-800 dark:text-slate-200">{fmtCompact(totalInvested)}</span>
+            </div>
+            {goal.goal_type === 'ONE_TIME' && goal.total_funded && goal.total_funded > 0 ? (
+              <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-200/50 dark:border-slate-700/40">
+                <span className="text-slate-500 dark:text-slate-400 font-medium">Active Capital ({fmtCompact(goal.total_funded)} spent)</span>
+                <span className="font-black tabular-nums text-violet-600 dark:text-violet-400">{fmtCompact(activeInvested)}</span>
+              </div>
+            ) : null}
           </div>
 
           {/* Input */}
@@ -526,7 +543,7 @@ const UpdateValueModal: React.FC<UpdateValueModalProps> = ({ goal, onClose, onSa
               min={0}
               value={value}
               onChange={e => setValue(e.target.value)}
-              placeholder={String(invested)}
+              placeholder={String(activeInvested)}
               className="w-full rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-4 py-3 text-sm text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 transition-all"
               style={{ '--tw-ring-color': `${color}66` } as React.CSSProperties}
               onKeyDown={e => e.key === 'Enter' && handleSave()}
@@ -1115,12 +1132,16 @@ const GoalDetailModal: React.FC<GoalDetailModalProps> = ({ goal, onClose, onUpda
 
   if (!goal) return null;
 
+  const isOneTime = goal.goal_type === 'ONE_TIME';
   const pct = goal.percent_achieved ?? 0;
   const investedPct = goal.percent_invested ?? pct;
   const color = goal.color ?? '#6366f1';
-  const remaining = Math.max(goal.target_amount - (goal.current_value ?? goal.current_amount), 0);
+  const remaining = isOneTime
+    ? Math.max(goal.target_amount - goal.current_amount, 0)
+    : Math.max(goal.target_amount - (goal.current_value ?? goal.current_amount), 0);
   const totalFunded = goal.total_funded ?? 0;
   const hasCurrentValue = goal.current_value != null;
+  const displayValue = isOneTime ? goal.current_amount : (hasCurrentValue ? goal.current_value! : goal.current_amount);
 
   const achievedAmount = goal.current_amount + totalFunded;
   const refillTarget = Math.min(goal.target_amount, achievedAmount);
@@ -1220,6 +1241,11 @@ const GoalDetailModal: React.FC<GoalDetailModalProps> = ({ goal, onClose, onUpda
               <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-2xl border border-slate-100 dark:border-slate-800/60">
                 <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">💰 Invested</p>
                 <p className="text-base font-black tabular-nums mt-1" style={{ color }}>{fmtCompact(goal.current_amount)}</p>
+                {goal.goal_type === 'ONE_TIME' && goal.total_funded && goal.total_funded > 0 ? (
+                  <p className="text-[9px] text-slate-400 dark:text-slate-500 font-medium truncate mt-0.5">
+                    {fmtCompact(goal.active_invested ?? (goal.current_amount - goal.total_funded))} active
+                  </p>
+                ) : null}
               </div>
               <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-2xl border border-slate-100 dark:border-slate-800/60">
                 <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">📈 Current Value</p>
@@ -1273,7 +1299,7 @@ const GoalDetailModal: React.FC<GoalDetailModalProps> = ({ goal, onClose, onUpda
           <div className="space-y-2">
             <div className="flex justify-between items-center text-xs">
               <span className="font-semibold text-slate-600 dark:text-slate-300">
-                {fmtCompact(goal.current_value ?? goal.current_amount)} / {fmtCompact(goal.target_amount)}
+                {fmtCompact(displayValue)} / {fmtCompact(goal.target_amount)}
               </span>
               <span className="font-bold text-slate-400">{pct.toFixed(1)}%</span>
             </div>
@@ -1452,12 +1478,12 @@ const InvestmentPlanner: React.FC = () => {
 
   // Summary stats (based on active goals)
   const totalTarget = activeGoals.reduce((s, g) => s + g.target_amount, 0);
-  const totalInvested = activeGoals.reduce((s, g) => s + g.current_amount, 0);
-  const totalPortfolioValue = activeGoals.reduce((s, g) => s + (g.current_value ?? g.current_amount), 0);
+  const totalInvested = activeGoals.reduce((s, g) => s + (g.active_invested ?? g.current_amount), 0);
+  const totalPortfolioValue = activeGoals.reduce((s, g) => s + (g.current_value ?? g.active_invested ?? g.current_amount), 0);
   const totalReturns = totalPortfolioValue - totalInvested;
   const totalMonthly = activeGoals.reduce((s, g) => s + g.monthly_contribution, 0);
   const overallPct = totalTarget > 0 ? Math.min(Math.round(totalPortfolioValue / totalTarget * 100), 100) : 0;
-  const achievedCount = activeGoals.filter(g => (g.current_value ?? g.current_amount) >= g.target_amount).length;
+  const achievedCount = activeGoals.filter(g => (g.current_value ?? g.active_invested ?? g.current_amount) >= g.target_amount).length;
   const hasAnyReturns = activeGoals.some(g => g.current_value != null);
 
   return (
