@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.*;
 
 @Service
@@ -69,6 +70,11 @@ public class InvestmentGoalService {
         if (incoming.getGoalType() == null) {
             incoming.setGoalType(GoalType.PERSISTENT);
         }
+
+        // current_value: if explicitly provided, stamp the update time
+        if (incoming.getCurrentValue() != null) {
+            incoming.setLastValueUpdatedAt(LocalDateTime.now());
+        }
         
         incoming.setIsClosed(false);
         InvestmentGoal saved = goalRepository.save(incoming);
@@ -117,6 +123,13 @@ public class InvestmentGoalService {
         if (incoming.getIsClosed() != null) {
             existing.setIsClosed(incoming.getIsClosed());
             existing.setClosedAt(incoming.getClosedAt());
+        }
+
+        // Handle current_value update: stamp timestamp when value changes
+        if (incoming.getCurrentValue() != null) {
+            // Explicit null sentinel (-1) can be passed by frontend to clear the field
+            existing.setCurrentValue(incoming.getCurrentValue() < 0 ? null : incoming.getCurrentValue());
+            existing.setLastValueUpdatedAt(incoming.getCurrentValue() < 0 ? null : LocalDateTime.now());
         }
 
         if (incoming.getTagsPayload() != null) {
@@ -209,6 +222,14 @@ public class InvestmentGoalService {
                 .orElse(goal);
         double updated = lockedGoal.getCurrentAmount() + delta;
         lockedGoal.setCurrentAmount(Math.max(0.0, updated));
+
+        // Option C: if current_value is explicitly set, carry the same delta forward
+        if (lockedGoal.getCurrentValue() != null) {
+            double updatedValue = lockedGoal.getCurrentValue() + delta;
+            lockedGoal.setCurrentValue(Math.max(0.0, updatedValue));
+            lockedGoal.setLastValueUpdatedAt(LocalDateTime.now());
+        }
+
         goalRepository.save(lockedGoal);
         alreadyUpdated.add(lockedGoal.getId());
     }
@@ -276,6 +297,8 @@ public class InvestmentGoalService {
         dto.put("color", goal.getColor());
         dto.put("target_amount", goal.getTargetAmount());
         dto.put("current_amount", goal.getCurrentAmount());
+        dto.put("current_value", goal.getCurrentValue());
+        dto.put("last_value_updated_at", goal.getLastValueUpdatedAt());
         dto.put("monthly_contribution", goal.getMonthlyContribution());
         dto.put("annual_rate", goal.getAnnualRate());
         dto.put("notes", goal.getNotes());
@@ -308,16 +331,35 @@ public class InvestmentGoalService {
         }
         dto.put("tags", tagDtos);
 
-        // Projection using FV-of-annuity formula
+        // Projection uses current_amount (invested principal) as the base — not market value
         Double years = yearsToGoal(
                 goal.getCurrentAmount(), goal.getTargetAmount(),
                 goal.getAnnualRate(), goal.getMonthlyContribution());
         dto.put("years_to_goal", years);
 
+        // Progress toward target: prefer current_value (market worth) when set
+        double effectiveValue = goal.getCurrentValue() != null ? goal.getCurrentValue() : goal.getCurrentAmount();
         double pct = goal.getTargetAmount() > 0
-                ? (goal.getCurrentAmount() / goal.getTargetAmount()) * 100.0
+                ? (effectiveValue / goal.getTargetAmount()) * 100.0
                 : 0.0;
         dto.put("percent_achieved", Math.min(Math.round(pct * 10.0) / 10.0, 100.0));
+
+        // Invested-only progress (for dual-segment bar on frontend)
+        double investedPct = goal.getTargetAmount() > 0
+                ? (goal.getCurrentAmount() / goal.getTargetAmount()) * 100.0
+                : 0.0;
+        dto.put("percent_invested", Math.min(Math.round(investedPct * 10.0) / 10.0, 100.0));
+
+        // Returns (only meaningful when current_value is explicitly set)
+        if (goal.getCurrentValue() != null && goal.getCurrentAmount() > 0) {
+            double returnsAmount = goal.getCurrentValue() - goal.getCurrentAmount();
+            double returnsPct = (returnsAmount / goal.getCurrentAmount()) * 100.0;
+            dto.put("returns_amount", Math.round(returnsAmount * 100.0) / 100.0);
+            dto.put("returns_percent", Math.round(returnsPct * 100.0) / 100.0);
+        } else {
+            dto.put("returns_amount", null);
+            dto.put("returns_percent", null);
+        }
 
         return dto;
     }
@@ -393,7 +435,24 @@ public class InvestmentGoalService {
         InvestmentGoal goal = requireGoalWithLock(goalId);
         if (!GoalType.PERSISTENT.equals(goal.getGoalType())) return;
         goal.setCurrentAmount(goal.getCurrentAmount() + amount);
+        // Option C: propagate restore to current_value when set
+        if (goal.getCurrentValue() != null) {
+            goal.setCurrentValue(goal.getCurrentValue() + amount);
+            goal.setLastValueUpdatedAt(LocalDateTime.now());
+        }
         goalRepository.save(goal);
+    }
+
+    /**
+     * Lightweight update: sets current_value and stamps last_value_updated_at.
+     * Passing null clears the market-value tracking.
+     */
+    @Transactional
+    public Map<String, Object> updateCurrentValue(Long goalId, Double newValue) {
+        InvestmentGoal goal = requireGoalWithLock(goalId);
+        goal.setCurrentValue(newValue);
+        goal.setLastValueUpdatedAt(newValue != null ? LocalDateTime.now() : null);
+        return toDto(goalRepository.save(goal));
     }
 
     /**

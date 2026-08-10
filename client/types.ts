@@ -217,6 +217,8 @@ export interface InvestmentGoal {
   color?: string;
   target_amount: number;
   current_amount: number;
+  current_value?: number | null;
+  last_value_updated_at?: string | null;
   monthly_contribution: number;
   annual_rate: number;
   notes?: string;
@@ -224,11 +226,15 @@ export interface InvestmentGoal {
   tags?: InvestmentGoalTag[];
   years_to_goal?: number | null;
   percent_achieved?: number;
+  percent_invested?: number;
+  returns_amount?: number | null;
+  returns_percent?: number | null;
   is_closed?: boolean;
   closed_at?: string;
   goal_type?: 'PERSISTENT' | 'ONE_TIME';
   total_funded?: number;
 }
+
 
 export enum ScheduleFrequency {
   ONE_TIME = 'ONE_TIME',

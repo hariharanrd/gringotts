@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
-  Plus, Target, TrendingUp, Edit2, Trash2, Tag, X, Check, Goal,
-  Search, Sparkles, Folder, Layers, Archive, CheckCircle2, RefreshCw
+  Plus, Target, TrendingUp, TrendingDown, Edit2, Trash2, Tag, X, Check, Goal,
+  Search, Sparkles, Folder, Layers, Archive, CheckCircle2, RefreshCw,
+  PencilLine, ArrowUpRight, ArrowDownRight, Minus, Clock
 } from 'lucide-react';
 import { api } from '../services/api';
 import { InvestmentGoal, Item, Category } from '../types';
@@ -16,8 +17,8 @@ const COLOR_PRESETS = [
 ];
 
 // ── Arc progress component ─────────────────────────────────────────────────────
-const ArcProgress: React.FC<{ percent: number; color: string; size?: number }> = ({
-  percent, color, size = 120
+const ArcProgress: React.FC<{ percent: number; investedPercent?: number; color: string; size?: number }> = ({
+  percent, investedPercent, color, size = 120
 }) => {
   const r = (size - 16) / 2;
   const circ = 2 * Math.PI * r;
@@ -26,15 +27,95 @@ const ArcProgress: React.FC<{ percent: number; color: string; size?: number }> =
   const cx = size / 2;
   const cy = size / 2;
 
+  // Invested inner ring (if separate)
+  const investedCapped = Math.min(investedPercent ?? capped, 100);
+  const investedDash = (investedCapped / 100) * circ;
+  const hasReturns = investedPercent !== undefined && investedPercent !== capped;
+
   return (
     <svg width={size} height={size} className="rotate-[-90deg]">
+      {/* Track */}
       <circle cx={cx} cy={cy} r={r} fill="none" stroke="currentColor"
         strokeWidth={8} className="text-slate-200 dark:text-slate-700/60" />
+      {/* Invested segment (muted) */}
+      {hasReturns && (
+        <circle cx={cx} cy={cy} r={r} fill="none" stroke={color}
+          strokeWidth={8} strokeLinecap="butt" strokeOpacity={0.35}
+          strokeDasharray={`${investedDash} ${circ}`}
+          style={{ transition: 'stroke-dasharray 0.8s cubic-bezier(0.4,0,0.2,1)' }} />
+      )}
+      {/* Current value segment (full brightness) */}
       <circle cx={cx} cy={cy} r={r} fill="none" stroke={color}
         strokeWidth={8} strokeLinecap="round"
         strokeDasharray={`${dash} ${circ}`}
         style={{ transition: 'stroke-dasharray 0.8s cubic-bezier(0.4,0,0.2,1)' }} />
     </svg>
+  );
+};
+
+// ── Dual-segment progress bar ─────────────────────────────────────────────────
+const DualProgressBar: React.FC<{
+  percent: number;
+  investedPercent: number;
+  color: string;
+  returnsAmount: number | null | undefined;
+}> = ({ percent, investedPercent, color, returnsAmount }) => {
+  const hasReturns = returnsAmount != null;
+  const isGain = hasReturns && returnsAmount! > 0;
+  const isLoss = hasReturns && returnsAmount! < 0;
+
+  const valuePct = Math.min(percent, 100);
+  const invPct = Math.min(investedPercent, 100);
+
+  // If no separate current_value, single solid bar
+  if (!hasReturns || Math.abs(valuePct - invPct) < 0.1) {
+    return (
+      <div className="w-full bg-slate-100 dark:bg-slate-800/80 rounded-full h-3 overflow-hidden p-0.5 border border-slate-200/20 dark:border-slate-700/10">
+        <div
+          className="h-2 rounded-full transition-all duration-500 shadow-sm"
+          style={{
+            width: `${Math.min(invPct, 100)}%`,
+            background: `linear-gradient(90deg, ${color}, ${color}cc)`
+          }}
+        />
+      </div>
+    );
+  }
+
+  // Dual segment
+  const gainColor = '#10b981';
+  const lossColor = '#ef4444';
+
+  return (
+    <div className="w-full bg-slate-100 dark:bg-slate-800/80 rounded-full h-3 overflow-hidden p-0.5 border border-slate-200/20 dark:border-slate-700/10 relative">
+      {/* Invested layer (muted) */}
+      <div
+        className="absolute top-0.5 left-0.5 h-2 rounded-full transition-all duration-500"
+        style={{
+          width: `${invPct}%`,
+          background: `${color}55`
+        }}
+      />
+      {/* Current value layer */}
+      {isGain && (
+        <div
+          className="absolute top-0.5 left-0.5 h-2 rounded-full transition-all duration-500"
+          style={{
+            width: `${valuePct}%`,
+            background: `linear-gradient(90deg, ${color}cc, ${gainColor})`
+          }}
+        />
+      )}
+      {isLoss && (
+        <div
+          className="absolute top-0.5 left-0.5 h-2 rounded-full transition-all duration-500"
+          style={{
+            width: `${valuePct}%`,
+            background: `linear-gradient(90deg, ${lossColor}99, ${lossColor}cc)`
+          }}
+        />
+      )}
+    </div>
   );
 };
 
@@ -86,6 +167,19 @@ const getTagIcon = (type: string) => {
 
 const getTagName = (t: any) => t.item?.name || t.subcategory?.name || t.category?.name;
 
+function formatLastUpdated(dateStr: string | null | undefined): string {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  const now = new Date();
+  const diffMs = now.getTime() - d.getTime();
+  const diffDays = Math.floor(diffMs / 86400000);
+  if (diffDays === 0) return 'Updated today';
+  if (diffDays === 1) return 'Updated yesterday';
+  if (diffDays < 30) return `Updated ${diffDays}d ago`;
+  const diffMonths = Math.floor(diffDays / 30);
+  return `Updated ${diffMonths}mo ago`;
+}
+
 // ── Empty state ───────────────────────────────────────────────────────────────
 const EmptyGoals: React.FC<{ onAdd: () => void }> = ({ onAdd }) => (
   <div className="flex flex-col items-center justify-center py-24 gap-6">
@@ -118,19 +212,42 @@ const EmptyGoals: React.FC<{ onAdd: () => void }> = ({ onAdd }) => (
   </div>
 );
 
+// ── Returns Badge ─────────────────────────────────────────────────────────────
+const ReturnsBadge: React.FC<{ returnsAmount: number; returnsPct: number; compact?: boolean }> = ({
+  returnsAmount, returnsPct, compact
+}) => {
+  const isGain = returnsAmount >= 0;
+  return (
+    <span className={`inline-flex items-center gap-0.5 text-[10px] font-bold tabular-nums rounded-md px-1.5 py-0.5 ${
+      isGain
+        ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+        : 'bg-rose-500/10 text-rose-600 dark:text-rose-400'
+    }`}>
+      {isGain ? <ArrowUpRight className="w-2.5 h-2.5" /> : <ArrowDownRight className="w-2.5 h-2.5" />}
+      {compact
+        ? `${returnsPct >= 0 ? '+' : ''}${returnsPct.toFixed(1)}%`
+        : `${returnsAmount >= 0 ? '+' : ''}${fmtCompact(Math.abs(returnsAmount))} (${returnsPct >= 0 ? '+' : ''}${returnsPct.toFixed(1)}%)`}
+    </span>
+  );
+};
+
 // ── Goal Card ─────────────────────────────────────────────────────────────────
 interface GoalCardProps {
   goal: InvestmentGoal;
   onEdit: (g: InvestmentGoal) => void;
   onDelete: (g: InvestmentGoal) => void;
   onArchive?: (g: InvestmentGoal) => void;
+  onUpdateValue: (g: InvestmentGoal) => void;
   onClick: () => void;
 }
 
-const GoalCard: React.FC<GoalCardProps> = ({ goal, onEdit, onDelete, onArchive, onClick }) => {
+const GoalCard: React.FC<GoalCardProps> = ({ goal, onEdit, onDelete, onArchive, onUpdateValue, onClick }) => {
   const pct = goal.percent_achieved ?? 0;
+  const investedPct = goal.percent_invested ?? pct;
   const color = goal.is_closed ? '#94a3b8' : (goal.color ?? '#6366f1');
-  const remaining = Math.max(goal.target_amount - goal.current_amount, 0);
+  const remaining = Math.max(goal.target_amount - (goal.current_value ?? goal.current_amount), 0);
+  const hasCurrentValue = goal.current_value != null;
+  const effectiveValue = hasCurrentValue ? goal.current_value! : goal.current_amount;
 
   return (
     <div
@@ -165,6 +282,13 @@ const GoalCard: React.FC<GoalCardProps> = ({ goal, onEdit, onDelete, onArchive, 
             </div>
           </div>
           <div className="flex gap-1 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
+            {!goal.is_closed && (
+              <button onClick={(e) => { e.stopPropagation(); onUpdateValue(goal); }}
+                title="Update Market Value"
+                className="p-1.5 rounded-lg text-slate-400 hover:text-violet-500 hover:bg-violet-500/10 transition-all">
+                <PencilLine className="w-4 h-4" />
+              </button>
+            )}
             {!goal.is_closed && pct >= 100 && onArchive && (
               <button onClick={(e) => { e.stopPropagation(); onArchive(goal); }}
                 title="Mark as Closed"
@@ -185,11 +309,40 @@ const GoalCard: React.FC<GoalCardProps> = ({ goal, onEdit, onDelete, onArchive, 
           </div>
         </div>
 
+        {/* Two-column stat boxes: Invested vs Current Value */}
+        <div className="mt-4 grid grid-cols-2 gap-2">
+          <div className="rounded-xl px-3 py-2 bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800/40">
+            <p className="text-[9px] uppercase font-bold text-slate-400 tracking-wider">💰 Invested</p>
+            <p className="text-sm font-black tabular-nums text-slate-700 dark:text-slate-200 mt-0.5">{fmtCompact(goal.current_amount)}</p>
+          </div>
+          <div className={`rounded-xl px-3 py-2 border ${hasCurrentValue
+            ? 'bg-slate-50 dark:bg-slate-800/60 border-slate-100 dark:border-slate-800/40'
+            : 'bg-slate-50/40 dark:bg-slate-800/30 border-dashed border-slate-200 dark:border-slate-700/40'
+          }`}>
+            <div className="flex items-center justify-between gap-1">
+              <p className="text-[9px] uppercase font-bold text-slate-400 tracking-wider">📈 Current Value</p>
+              {goal.returns_amount != null && goal.returns_percent != null && (
+                <ReturnsBadge returnsAmount={goal.returns_amount} returnsPct={goal.returns_percent} compact />
+              )}
+            </div>
+            {hasCurrentValue ? (
+              <>
+                <p className="text-sm font-black tabular-nums text-slate-700 dark:text-slate-200 mt-0.5">{fmtCompact(goal.current_value!)}</p>
+                {goal.last_value_updated_at && (
+                  <p className="text-[9px] text-slate-400 dark:text-slate-500 mt-0.5">{formatLastUpdated(goal.last_value_updated_at)}</p>
+                )}
+              </>
+            ) : (
+              <p className="text-[11px] text-slate-400 italic mt-0.5">Not tracked</p>
+            )}
+          </div>
+        </div>
+
         {/* Progress Bar + Labels */}
-        <div className="mt-4 space-y-2">
+        <div className="mt-3 space-y-2">
           <div className="flex justify-between items-baseline">
             <div className="text-xs font-semibold text-slate-800 dark:text-slate-200">
-              <span className="font-bold text-sm tabular-nums text-slate-900 dark:text-white">{fmtCompact(goal.current_amount)}</span>
+              <span className="font-bold text-sm tabular-nums text-slate-900 dark:text-white">{fmtCompact(effectiveValue)}</span>
               <span className="mx-1 text-slate-400 dark:text-slate-500">/</span>
               <span className="font-medium text-xs tabular-nums text-slate-500 dark:text-slate-400">{fmtCompact(goal.target_amount)}</span>
               <span className="ml-1.5 text-[10px] text-slate-400 dark:text-slate-500 font-bold">({pct.toFixed(0)}%)</span>
@@ -205,20 +358,30 @@ const GoalCard: React.FC<GoalCardProps> = ({ goal, onEdit, onDelete, onArchive, 
             )}
           </div>
 
-          {/* Progress Bar Track */}
-          <div className="w-full bg-slate-100 dark:bg-slate-800/80 rounded-full h-3 overflow-hidden p-0.5 border border-slate-200/20 dark:border-slate-700/10">
-            <div 
-              className="h-2 rounded-full transition-all duration-500 shadow-sm" 
-              style={{ 
-                width: `${Math.min(pct, 100)}%`,
-                background: `linear-gradient(90deg, ${color}, ${color}cc)`
-              }} 
-            />
-          </div>
+          <DualProgressBar
+            percent={pct}
+            investedPercent={investedPct}
+            color={color}
+            returnsAmount={goal.returns_amount}
+          />
+
+          {/* Legend when dual mode is active */}
+          {hasCurrentValue && goal.returns_amount != null && (
+            <div className="flex items-center gap-3 text-[9px] font-semibold text-slate-400">
+              <span className="flex items-center gap-1">
+                <span className="w-2.5 h-1.5 rounded-full inline-block" style={{ background: `${color}55` }} />
+                Invested ({investedPct.toFixed(0)}%)
+              </span>
+              <span className="flex items-center gap-1">
+                <span className={`w-2.5 h-1.5 rounded-full inline-block`} style={{ background: color }} />
+                Value ({pct.toFixed(0)}%)
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Monthly Contribution */}
-        <div className="mt-1 flex items-center justify-between text-sm">
+        <div className="mt-2 flex items-center justify-between text-sm">
           <span className="text-slate-400 dark:text-slate-500 text-xs">Monthly Contribution</span>
           <span className="font-semibold text-slate-700 dark:text-slate-200 tabular-nums">{fmt(goal.monthly_contribution)}</span>
         </div>
@@ -251,15 +414,178 @@ const GoalCard: React.FC<GoalCardProps> = ({ goal, onEdit, onDelete, onArchive, 
           </div>
         ) : null}
 
-        {/* Trimmed Notes */}
+        {/* Notes */}
         {goal.notes && (
-          <div 
+          <div
             className="mt-3 text-[11px] text-slate-400 dark:text-slate-500 italic bg-slate-50/50 dark:bg-slate-900/30 px-2.5 py-1.5 rounded-xl border border-slate-100/50 dark:border-slate-800/20 truncate font-medium"
             title={goal.notes}
           >
-            “{goal.notes}”
+            "{goal.notes}"
           </div>
         )}
+      </div>
+    </div>
+  );
+};
+
+// ── Update Market Value Modal ──────────────────────────────────────────────────
+interface UpdateValueModalProps {
+  goal: InvestmentGoal | null;
+  onClose: () => void;
+  onSaved: (g: InvestmentGoal) => void;
+}
+
+const UpdateValueModal: React.FC<UpdateValueModalProps> = ({ goal, onClose, onSaved }) => {
+  const { showToast } = useToast();
+  const [value, setValue] = useState<string>('');
+  const [saving, setSaving] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (goal) {
+      setValue(goal.current_value != null ? String(goal.current_value) : '');
+      setTimeout(() => inputRef.current?.focus(), 100);
+    }
+  }, [goal]);
+
+  if (!goal) return null;
+
+  const numValue = parseFloat(value) || 0;
+  const invested = goal.current_amount;
+  const returnsAmount = value !== '' ? numValue - invested : null;
+  const returnsPct = returnsAmount != null && invested > 0 ? (returnsAmount / invested) * 100 : null;
+  const color = goal.color ?? '#6366f1';
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const newValue = value === '' ? null : numValue;
+      const updated = await api.updateGoalCurrentValue(goal.id!, newValue);
+      onSaved(updated);
+      onClose();
+      showToast('Market value updated', 'success');
+    } catch (e: any) {
+      showToast(e.message ?? 'Failed to update value', 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleClear = async () => {
+    setSaving(true);
+    try {
+      const updated = await api.updateGoalCurrentValue(goal.id!, null);
+      onSaved(updated);
+      onClose();
+      showToast('Market value tracking cleared', 'success');
+    } catch (e: any) {
+      showToast(e.message ?? 'Failed to clear value', 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative w-full max-w-sm bg-white dark:bg-slate-900 rounded-2xl shadow-2xl animate-in zoom-in-95 slide-in-from-bottom-4 duration-300 overflow-hidden">
+        {/* Color accent */}
+        <div className="h-1 w-full" style={{ background: `linear-gradient(90deg, ${color}, ${color}88)` }} />
+
+        <div className="px-6 pt-5 pb-6 space-y-5">
+          {/* Header */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center text-lg shrink-0" style={{ background: `${color}22` }}>
+                {goal.icon ?? '🎯'}
+              </div>
+              <div>
+                <h2 className="text-sm font-black text-slate-900 dark:text-white">Update Market Value</h2>
+                <p className="text-[10px] text-slate-400 dark:text-slate-500">{goal.name}</p>
+              </div>
+            </div>
+            <button onClick={onClose} className="p-1.5 rounded-xl text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+
+          {/* Invested context */}
+          <div className="flex items-center justify-between py-2 px-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700/50">
+            <span className="text-xs text-slate-500 dark:text-slate-400">Invested Amount</span>
+            <span className="text-sm font-black tabular-nums text-slate-800 dark:text-slate-200">{fmtCompact(invested)}</span>
+          </div>
+
+          {/* Input */}
+          <div>
+            <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">
+              Current Value (₹)
+            </label>
+            <input
+              ref={inputRef}
+              type="number"
+              min={0}
+              value={value}
+              onChange={e => setValue(e.target.value)}
+              placeholder={String(invested)}
+              className="w-full rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-4 py-3 text-sm text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 transition-all"
+              style={{ '--tw-ring-color': `${color}66` } as React.CSSProperties}
+              onKeyDown={e => e.key === 'Enter' && handleSave()}
+            />
+            <p className="text-[10px] text-slate-400 mt-1">Leave blank to stop tracking market value separately.</p>
+          </div>
+
+          {/* Live returns preview */}
+          {returnsAmount !== null && (
+            <div className={`px-4 py-3 rounded-2xl border flex items-center justify-between ${
+              returnsAmount >= 0
+                ? 'bg-emerald-500/5 border-emerald-500/20'
+                : 'bg-rose-500/5 border-rose-500/20'
+            }`}>
+              <div className="flex items-center gap-2">
+                {returnsAmount >= 0
+                  ? <ArrowUpRight className="w-4 h-4 text-emerald-500" />
+                  : <ArrowDownRight className="w-4 h-4 text-rose-500" />}
+                <span className={`text-xs font-bold ${returnsAmount >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                  Returns
+                </span>
+              </div>
+              <div className="text-right">
+                <p className={`text-sm font-black tabular-nums ${returnsAmount >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                  {returnsAmount >= 0 ? '+' : ''}{fmtCompact(returnsAmount)}
+                </p>
+                {returnsPct !== null && (
+                  <p className={`text-[10px] font-bold tabular-nums ${returnsAmount >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
+                    {returnsPct >= 0 ? '+' : ''}{returnsPct.toFixed(2)}%
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Actions */}
+          <div className="flex gap-2 pt-1">
+            {goal.current_value != null && (
+              <button
+                onClick={handleClear}
+                disabled={saving}
+                className="flex-none px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all disabled:opacity-50"
+              >
+                Clear
+              </button>
+            )}
+            <button onClick={onClose}
+              className="flex-1 py-2.5 rounded-2xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-all">
+              Cancel
+            </button>
+            <button onClick={handleSave} disabled={saving}
+              className="flex-1 py-2.5 rounded-2xl text-white text-sm font-semibold shadow-lg transition-all disabled:opacity-60"
+              style={{
+                background: `linear-gradient(to right, ${color}, ${color}cc)`,
+              }}>
+              {saving ? 'Saving...' : 'Save'}
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -275,7 +601,7 @@ interface GoalModalProps {
 
 const EMPTY_FORM: Partial<InvestmentGoal> = {
   name: '', icon: '🎯', color: '#6366f1',
-  target_amount: 0, current_amount: 0, annual_rate: 8, notes: '',
+  target_amount: 0, current_amount: 0, current_value: undefined, annual_rate: 8, notes: '',
   goal_type: 'PERSISTENT',
 };
 
@@ -285,6 +611,8 @@ const GoalModal: React.FC<GoalModalProps> = ({ isOpen, onClose, onSaved, editGoa
   const [saving, setSaving] = useState(false);
   const [showIconPicker, setShowIconPicker] = useState(false);
   const iconPickerRef = useRef<HTMLDivElement>(null);
+  // currentValueStr keeps empty string vs "0" distinction
+  const [currentValueStr, setCurrentValueStr] = useState<string>('');
 
   // Close picker on click outside
   useEffect(() => {
@@ -309,9 +637,11 @@ const GoalModal: React.FC<GoalModalProps> = ({ isOpen, onClose, onSaved, editGoa
       if (editGoal) {
         setForm({ ...editGoal });
         setLocalTags(editGoal.tags ?? []);
+        setCurrentValueStr(editGoal.current_value != null ? String(editGoal.current_value) : '');
       } else {
         setForm(EMPTY_FORM);
         setLocalTags([]);
+        setCurrentValueStr('');
       }
       setItemSearch('');
     }
@@ -375,8 +705,11 @@ const GoalModal: React.FC<GoalModalProps> = ({ isOpen, onClose, onSaved, editGoa
     setSaving(true);
     try {
       let saved: InvestmentGoal;
+      // Parse current_value: empty string = undefined (not set)
+      const parsedCurrentValue = currentValueStr === '' ? undefined : (parseFloat(currentValueStr) || undefined);
       const payload = {
         ...form,
+        current_value: parsedCurrentValue,
         tags: localTags?.map(t => ({
           type: t.type,
           id: t.category?.id || t.subcategory?.id || t.item?.id
@@ -428,6 +761,13 @@ const GoalModal: React.FC<GoalModalProps> = ({ isOpen, onClose, onSaved, editGoa
   const pctNow = form.target_amount && form.target_amount > 0
     ? Math.min((form.current_amount ?? 0) / form.target_amount * 100, 100) : 0;
 
+  // Live returns preview in modal
+  const cvNum = currentValueStr !== '' ? (parseFloat(currentValueStr) || 0) : null;
+  const modalReturns = cvNum != null && (form.current_amount ?? 0) > 0
+    ? cvNum - (form.current_amount ?? 0) : null;
+  const modalReturnsPct = modalReturns != null && (form.current_amount ?? 0) > 0
+    ? (modalReturns / (form.current_amount ?? 1)) * 100 : null;
+
   if (!isOpen) return null;
 
   return (
@@ -458,7 +798,7 @@ const GoalModal: React.FC<GoalModalProps> = ({ isOpen, onClose, onSaved, editGoa
             <div>
               <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">
                 {projYears === null
-                  ? 'Add current amount to see projection'
+                  ? 'Add invested amount to see projection'
                   : projectYearLabel(projYears)}
               </p>
               {projYears != null && projYears > 0 && (
@@ -467,7 +807,7 @@ const GoalModal: React.FC<GoalModalProps> = ({ isOpen, onClose, onSaved, editGoa
                     {form.annual_rate}% annual growth
                   </p>
                   <p className="text-[10px] leading-tight text-slate-400 dark:text-slate-500/70 mt-1.5 italic">
-                    * Projections assume steady growth. Manual updates to "Already Achieved" are required for actual gains.
+                    * Projections are based on Invested Amount, not market value.
                   </p>
                 </div>
               )}
@@ -549,27 +889,61 @@ const GoalModal: React.FC<GoalModalProps> = ({ isOpen, onClose, onSaved, editGoa
             </div>
           </div>
 
-          {/* Amounts */}
+          {/* Target Amount */}
+          <div>
+            <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Target Amount (₹)</label>
+            <input
+              type="number" min={0} value={form.target_amount || ''}
+              onChange={e => setForm(f => ({ ...f, target_amount: parseFloat(e.target.value) || 0 }))}
+              placeholder="500000"
+              className="w-full rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-4 py-3 text-sm text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-400/50 dark:focus:ring-violet-500/50 transition-all"
+            />
+          </div>
+
+          {/* Invested Amount + Current Value (two columns) */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Target Amount (₹)</label>
-              <input
-                type="number" min={0} value={form.target_amount || ''}
-                onChange={e => setForm(f => ({ ...f, target_amount: parseFloat(e.target.value) || 0 }))}
-                placeholder="500000"
-                className="w-full rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-4 py-3 text-sm text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-400/50 dark:focus:ring-violet-500/50 transition-all"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Already Achieved (₹)</label>
+              <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">
+                Invested Amount (₹)
+              </label>
               <input
                 type="number" min={0} value={form.current_amount || ''}
                 onChange={e => setForm(f => ({ ...f, current_amount: parseFloat(e.target.value) || 0 }))}
                 placeholder="0"
                 className="w-full rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-4 py-3 text-sm text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-400/50 dark:focus:ring-violet-500/50 transition-all"
               />
+              <p className="text-[10px] text-slate-400 mt-1">Total principal put in</p>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">
+                Current Value (₹) <span className="normal-case font-normal text-slate-400">optional</span>
+              </label>
+              <input
+                type="number" min={0} value={currentValueStr}
+                onChange={e => setCurrentValueStr(e.target.value)}
+                placeholder="Market value today"
+                className="w-full rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-4 py-3 text-sm text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-400/50 dark:focus:ring-violet-500/50 transition-all"
+              />
+              <p className="text-[10px] text-slate-400 mt-1">Leave blank if not tracking</p>
             </div>
           </div>
+
+          {/* Live returns preview (in edit modal) */}
+          {modalReturns !== null && (form.current_amount ?? 0) > 0 && (
+            <div className={`px-4 py-2.5 rounded-xl border flex items-center justify-between ${
+              modalReturns >= 0
+                ? 'bg-emerald-500/5 border-emerald-500/20'
+                : 'bg-rose-500/5 border-rose-500/20'
+            }`}>
+              <span className={`text-xs font-semibold ${modalReturns >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                {modalReturns >= 0 ? '📈' : '📉'} Returns
+              </span>
+              <span className={`text-sm font-black tabular-nums ${modalReturns >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                {modalReturns >= 0 ? '+' : ''}{fmtCompact(modalReturns)}
+                {modalReturnsPct != null && <span className="text-xs ml-1">({modalReturnsPct >= 0 ? '+' : ''}{modalReturnsPct.toFixed(1)}%)</span>}
+              </span>
+            </div>
+          )}
 
           {/* Monthly Contribution */}
           <div>
@@ -698,9 +1072,10 @@ const GoalModal: React.FC<GoalModalProps> = ({ isOpen, onClose, onSaved, editGoa
 interface GoalDetailModalProps {
   goal: InvestmentGoal | null;
   onClose: () => void;
+  onUpdateValue: (g: InvestmentGoal) => void;
 }
 
-const GoalDetailModal: React.FC<GoalDetailModalProps> = ({ goal, onClose }) => {
+const GoalDetailModal: React.FC<GoalDetailModalProps> = ({ goal, onClose, onUpdateValue }) => {
   const { showToast } = useToast();
   const [transactions, setTransactions] = useState<any[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
@@ -741,9 +1116,11 @@ const GoalDetailModal: React.FC<GoalDetailModalProps> = ({ goal, onClose }) => {
   if (!goal) return null;
 
   const pct = goal.percent_achieved ?? 0;
+  const investedPct = goal.percent_invested ?? pct;
   const color = goal.color ?? '#6366f1';
-  const remaining = Math.max(goal.target_amount - goal.current_amount, 0);
+  const remaining = Math.max(goal.target_amount - (goal.current_value ?? goal.current_amount), 0);
   const totalFunded = goal.total_funded ?? 0;
+  const hasCurrentValue = goal.current_value != null;
 
   const achievedAmount = goal.current_amount + totalFunded;
   const refillTarget = Math.min(goal.target_amount, achievedAmount);
@@ -772,9 +1149,21 @@ const GoalDetailModal: React.FC<GoalDetailModalProps> = ({ goal, onClose }) => {
               </span>
             </div>
           </div>
-          <button onClick={onClose} className="p-2 rounded-xl text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all">
-            <X className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-2">
+            {!goal.is_closed && (
+              <button
+                onClick={() => onUpdateValue(goal)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all"
+                style={{ borderColor: `${color}40`, color, background: `${color}10` }}
+              >
+                <PencilLine className="w-3.5 h-3.5" />
+                Update Value
+              </button>
+            )}
+            <button onClick={onClose} className="p-2 rounded-xl text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         <div className="px-6 py-6 space-y-6">
@@ -817,26 +1206,95 @@ const GoalDetailModal: React.FC<GoalDetailModalProps> = ({ goal, onClose }) => {
           {goal.notes && (
             <div className="p-4 bg-slate-50/50 dark:bg-slate-900/50 rounded-2xl border border-slate-100 dark:border-slate-800/40 text-sm text-slate-600 dark:text-slate-400 italic">
               <span className="not-italic text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest block mb-1">Notes</span>
-              “{goal.notes}”
+              "{goal.notes}"
             </div>
           )}
 
-          {/* Quick Metrics */}
-          <div className="grid grid-cols-3 gap-4">
-            <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-2xl border border-slate-100 dark:border-slate-800/60">
-              <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Target</p>
-              <p className="text-base font-black text-slate-800 dark:text-white tabular-nums mt-1">{fmtCompact(goal.target_amount)}</p>
+          {/* Quick Metrics — 4 columns when current_value is tracked */}
+          {hasCurrentValue ? (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-2xl border border-slate-100 dark:border-slate-800/60">
+                <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Target</p>
+                <p className="text-base font-black text-slate-800 dark:text-white tabular-nums mt-1">{fmtCompact(goal.target_amount)}</p>
+              </div>
+              <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-2xl border border-slate-100 dark:border-slate-800/60">
+                <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">💰 Invested</p>
+                <p className="text-base font-black tabular-nums mt-1" style={{ color }}>{fmtCompact(goal.current_amount)}</p>
+              </div>
+              <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-2xl border border-slate-100 dark:border-slate-800/60">
+                <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">📈 Current Value</p>
+                <p className="text-base font-black text-slate-800 dark:text-white tabular-nums mt-1">{fmtCompact(goal.current_value!)}</p>
+                {goal.last_value_updated_at && (
+                  <p className="text-[9px] text-slate-400 mt-0.5">{formatLastUpdated(goal.last_value_updated_at)}</p>
+                )}
+              </div>
+              <div className={`p-4 rounded-2xl border ${
+                (goal.returns_amount ?? 0) >= 0
+                  ? 'bg-emerald-500/5 dark:bg-emerald-500/10 border-emerald-500/20'
+                  : 'bg-rose-500/5 dark:bg-rose-500/10 border-rose-500/20'
+              }`}>
+                <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Returns</p>
+                {goal.returns_amount != null ? (
+                  <>
+                    <p className={`text-base font-black tabular-nums mt-1 ${(goal.returns_amount) >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                      {goal.returns_amount >= 0 ? '+' : ''}{fmtCompact(goal.returns_amount)}
+                    </p>
+                    {goal.returns_percent != null && (
+                      <p className={`text-[10px] font-bold tabular-nums ${goal.returns_percent >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
+                        {goal.returns_percent >= 0 ? '+' : ''}{goal.returns_percent.toFixed(1)}%
+                      </p>
+                    )}
+                  </>
+                ) : (
+                  <p className="text-sm text-slate-400 mt-1">—</p>
+                )}
+              </div>
             </div>
-            <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-2xl border border-slate-100 dark:border-slate-800/60">
-              <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
-                {goal.goal_type === 'ONE_TIME' ? 'Achieved Amount' : 'Available Balance'}
-              </p>
-              <p className="text-base font-black text-slate-800 dark:text-white tabular-nums mt-1" style={{ color }}>{fmtCompact(goal.current_amount)}</p>
+          ) : (
+            <div className="grid grid-cols-3 gap-4">
+              <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-2xl border border-slate-100 dark:border-slate-800/60">
+                <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Target</p>
+                <p className="text-base font-black text-slate-800 dark:text-white tabular-nums mt-1">{fmtCompact(goal.target_amount)}</p>
+              </div>
+              <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-2xl border border-slate-100 dark:border-slate-800/60">
+                <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+                  {goal.goal_type === 'ONE_TIME' ? 'Invested Amount' : 'Available Balance'}
+                </p>
+                <p className="text-base font-black text-slate-800 dark:text-white tabular-nums mt-1" style={{ color }}>{fmtCompact(goal.current_amount)}</p>
+              </div>
+              <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-2xl border border-slate-100 dark:border-slate-800/60">
+                <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Total Spent</p>
+                <p className="text-base font-black text-slate-800 dark:text-white tabular-nums mt-1">{fmtCompact(totalFunded)}</p>
+              </div>
             </div>
-            <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-2xl border border-slate-100 dark:border-slate-800/60">
-              <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Total Spent</p>
-              <p className="text-base font-black text-slate-800 dark:text-white tabular-nums mt-1">{fmtCompact(totalFunded)}</p>
+          )}
+
+          {/* Dual progress bar in detail view */}
+          <div className="space-y-2">
+            <div className="flex justify-between items-center text-xs">
+              <span className="font-semibold text-slate-600 dark:text-slate-300">
+                {fmtCompact(goal.current_value ?? goal.current_amount)} / {fmtCompact(goal.target_amount)}
+              </span>
+              <span className="font-bold text-slate-400">{pct.toFixed(1)}%</span>
             </div>
+            <DualProgressBar
+              percent={pct}
+              investedPercent={investedPct}
+              color={color}
+              returnsAmount={goal.returns_amount}
+            />
+            {hasCurrentValue && goal.returns_amount != null && (
+              <div className="flex items-center gap-3 text-[9px] font-semibold text-slate-400">
+                <span className="flex items-center gap-1">
+                  <span className="w-2.5 h-1.5 rounded-full inline-block" style={{ background: `${color}55` }} />
+                  Invested ({investedPct.toFixed(0)}%)
+                </span>
+                <span className="flex items-center gap-1">
+                  <span className="w-2.5 h-1.5 rounded-full inline-block" style={{ background: color }} />
+                  Current Value ({pct.toFixed(0)}%)
+                </span>
+              </div>
+            )}
           </div>
 
           {/* Projection Indicator Card */}
@@ -882,7 +1340,7 @@ const GoalDetailModal: React.FC<GoalDetailModalProps> = ({ goal, onClose }) => {
                   ))}
                 </div>
 
-                {/* Localized compact Pagination */}
+                {/* Pagination */}
                 {totalPages > 1 && (
                   <div className="flex items-center justify-between pt-4 border-t border-slate-100 dark:border-slate-800">
                     <button
@@ -931,6 +1389,7 @@ const InvestmentPlanner: React.FC = () => {
   const [deleteTarget, setDeleteTarget] = useState<InvestmentGoal | null>(null);
   const [activeTab, setActiveTab] = useState<'active' | 'archived'>('active');
   const [selectedGoal, setSelectedGoal] = useState<InvestmentGoal | null>(null);
+  const [updateValueGoal, setUpdateValueGoal] = useState<InvestmentGoal | null>(null);
 
   const fetchGoals = async () => {
     setLoading(true);
@@ -993,10 +1452,13 @@ const InvestmentPlanner: React.FC = () => {
 
   // Summary stats (based on active goals)
   const totalTarget = activeGoals.reduce((s, g) => s + g.target_amount, 0);
-  const totalSaved = activeGoals.reduce((s, g) => s + g.current_amount, 0);
+  const totalInvested = activeGoals.reduce((s, g) => s + g.current_amount, 0);
+  const totalPortfolioValue = activeGoals.reduce((s, g) => s + (g.current_value ?? g.current_amount), 0);
+  const totalReturns = totalPortfolioValue - totalInvested;
   const totalMonthly = activeGoals.reduce((s, g) => s + g.monthly_contribution, 0);
-  const overallPct = totalTarget > 0 ? Math.min(Math.round(totalSaved / totalTarget * 100), 100) : 0;
-  const achievedCount = activeGoals.filter(g => g.current_amount >= g.target_amount).length;
+  const overallPct = totalTarget > 0 ? Math.min(Math.round(totalPortfolioValue / totalTarget * 100), 100) : 0;
+  const achievedCount = activeGoals.filter(g => (g.current_value ?? g.current_amount) >= g.target_amount).length;
+  const hasAnyReturns = activeGoals.some(g => g.current_value != null);
 
   return (
     <div className="min-h-screen">
@@ -1027,12 +1489,15 @@ const InvestmentPlanner: React.FC = () => {
 
         {/* Stats bar */}
         {(activeGoals.length > 0 || activeTab === 'active') && (
-          <div className="mt-6 grid grid-cols-2 sm:grid-cols-5 gap-4">
+          <div className="mt-6 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
             {[
               { label: 'Total Target', value: fmtCompact(totalTarget), icon: '🎯', color: 'violet' },
-              { label: 'Total Achieved', value: fmtCompact(totalSaved), icon: '💰', color: 'cyan' },
+              { label: 'Total Invested', value: fmtCompact(totalInvested), icon: '💰', color: 'cyan' },
+              { label: 'Portfolio Value', value: fmtCompact(totalPortfolioValue), icon: '📈', color: hasAnyReturns ? (totalReturns >= 0 ? 'emerald' : 'rose') : 'slate',
+                sub: hasAnyReturns ? `${totalReturns >= 0 ? '+' : ''}${fmtCompact(Math.abs(totalReturns))}` : null,
+                subColor: hasAnyReturns ? (totalReturns >= 0 ? 'text-emerald-500' : 'text-rose-500') : '' },
               { label: 'Monthly Contribution', value: fmtCompact(totalMonthly), icon: '📆', color: 'emerald' },
-              { label: 'Overall Progress', value: `${overallPct}%`, icon: '📈', color: 'emerald' },
+              { label: 'Overall Progress', value: `${overallPct}%`, icon: '📊', color: 'emerald' },
               { label: 'Goals Achieved', value: `${achievedCount} / ${activeGoals.length}`, icon: '🏆', color: 'amber' },
             ].map(stat => (
               <div key={stat.label}
@@ -1042,6 +1507,7 @@ const InvestmentPlanner: React.FC = () => {
                   <p className="text-xs font-medium text-slate-400 dark:text-slate-500 uppercase tracking-wider">{stat.label}</p>
                 </div>
                 <p className="text-xl font-bold text-slate-900 dark:text-white tabular-nums">{stat.value}</p>
+                {stat.sub && <p className={`text-[10px] font-bold tabular-nums mt-0.5 ${stat.subColor}`}>{stat.sub}</p>}
               </div>
             ))}
           </div>
@@ -1089,6 +1555,7 @@ const InvestmentPlanner: React.FC = () => {
               onEdit={(goal) => { setEditGoal(goal); setModalOpen(true); }}
               onDelete={setDeleteTarget}
               onArchive={handleArchive}
+              onUpdateValue={setUpdateValueGoal}
               onClick={() => setSelectedGoal(g)}
             />
           ))}
@@ -1098,8 +1565,8 @@ const InvestmentPlanner: React.FC = () => {
       {goals.length > 0 && (
         <div className="mt-12 pb-8 border-t border-slate-200 dark:border-slate-800 pt-6">
           <p className="text-[11px] text-slate-400 dark:text-slate-500 italic text-center max-w-2xl mx-auto leading-relaxed">
-            * Projected values are estimates based on your provided annual growth rate and monthly contributions.
-            The system tracks your manual contributions and balance updates; it does not automatically increment your balance for market gains.
+            * Projected values are estimates based on your provided annual growth rate and monthly contributions. Projections use your Invested Amount as the base.
+            Portfolio Value reflects your last manually updated market value. Returns are computed as Current Value − Invested Amount.
           </p>
         </div>
       )}
@@ -1115,6 +1582,13 @@ const InvestmentPlanner: React.FC = () => {
       <GoalDetailModal
         goal={selectedGoal}
         onClose={() => setSelectedGoal(null)}
+        onUpdateValue={(g) => { setSelectedGoal(null); setUpdateValueGoal(g); }}
+      />
+
+      <UpdateValueModal
+        goal={updateValueGoal}
+        onClose={() => setUpdateValueGoal(null)}
+        onSaved={(updated) => { handleSaved(updated); setUpdateValueGoal(null); }}
       />
 
       <ConfirmationDialog
