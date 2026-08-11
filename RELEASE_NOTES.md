@@ -2,13 +2,11 @@
 
 ## [August 10, 2026] Investment Planner: Market Value Tracking, Portfolio Returns & Dual-Progress Visualization
 
-This release enhances the **Investment Planner** with full market-linked portfolio tracking capabilities. Users can now track both their principal **Invested Amount** and live **Current Market Value**, visualize investment gains/losses with a dual-segment progress indicator, and perform quick market value updates.
+This release enhances the **Investment Planner** with portfolio tracking capabilities. Users can now track both their principal **Invested Amount** and live **Current Market Value**, visualize investment gains/losses with a dual-segment progress indicator, and perform quick market value updates.
 
 ### 📈 Two-Column Portfolio & Returns Tracking
 - **Invested vs. Current Value Split**: Disambiguates contributed principal (*Invested Amount*) from today's market value (*Current Market Value*), allowing users to track market-linked instruments like Mutual Funds, Stocks, and Fixed Deposits accurately.
-- **Active Invested Capital Model for Withdrawals/Spending**: Automatically computes `Active Invested` capital (`Total Invested − Total Spent`) for One-Time spending goals, ensuring that partial withdrawals or goal-funded purchases do not falsely register as market losses.
-- **Automatic Market Value Adjustment on Spending**: Goal-funded transactions automatically deduct the spent delta from both `Active Invested` capital and `Current Market Value` (when set), preserving net monetary profit/loss while maintaining return yield accuracy.
-- **Computed Returns & Percentage Badges**: Real-time computation of net gain or loss (`Current Value − Active Invested Capital`) with color-coded directional badges (`+₹60K / +13.3%` in green, or losses in red).
+- **Computed Returns & Percentage Badges**: Real-time computation of net gain or loss (`Current Value − Invested Amount`) with color-coded directional badges (`+₹60K / +13.3%` in green, or losses in red).
 - **Option C Auto-Credit Delta Propagation**: Tagged savings transactions auto-increment the Invested Amount and automatically propagate the contribution delta to Current Market Value when set.
 
 ### 🎨 Dual-Segment Progress Indicator & Visual Redesign

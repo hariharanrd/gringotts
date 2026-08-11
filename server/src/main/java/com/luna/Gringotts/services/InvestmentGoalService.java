@@ -345,14 +345,17 @@ public class InvestmentGoalService {
                 : goal.getCurrentAmount();
         dto.put("active_invested", Math.round(activeInvested * 100.0) / 100.0);
 
-        // Progress toward target:
-        // For ONE_TIME goals: achievement is based on total accumulated principal (current_amount vs target_amount).
-        // For PERSISTENT goals: achievement is based on current market value (or balance).
-        double effectiveValue = GoalType.ONE_TIME.equals(goal.getGoalType())
-                ? goal.getCurrentAmount()
-                : (goal.getCurrentValue() != null ? goal.getCurrentValue() : goal.getCurrentAmount());
+        // Progress value towards target:
+        // For ONE_TIME goals: total value realized towards the goal = total_funded (spent on goal) + current worth (remaining active value/capital).
+        // For PERSISTENT goals: current worth sitting in the account/fund.
+        double currentWorth = goal.getCurrentValue() != null ? goal.getCurrentValue() : activeInvested;
+        double progressValue = GoalType.ONE_TIME.equals(goal.getGoalType())
+                ? (totalFunded + currentWorth)
+                : currentWorth;
+        dto.put("progress_value", Math.round(progressValue * 100.0) / 100.0);
+
         double pct = goal.getTargetAmount() > 0
-                ? (effectiveValue / goal.getTargetAmount()) * 100.0
+                ? (progressValue / goal.getTargetAmount()) * 100.0
                 : 0.0;
         dto.put("percent_achieved", Math.min(Math.round(pct * 10.0) / 10.0, 100.0));
 

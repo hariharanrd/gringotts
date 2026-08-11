@@ -246,11 +246,13 @@ const GoalCard: React.FC<GoalCardProps> = ({ goal, onEdit, onDelete, onArchive, 
   const pct = goal.percent_achieved ?? 0;
   const investedPct = goal.percent_invested ?? pct;
   const color = goal.is_closed ? '#94a3b8' : (goal.color ?? '#6366f1');
-  const remaining = isOneTime
-    ? Math.max(goal.target_amount - goal.current_amount, 0)
-    : Math.max(goal.target_amount - (goal.current_value ?? goal.current_amount), 0);
   const hasCurrentValue = goal.current_value != null;
-  const displayValue = isOneTime ? goal.current_amount : (hasCurrentValue ? goal.current_value! : goal.current_amount);
+  const totalFunded = goal.total_funded ?? 0;
+  const activeInvested = goal.active_invested ?? (isOneTime ? Math.max(0, goal.current_amount - totalFunded) : goal.current_amount);
+  const currentWorth = goal.current_value ?? activeInvested;
+  const progressValue = goal.progress_value ?? (isOneTime ? (totalFunded + currentWorth) : currentWorth);
+  const remaining = Math.max(goal.target_amount - progressValue, 0);
+  const displayValue = Math.min(progressValue, goal.target_amount);
 
   return (
     <div
@@ -1136,12 +1138,13 @@ const GoalDetailModal: React.FC<GoalDetailModalProps> = ({ goal, onClose, onUpda
   const pct = goal.percent_achieved ?? 0;
   const investedPct = goal.percent_invested ?? pct;
   const color = goal.color ?? '#6366f1';
-  const remaining = isOneTime
-    ? Math.max(goal.target_amount - goal.current_amount, 0)
-    : Math.max(goal.target_amount - (goal.current_value ?? goal.current_amount), 0);
   const totalFunded = goal.total_funded ?? 0;
   const hasCurrentValue = goal.current_value != null;
-  const displayValue = isOneTime ? goal.current_amount : (hasCurrentValue ? goal.current_value! : goal.current_amount);
+  const activeInvested = goal.active_invested ?? (isOneTime ? Math.max(0, goal.current_amount - totalFunded) : goal.current_amount);
+  const currentWorth = goal.current_value ?? activeInvested;
+  const progressValue = goal.progress_value ?? (isOneTime ? (totalFunded + currentWorth) : currentWorth);
+  const remaining = Math.max(goal.target_amount - progressValue, 0);
+  const displayValue = Math.min(progressValue, goal.target_amount);
 
   const achievedAmount = goal.current_amount + totalFunded;
   const refillTarget = Math.min(goal.target_amount, achievedAmount);
