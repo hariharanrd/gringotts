@@ -228,6 +228,7 @@ export interface InvestmentGoal {
   percent_achieved?: number;
   percent_invested?: number;
   active_invested?: number;
+  progress_value?: number;
   returns_amount?: number | null;
   returns_percent?: number | null;
   is_closed?: boolean;
