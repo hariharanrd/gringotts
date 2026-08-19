@@ -1,5 +1,31 @@
 # 🚀 Release Notes
 
+## [August 19, 2026] Loan-Funded Transactions & Principal Spending Tracking
+
+This release introduces comprehensive support for **Transactions Funded by Loan** across Gringotts. Similar to funding from savings goals, users can now track disbursements and expenditures funded directly out of loan principals (such as Home Loans, Education Loans, or Auto Loans), automatically exclude funded spending from monthly budget utilization, and track principal spending inside the Loan Detail Vault.
+
+### 🏛️ Loan-Funded Transactions & Scheduled Payments
+- **Fund Expenses & Savings from Loan**: Tag any Expense or Saving transaction with an active loan to record disbursements and purchases made against loan capital.
+- **Goal vs. Loan Mutual Exclusivity**: Strict business rules ensure transactions can be funded by either a Goal or a Loan, but never both. Selecting one funding source automatically clears and disables the other.
+- **Available Principal & Overdraft Protection**: Real-time balance checks ensure spending cannot exceed available loan principal amount (`Principal − Total Funded`), complete with visual zero-balance warnings and submit-time validation.
+- **Automated Recurring Schedules**: Create recurring scheduled expenses/savings pre-linked to funding loans with auto-tagging upon execution.
+
+### 🛡️ Automatic Budget Exclusion
+- **Smart Budget Protection**: Loan-funded expenditures are automatically excluded from budget utilization by default (`include_in_budget = false`), ensuring major capital expenditures funded via borrowings do not distort regular monthly spending budgets.
+- **Locked Indicator Feedback**: The "Exclude from budget utilization" checkbox visually locks with a contextual badge (*"(Locked by loan funding)"*) whenever a funding loan is selected.
+
+### 📊 Loan Detail Vault: Principal Utilization & Funded Transactions
+- **Principal Spending Metrics**: Overview tab now displays a dedicated **Loan Principal Spending** card with **Total Funded**, **Available to Spend**, and **Utilization Percentage**.
+- **Dedicated "Funded Spending" Tab**: View a paginated ledger of all transactions funded by a specific loan, detailing transaction dates, amounts, categories, and quick types.
+- **Mobile-Responsive Table Optimization**: Amortization schedule and transaction tables streamlined to eliminate empty space and format cleanly on mobile screens.
+
+### ⚡ Ledger Enhancements & Bulk Actions
+- **Visual Ledger Badges**: Transactions funded by loans feature prominent 🏛️ badges in both table and mobile card views.
+- **Bulk Funding Operations**: Select multiple transactions in the ledger and update their funding loan or clear loan funding in a single bulk operation.
+- **Transaction Details Navigation**: Direct navigation link from transaction details view straight to the associated Loan vault.
+
+---
+
 ## [August 10, 2026] Investment Planner: Market Value Tracking, Portfolio Returns & Dual-Progress Visualization
 
 This release enhances the **Investment Planner** with portfolio tracking capabilities. Users can now track both their principal **Invested Amount** and live **Current Market Value**, visualize investment gains/losses with a dual-segment progress indicator, and perform quick market value updates.

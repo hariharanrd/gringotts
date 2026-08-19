@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Landmark, Calendar, Sparkles, TrendingUp, HelpCircle, ArrowRight, CheckCircle2, ChevronRight, Trash2, PlusCircle } from 'lucide-react';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
 import { api } from '../services/api';
-import { Loan, LoanAmortizationRow, LoanSimulation, Category, SubCategory, Item } from '../types';
+import { Loan, LoanAmortizationRow, LoanSimulation, Category, SubCategory, Item, Transaction } from '../types';
 import { useToast } from './ToastContext';
 import ConfirmationDialog from './ConfirmationDialog';
 
@@ -34,7 +34,7 @@ const fmtCompact = (n: number) => {
 
 export const LoanDetailModal: React.FC<LoanDetailModalProps> = ({ loan, onClose, onSuccess }) => {
   const { showToast } = useToast();
-  const [activeTab, setActiveTab] = useState<'overview' | 'amortization' | 'simulator' | 'partPayments'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'amortization' | 'simulator' | 'partPayments' | 'fundedSpending'>('overview');
   const [amortization, setAmortization] = useState<LoanAmortizationRow[]>([]);
   const [loadingAmortization, setLoadingAmortization] = useState(false);
   const [simulatedTenure, setSimulatedTenure] = useState<number>(1);
@@ -42,6 +42,13 @@ export const LoanDetailModal: React.FC<LoanDetailModalProps> = ({ loan, onClose,
   const [showEmiConfirm, setShowEmiConfirm] = useState(false);
   const [showSettleConfirm, setShowSettleConfirm] = useState(false);
   const [settlingLoan, setSettlingLoan] = useState(false);
+
+  // Funded Spending State
+  const [fundedTransactions, setFundedTransactions] = useState<Transaction[]>([]);
+  const [loadingFunded, setLoadingFunded] = useState(false);
+  const [fundedPage, setFundedPage] = useState(1);
+  const [totalFundedCount, setTotalFundedCount] = useState(0);
+  const [hasMoreFunded, setHasMoreFunded] = useState(false);
 
   // Prepayment Form State
   const [prepayAmount, setPrepayAmount] = useState<number>(10000);
@@ -140,6 +147,24 @@ export const LoanDetailModal: React.FC<LoanDetailModalProps> = ({ loan, onClose,
       })();
     }
   }, [loan, activeTab]);
+
+  // Fetch funded transactions when tab is opened
+  useEffect(() => {
+    if (loan?.id && activeTab === 'fundedSpending') {
+      setLoadingFunded(true);
+      api.getLoanTransactions(loan.id, fundedPage, 10)
+        .then(res => {
+          setFundedTransactions(res.data ?? []);
+          setTotalFundedCount(res.total_count ?? 0);
+          setHasMoreFunded(res.has_more ?? false);
+        })
+        .catch(err => {
+          console.error(err);
+          showToast('Failed to load funded transactions', 'error');
+        })
+        .finally(() => setLoadingFunded(false));
+    }
+  }, [loan?.id, activeTab, fundedPage]);
 
   // Set default simulated tenure when simulator tab is opened
   useEffect(() => {
@@ -294,23 +319,29 @@ export const LoanDetailModal: React.FC<LoanDetailModalProps> = ({ loan, onClose,
         </div>
 
         {/* Tab Buttons */}
-        <div className="px-6 bg-slate-50 dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800/50 flex gap-4 text-sm font-semibold">
+        <div className="px-6 bg-slate-50 dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800/50 flex gap-4 text-sm font-semibold overflow-x-auto">
           <button
             onClick={() => setActiveTab('overview')}
-            className={`py-3 border-b-2 transition-all ${activeTab === 'overview' ? 'border-cyan-500 text-cyan-600 dark:text-cyan-400' : 'border-transparent text-slate-450 dark:text-slate-500 hover:text-slate-700'}`}
+            className={`py-3 border-b-2 transition-all shrink-0 ${activeTab === 'overview' ? 'border-cyan-500 text-cyan-600 dark:text-cyan-400' : 'border-transparent text-slate-450 dark:text-slate-500 hover:text-slate-700'}`}
           >
             Overview
           </button>
           <button
             onClick={() => setActiveTab('amortization')}
-            className={`py-3 border-b-2 transition-all ${activeTab === 'amortization' ? 'border-cyan-500 text-cyan-600 dark:text-cyan-400' : 'border-transparent text-slate-450 dark:text-slate-500 hover:text-slate-700'}`}
+            className={`py-3 border-b-2 transition-all shrink-0 ${activeTab === 'amortization' ? 'border-cyan-500 text-cyan-600 dark:text-cyan-400' : 'border-transparent text-slate-450 dark:text-slate-500 hover:text-slate-700'}`}
           >
             Amortization Table
+          </button>
+          <button
+            onClick={() => setActiveTab('fundedSpending')}
+            className={`py-3 border-b-2 transition-all shrink-0 ${activeTab === 'fundedSpending' ? 'border-cyan-500 text-cyan-600 dark:text-cyan-400' : 'border-transparent text-slate-450 dark:text-slate-500 hover:text-slate-700'}`}
+          >
+            Funded Spending
           </button>
           {!isSettled && (
             <button
               onClick={() => setActiveTab('partPayments')}
-              className={`py-3 border-b-2 transition-all ${activeTab === 'partPayments' ? 'border-cyan-500 text-cyan-600 dark:text-cyan-400' : 'border-transparent text-slate-450 dark:text-slate-500 hover:text-slate-700'}`}
+              className={`py-3 border-b-2 transition-all shrink-0 ${activeTab === 'partPayments' ? 'border-cyan-500 text-cyan-600 dark:text-cyan-400' : 'border-transparent text-slate-450 dark:text-slate-500 hover:text-slate-700'}`}
             >
               Part Payments
             </button>
@@ -318,7 +349,7 @@ export const LoanDetailModal: React.FC<LoanDetailModalProps> = ({ loan, onClose,
           {!isSettled && emisRemaining > 1 && (
             <button
               onClick={() => setActiveTab('simulator')}
-              className={`py-3 border-b-2 transition-all flex items-center gap-1 ${activeTab === 'simulator' ? 'border-cyan-500 text-cyan-600 dark:text-cyan-400' : 'border-transparent text-slate-450 dark:text-slate-500 hover:text-slate-700'}`}
+              className={`py-3 border-b-2 transition-all shrink-0 flex items-center gap-1 ${activeTab === 'simulator' ? 'border-cyan-500 text-cyan-600 dark:text-cyan-400' : 'border-transparent text-slate-450 dark:text-slate-500 hover:text-slate-700'}`}
             >
               <Sparkles className="w-3.5 h-3.5 text-cyan-500" />
               Early Closure Simulator
@@ -349,6 +380,42 @@ export const LoanDetailModal: React.FC<LoanDetailModalProps> = ({ loan, onClose,
                   <div className="text-slate-450 dark:text-slate-500 text-xs font-bold uppercase tracking-wider mb-1">Repayment Progress</div>
                   <div className="text-xl font-black text-emerald-500 tabular-nums">{pct}%</div>
                   <div className="text-[10px] text-slate-400 dark:text-slate-500 font-semibold mt-1">{loan.emis_paid} / {summary.adjusted_tenure_months} EMIs Paid</div>
+                </div>
+              </div>
+
+              {/* Loan Principal Utilization */}
+              <div className="p-4 bg-cyan-500/5 dark:bg-cyan-500/10 rounded-2xl border border-cyan-500/20 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="text-xs font-black uppercase tracking-wider text-cyan-700 dark:text-cyan-300 flex items-center gap-1.5">
+                    <Landmark className="w-4 h-4 text-cyan-500" />
+                    Loan Principal Spending
+                  </div>
+                  <button
+                    onClick={() => setActiveTab('fundedSpending')}
+                    className="text-xs font-bold text-cyan-600 dark:text-cyan-400 hover:underline flex items-center gap-1"
+                  >
+                    View Transactions <ChevronRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Total Funded</div>
+                    <div className="text-base font-black text-slate-800 dark:text-slate-100 tabular-nums">
+                      {fmt(summary.total_funded ?? loan.total_funded ?? 0)}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Available to Spend</div>
+                    <div className="text-base font-black text-emerald-600 dark:text-emerald-400 tabular-nums">
+                      {fmt(summary.available_to_fund ?? loan.available_to_fund ?? Math.max(0, loan.principal_amount - (loan.total_funded ?? 0)))}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Utilization</div>
+                    <div className="text-base font-black text-cyan-600 dark:text-cyan-400 tabular-nums">
+                      {(summary.funded_percent ?? ((loan.total_funded ?? 0) / (loan.principal_amount || 1) * 100)).toFixed(1)}%
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -498,45 +565,50 @@ export const LoanDetailModal: React.FC<LoanDetailModalProps> = ({ loan, onClose,
                 </div>
               ) : (
                 <div className="border border-slate-200 dark:border-slate-800/80 rounded-2xl overflow-hidden max-h-[50vh] overflow-y-auto">
-                  <table className="w-full text-left border-collapse text-xs">
-                    <thead className="sticky top-0 bg-slate-50 dark:bg-slate-950 text-slate-450 dark:text-slate-500 font-bold uppercase tracking-wider border-b border-slate-200 dark:border-slate-850">
-                      <tr>
-                        <th className="p-3">Month</th>
-                        <th className="p-3">Date</th>
-                        <th className="p-3 text-right">EMI</th>
-                        <th className="p-3 text-right">Prepayment</th>
-                        <th className="p-3 text-right">Principal</th>
-                        <th className="p-3 text-right">Interest</th>
-                        <th className="p-3 text-right">Outstanding</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-150 dark:divide-slate-850 text-slate-700 dark:text-slate-300">
-                      {amortization.map((row, idx) => {
-                        const isPaid = idx < loan.emis_paid;
-                        return (
-                          <tr
-                            key={row.month}
-                            className={`transition-colors ${isPaid ? 'bg-emerald-500/5 dark:bg-emerald-500/[0.03] text-slate-500 dark:text-slate-500' : 'hover:bg-slate-50 dark:hover:bg-slate-850/50'}`}
-                          >
-                            <td className="p-3 font-semibold flex items-center gap-1.5 tabular-nums">
-                              {isPaid && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />}
-                              Month {row.month}
-                            </td>
-                            <td className="p-3">{new Date(row.date).toLocaleDateString('en-IN', { month: 'short', year: '2-digit' })}</td>
-                            <td className="p-3 text-right font-semibold tabular-nums">{fmt(row.emi)}</td>
-                            <td className="p-3 text-right font-bold text-emerald-500 tabular-nums">
-                              {row.part_payment_amount > 0 ? `+${fmt(row.part_payment_amount)}` : '—'}
-                            </td>
-                            <td className="p-3 text-right tabular-nums">{fmt(row.principal_component)}</td>
-                            <td className="p-3 text-right tabular-nums">{fmt(row.interest_component)}</td>
-                            <td className="p-3 text-right font-semibold tabular-nums">
-                              {row.outstanding_balance <= 0 ? 'Settled' : fmt(row.outstanding_balance)}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
+                  {/* allow horizontal scroll on small screens and simplify columns for mobile */}
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse text-xs">
+                      <thead className="sticky top-0 bg-slate-50 dark:bg-slate-950 text-slate-450 dark:text-slate-500 font-bold uppercase tracking-wider border-b border-slate-200 dark:border-slate-850">
+                        <tr>
+                          <th className="py-2.5 px-3 whitespace-nowrap">Month</th>
+                          <th className="p-3 hidden sm:table-cell whitespace-nowrap">Date</th>
+                          <th className="py-2.5 px-3 text-right whitespace-nowrap">EMI</th>
+                          <th className="p-3 text-right hidden sm:table-cell whitespace-nowrap">Prepayment</th>
+                          <th className="p-3 text-right hidden sm:table-cell whitespace-nowrap">Principal</th>
+                          <th className="p-3 text-right hidden sm:table-cell whitespace-nowrap">Interest</th>
+                          <th className="py-2.5 px-3 text-right whitespace-nowrap">Outstanding</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-150 dark:divide-slate-850 text-slate-700 dark:text-slate-300">
+                        {amortization.map((row, idx) => {
+                          const isPaid = idx < loan.emis_paid;
+                          return (
+                            <tr
+                              key={row.month}
+                              className={`transition-colors ${isPaid ? 'bg-emerald-500/5 dark:bg-emerald-500/[0.03] text-slate-500 dark:text-slate-500' : 'hover:bg-slate-50 dark:hover:bg-slate-850/50'}`}
+                            >
+                              <td className="py-2.5 px-3 font-semibold tabular-nums whitespace-nowrap">
+                                <div className="flex items-center gap-1.5">
+                                  {isPaid && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />}
+                                  <span>Month {row.month}</span>
+                                </div>
+                              </td>
+                              <td className="p-3 hidden sm:table-cell whitespace-nowrap">{new Date(row.date).toLocaleDateString('en-IN', { month: 'short', year: '2-digit' })}</td>
+                              <td className="py-2.5 px-3 text-right font-semibold tabular-nums whitespace-nowrap">{fmt(row.emi)}</td>
+                              <td className="p-3 text-right font-bold text-emerald-500 tabular-nums hidden sm:table-cell whitespace-nowrap">
+                                {row.part_payment_amount > 0 ? `+${fmt(row.part_payment_amount)}` : '—'}
+                              </td>
+                              <td className="p-3 text-right tabular-nums hidden sm:table-cell whitespace-nowrap">{fmt(row.principal_component)}</td>
+                              <td className="p-3 text-right tabular-nums hidden sm:table-cell whitespace-nowrap">{fmt(row.interest_component)}</td>
+                              <td className="py-2.5 px-3 text-right font-semibold tabular-nums whitespace-nowrap">
+                                {row.outstanding_balance <= 0 ? 'Settled' : fmt(row.outstanding_balance)}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               )}
             </div>
@@ -756,6 +828,83 @@ export const LoanDetailModal: React.FC<LoanDetailModalProps> = ({ loan, onClose,
                 </div>
               </div>
 
+            </div>
+          )}
+
+          {/* TAB 5: FUNDED SPENDING */}
+          {activeTab === 'fundedSpending' && (
+            <div className="space-y-6">
+              <div className="p-4 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-200 dark:border-slate-850 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                  <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200">Transactions Funded by this Loan</h4>
+                  <p className="text-xs text-slate-450 dark:text-slate-500">Expenses and savings spent out of the loan principal.</p>
+                </div>
+                <div className="flex gap-4 text-right">
+                  <div>
+                    <div className="text-[10px] uppercase font-bold text-slate-400">Total Spent</div>
+                    <div className="text-sm font-black text-slate-800 dark:text-slate-100">{fmt(summary.total_funded ?? loan.total_funded ?? 0)}</div>
+                  </div>
+                  <div>
+                    <div className="text-[10px] uppercase font-bold text-slate-400">Available</div>
+                    <div className="text-sm font-black text-emerald-500">{fmt(summary.available_to_fund ?? loan.available_to_fund ?? Math.max(0, loan.principal_amount - (loan.total_funded ?? 0)))}</div>
+                  </div>
+                </div>
+              </div>
+
+              {loadingFunded ? (
+                <div className="py-12 text-center text-sm font-semibold text-slate-400">Loading funded transactions...</div>
+              ) : fundedTransactions.length === 0 ? (
+                <div className="py-12 text-center text-sm font-semibold text-slate-400 bg-slate-50/50 dark:bg-slate-950/50 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800">
+                  No transactions funded by this loan yet. You can choose this loan when logging expenses or savings.
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <div className="divide-y divide-slate-100 dark:divide-slate-850 rounded-2xl border border-slate-200 dark:border-slate-850 overflow-hidden bg-slate-50 dark:bg-slate-950">
+                    {fundedTransactions.map(tx => (
+                      <div key={tx.id} className="p-3.5 flex items-center justify-between gap-3 text-xs hover:bg-slate-100/50 dark:hover:bg-slate-900/50 transition-colors">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="w-8 h-8 rounded-xl bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 flex items-center justify-center font-bold text-sm shrink-0">
+                            🏛️
+                          </div>
+                          <div className="min-w-0">
+                            <p className="font-bold text-slate-800 dark:text-slate-200 truncate">{tx.description}</p>
+                            <p className="text-[10px] text-slate-400 dark:text-slate-500">
+                              {new Date(tx.transaction_time).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })} • {tx.category?.name || 'Uncategorized'}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <p className="font-black text-slate-800 dark:text-slate-100">{fmt(tx.value)}</p>
+                          <span className="text-[9px] font-bold text-cyan-600 dark:text-cyan-400 px-1.5 py-0.5 rounded bg-cyan-500/10 border border-cyan-500/20">
+                            {tx.type}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Pagination Controls */}
+                  <div className="flex items-center justify-between text-xs font-semibold text-slate-500 pt-2">
+                    <span>Showing page {fundedPage} ({totalFundedCount} total)</span>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => setFundedPage(p => Math.max(1, p - 1))}
+                        disabled={fundedPage === 1}
+                        className="px-3 py-1 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 disabled:opacity-40 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all"
+                      >
+                        Previous
+                      </button>
+                      <button
+                        onClick={() => setFundedPage(p => p + 1)}
+                        disabled={!hasMoreFunded}
+                        className="px-3 py-1 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 disabled:opacity-40 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all"
+                      >
+                        Next
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 

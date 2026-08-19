@@ -43,6 +43,7 @@ const ScheduleModal: React.FC<Props> = ({ isOpen, onClose, schedule }) => {
     payment_mode: 'UPI',
     credit_card: undefined,
     funding_goal: undefined,
+    funding_loan: undefined,
     loan: undefined,
   });
 
@@ -68,6 +69,10 @@ const ScheduleModal: React.FC<Props> = ({ isOpen, onClose, schedule }) => {
     return Math.max(baseAvailable, 0);
   };
 
+  const getAvailableLoanBalance = (l: Loan) => {
+    return Math.max(l.available_to_fund ?? (l.principal_amount - (l.total_funded ?? 0)), 0);
+  };
+
   const selectedGoalForValidation = form.funding_goal?.id ? goals.find(g => g.id === form.funding_goal?.id) : undefined;
   const isGoalFundingInvalid = selectedGoalForValidation ? (() => {
     const available = getAvailableBalance(selectedGoalForValidation);
@@ -75,10 +80,17 @@ const ScheduleModal: React.FC<Props> = ({ isOpen, onClose, schedule }) => {
     return available === 0 || txVal > available;
   })() : false;
 
+  const selectedLoanForValidation = form.funding_loan?.id ? loans.find(l => l.id === form.funding_loan?.id) : undefined;
+  const isLoanFundingInvalid = selectedLoanForValidation ? (() => {
+    const available = getAvailableLoanBalance(selectedLoanForValidation);
+    const txVal = Number(form.amount) || 0;
+    return available === 0 || txVal > available;
+  })() : false;
+
   useEffect(() => {
     const fetchData = async () => {
       if (isOpen) {
-        const typeToUse = schedule ? schedule.transaction_type : (form.transaction_type || TransactionType.EXPENSE);
+        const typeToUse = schedule ? schedule.transaction_type : TransactionType.EXPENSE;
         const cats = await api.getCategories(typeToUse);
         setCategories(cats);
 
@@ -95,11 +107,6 @@ const ScheduleModal: React.FC<Props> = ({ isOpen, onClose, schedule }) => {
         });
 
         if (schedule) {
-          setForm({
-            ...schedule,
-            funding_goal: schedule.funding_goal,
-            loan: schedule.loan
-          });
           if (schedule.category) {
             const subs = await getSubCategories(schedule.category.id);
             setSubCategories(subs);
@@ -108,6 +115,25 @@ const ScheduleModal: React.FC<Props> = ({ isOpen, onClose, schedule }) => {
             const its = await getItems(schedule.subcategory.id);
             setItems(its);
           }
+          setForm({
+            name: schedule.name,
+            transaction_type: schedule.transaction_type,
+            amount: schedule.amount,
+            frequency: schedule.frequency,
+            start_date: schedule.start_date,
+            end_date: schedule.end_date,
+            is_active: schedule.is_active,
+            description: schedule.description,
+            category: schedule.category,
+            subcategory: schedule.subcategory,
+            item: schedule.item,
+            payment_mode: schedule.payment_mode || 'UPI',
+            credit_card: schedule.credit_card,
+            is_in: schedule.is_in,
+            funding_goal: schedule.funding_goal,
+            funding_loan: schedule.funding_loan,
+            loan: schedule.loan,
+          });
         } else {
           setForm({
             name: '',
@@ -120,6 +146,7 @@ const ScheduleModal: React.FC<Props> = ({ isOpen, onClose, schedule }) => {
             payment_mode: 'UPI',
             is_in: true,
             funding_goal: undefined,
+            funding_loan: undefined,
             loan: undefined,
           });
           setSubCategories([]);
@@ -131,7 +158,16 @@ const ScheduleModal: React.FC<Props> = ({ isOpen, onClose, schedule }) => {
   }, [isOpen, schedule]);
 
   const handleTypeChange = async (type: TransactionType) => {
-    setForm(f => ({ ...f, transaction_type: type, category: undefined, subcategory: undefined, item: undefined }));
+    setForm(f => ({
+      ...f,
+      transaction_type: type,
+      category: undefined,
+      subcategory: undefined,
+      item: undefined,
+      funding_goal: type === TransactionType.INCOME ? undefined : f.funding_goal,
+      funding_loan: type === TransactionType.INCOME ? undefined : f.funding_loan,
+      loan: type !== TransactionType.EXPENSE ? undefined : f.loan,
+    }));
     const cats = await api.getCategories(type);
     setCategories(cats);
     setSubCategories([]);
@@ -164,6 +200,14 @@ const ScheduleModal: React.FC<Props> = ({ isOpen, onClose, schedule }) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isGoalFundingInvalid) {
+      showToast("Cannot save: Selected funding goal doesn't have sufficient available balance.", 'error');
+      return;
+    }
+    if (isLoanFundingInvalid) {
+      showToast("Cannot save: Selected funding loan doesn't have sufficient available balance.", 'error');
+      return;
+    }
     setLoading(true);
     try {
       if (schedule) {
@@ -208,6 +252,11 @@ const ScheduleModal: React.FC<Props> = ({ isOpen, onClose, schedule }) => {
           changes.funding_goal = id ? { id } : null;
         }
 
+        if (getRelId(form.funding_loan) !== schedule.funding_loan?.id) {
+          const id = getRelId(form.funding_loan);
+          changes.funding_loan = id ? { id } : null;
+        }
+
         if (getRelId(form.loan) !== schedule.loan?.id) {
           const id = getRelId(form.loan);
           changes.loan = (form.transaction_type === TransactionType.EXPENSE && id) ? { id } : null;
@@ -231,6 +280,7 @@ const ScheduleModal: React.FC<Props> = ({ isOpen, onClose, schedule }) => {
           item: form.item ? { id: getRelId(form.item) } : undefined,
           credit_card: (form.payment_mode === 'CREDIT_CARD' && form.credit_card) ? { id: getRelId(form.credit_card) } : undefined,
           funding_goal: form.funding_goal ? { id: getRelId(form.funding_goal) } : undefined,
+          funding_loan: form.funding_loan ? { id: getRelId(form.funding_loan) } : undefined,
           loan: (form.transaction_type === TransactionType.EXPENSE && form.loan) ? { id: getRelId(form.loan) } : undefined,
         };
         await api.createScheduledTransaction(payload as any);
@@ -457,66 +507,133 @@ const ScheduleModal: React.FC<Props> = ({ isOpen, onClose, schedule }) => {
               </div>
 
               {form.transaction_type !== TransactionType.INCOME && (
-                <div className="space-y-1.5 animate-in slide-in-from-top-2 duration-300">
-                  <label className="text-sm font-semibold text-slate-600 dark:text-slate-400 ml-1">Fund from Goal (Optional)</label>
-                  <select
-                    value={form.funding_goal?.id || ''}
-                    onChange={(e) => {
-                      const goalId = e.target.value ? Number(e.target.value) : undefined;
-                      const selectedGoal = goals.find(g => g.id === goalId);
-                      setForm(f => ({
-                        ...f,
-                        funding_goal: selectedGoal
-                      }));
-                    }}
-                    className={inputClass}
-                  >
-                    <option value="" className="dark:bg-slate-900">Do not fund from a Goal</option>
-                    {goals.map(g => {
-                      const available = getAvailableBalance(g);
-                      return (
-                        <option key={g.id} value={g.id} className="dark:bg-slate-900">
-                          {g.icon || '🎯'} {g.name} — Available: ₹{available.toLocaleString('en-IN')} ({g.goal_type === 'ONE_TIME' ? 'One-Time' : 'Persistent'})
-                        </option>
-                      );
-                    })}
-                  </select>
-                  {form.funding_goal?.id && (() => {
-                    const selectedGoal = goals.find(g => g.id === form.funding_goal?.id);
-                    if (!selectedGoal) return null;
-                    const available = getAvailableBalance(selectedGoal);
-                    const txVal = Number(form.amount) || 0;
+                <>
+                  <div className="space-y-1.5 animate-in slide-in-from-top-2 duration-300">
+                    <label className="text-sm font-semibold text-slate-600 dark:text-slate-400 ml-1">Fund from Goal (Optional)</label>
+                    <select
+                      value={form.funding_goal?.id || ''}
+                      disabled={!!form.funding_loan?.id}
+                      onChange={(e) => {
+                        const goalId = e.target.value ? Number(e.target.value) : undefined;
+                        const selectedGoal = goals.find(g => g.id === goalId);
+                        setForm(f => ({
+                          ...f,
+                          funding_goal: selectedGoal,
+                          funding_loan: undefined
+                        }));
+                      }}
+                      className={`${inputClass} disabled:opacity-50`}
+                    >
+                      <option value="" className="dark:bg-slate-900">Do not fund from a Goal</option>
+                      {goals.map(g => {
+                        const available = getAvailableBalance(g);
+                        return (
+                          <option key={g.id} value={g.id} className="dark:bg-slate-900">
+                            {g.icon || '🎯'} {g.name} — Available: ₹{available.toLocaleString('en-IN')} ({g.goal_type === 'ONE_TIME' ? 'One-Time' : 'Persistent'})
+                          </option>
+                        );
+                      })}
+                    </select>
+                    {form.funding_goal?.id && (() => {
+                      const selectedGoal = goals.find(g => g.id === form.funding_goal?.id);
+                      if (!selectedGoal) return null;
+                      const available = getAvailableBalance(selectedGoal);
+                      const txVal = Number(form.amount) || 0;
 
-                    return (
-                      <div className="space-y-1.5 mt-2">
-                        <p className="text-[10px] text-indigo-600 dark:text-indigo-400 font-medium ml-1">
-                          Note: Funding from a goal automatically excludes created transactions from the budget.
-                        </p>
-                        {available === 0 ? (
-                          <div className="flex gap-2.5 p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl">
-                            <AlertTriangle className="w-4.5 h-4.5 text-amber-500 shrink-0 mt-0.5" />
-                            <div className="text-xs">
-                              <p className="font-bold text-amber-600 dark:text-amber-400">Zero Balance Warning</p>
-                              <p className="text-slate-500 dark:text-slate-400 leading-tight mt-0.5">
-                                This goal has an available balance of ₹0. Please contribute savings first.
-                              </p>
+                      return (
+                        <div className="space-y-1.5 mt-2">
+                          <p className="text-[10px] text-indigo-600 dark:text-indigo-400 font-medium ml-1">
+                            Note: Funding from a goal automatically excludes created transactions from the budget.
+                          </p>
+                          {available === 0 ? (
+                            <div className="flex gap-2.5 p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl">
+                              <AlertTriangle className="w-4.5 h-4.5 text-amber-500 shrink-0 mt-0.5" />
+                              <div className="text-xs">
+                                <p className="font-bold text-amber-600 dark:text-amber-400">Zero Balance Warning</p>
+                                <p className="text-slate-500 dark:text-slate-400 leading-tight mt-0.5">
+                                  This goal has an available balance of ₹0. Please contribute savings first.
+                                </p>
+                              </div>
                             </div>
-                          </div>
-                        ) : txVal > available ? (
-                          <div className="flex gap-2.5 p-3 bg-rose-500/10 border border-rose-500/20 rounded-xl">
-                            <AlertTriangle className="w-4.5 h-4.5 text-rose-500 shrink-0 mt-0.5" />
-                            <div className="text-xs">
-                              <p className="font-bold text-rose-600 dark:text-rose-400">Overdraft Warning</p>
-                              <p className="text-slate-500 dark:text-slate-400 leading-tight mt-0.5">
-                                Schedule amount (₹{txVal.toLocaleString('en-IN')}) exceeds available balance (₹{available.toLocaleString('en-IN')}). Creating transactions from this schedule will fail.
-                              </p>
+                          ) : txVal > available ? (
+                            <div className="flex gap-2.5 p-3 bg-rose-500/10 border border-rose-500/20 rounded-xl">
+                              <AlertTriangle className="w-4.5 h-4.5 text-rose-500 shrink-0 mt-0.5" />
+                              <div className="text-xs">
+                                <p className="font-bold text-rose-600 dark:text-rose-400">Overdraft Warning</p>
+                                <p className="text-slate-500 dark:text-slate-400 leading-tight mt-0.5">
+                                  Schedule amount (₹{txVal.toLocaleString('en-IN')}) exceeds available balance (₹{available.toLocaleString('en-IN')}). Creating transactions from this schedule will fail.
+                                </p>
+                              </div>
                             </div>
-                          </div>
-                        ) : null}
-                      </div>
-                    );
-                  })()}
-                </div>
+                          ) : null}
+                        </div>
+                      );
+                    })()}
+                  </div>
+
+                  <div className="space-y-1.5 animate-in slide-in-from-top-2 duration-300">
+                    <label className="text-sm font-semibold text-slate-600 dark:text-slate-400 ml-1">Fund from Loan (Optional)</label>
+                    <select
+                      value={form.funding_loan?.id || ''}
+                      disabled={!!form.funding_goal?.id}
+                      onChange={(e) => {
+                        const loanId = e.target.value ? Number(e.target.value) : undefined;
+                        const selectedLoan = loans.find(l => l.id === loanId);
+                        setForm(f => ({
+                          ...f,
+                          funding_loan: selectedLoan,
+                          funding_goal: undefined
+                        }));
+                      }}
+                      className={`${inputClass} disabled:opacity-50`}
+                    >
+                      <option value="" className="dark:bg-slate-900">Do not fund from a Loan</option>
+                      {loans.map(l => {
+                        const available = getAvailableLoanBalance(l);
+                        return (
+                          <option key={l.id} value={l.id} className="dark:bg-slate-900">
+                            🏛️ {l.name} — Available: ₹{available.toLocaleString('en-IN')} (Principal: ₹{l.principal_amount.toLocaleString('en-IN')})
+                          </option>
+                        );
+                      })}
+                    </select>
+                    {form.funding_loan?.id && (() => {
+                      const selectedLoan = loans.find(l => l.id === form.funding_loan?.id);
+                      if (!selectedLoan) return null;
+                      const available = getAvailableLoanBalance(selectedLoan);
+                      const txVal = Number(form.amount) || 0;
+
+                      return (
+                        <div className="space-y-1.5 mt-2">
+                          <p className="text-[10px] text-cyan-600 dark:text-cyan-400 font-medium ml-1">
+                            Note: Funding from a loan automatically excludes created transactions from the budget.
+                          </p>
+                          {available === 0 ? (
+                            <div className="flex gap-2.5 p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl">
+                              <AlertTriangle className="w-4.5 h-4.5 text-amber-500 shrink-0 mt-0.5" />
+                              <div className="text-xs">
+                                <p className="font-bold text-amber-600 dark:text-amber-400">Zero Available Balance</p>
+                                <p className="text-slate-500 dark:text-slate-400 leading-tight mt-0.5">
+                                  This loan has no remaining principal available to fund transactions.
+                                </p>
+                              </div>
+                            </div>
+                          ) : txVal > available ? (
+                            <div className="flex gap-2.5 p-3 bg-rose-500/10 border border-rose-500/20 rounded-xl">
+                              <AlertTriangle className="w-4.5 h-4.5 text-rose-500 shrink-0 mt-0.5" />
+                              <div className="text-xs">
+                                <p className="font-bold text-rose-600 dark:text-rose-400">Overdraft Warning</p>
+                                <p className="text-slate-500 dark:text-slate-400 leading-tight mt-0.5">
+                                  Schedule amount (₹{txVal.toLocaleString('en-IN')}) exceeds available loan balance (₹{available.toLocaleString('en-IN')}). Creating transactions from this schedule will fail.
+                                </p>
+                              </div>
+                            </div>
+                          ) : null}
+                        </div>
+                      );
+                    })()}
+                  </div>
+                </>
               )}
 
               {form.payment_mode === 'CREDIT_CARD' && (
@@ -538,9 +655,9 @@ const ScheduleModal: React.FC<Props> = ({ isOpen, onClose, schedule }) => {
                 </div>
               )}
 
-              {form.transaction_type === TransactionType.EXPENSE && (
+              {form.transaction_type === TransactionType.EXPENSE && !form.funding_goal?.id && !form.funding_loan?.id && (
                 <div className="space-y-1.5 animate-in slide-in-from-top-2 duration-300">
-                  <label className="text-sm font-semibold text-slate-600 dark:text-slate-400 ml-1">Link to Loan (Optional)</label>
+                  <label className="text-sm font-semibold text-slate-600 dark:text-slate-400 ml-1">Link Repayment to Loan (Optional)</label>
                   <select
                     value={form.loan?.id || ''}
                     onChange={(e) => {

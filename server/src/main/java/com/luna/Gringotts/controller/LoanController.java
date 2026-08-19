@@ -2,8 +2,14 @@ package com.luna.Gringotts.controller;
 
 import com.luna.Gringotts.records.Loan;
 import com.luna.Gringotts.records.LoanPartPayment;
+import com.luna.Gringotts.records.Transaction;
+import com.luna.Gringotts.repository.TransactionRepository;
 import com.luna.Gringotts.services.LoanService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -17,6 +23,9 @@ public class LoanController {
 
     @Autowired
     private LoanService loanService;
+
+    @Autowired
+    private TransactionRepository<Transaction> transactionRepository;
 
     @GetMapping("/loans")
     public ResponseEntity<Map<String, Object>> getAllLoans() {
@@ -99,5 +108,27 @@ public class LoanController {
     public ResponseEntity<Map<String, Object>> deletePartPayment(@PathVariable Long paymentId) {
         Map<String, Object> updatedLoan = loanService.deletePartPayment(paymentId);
         return ResponseEntity.ok(Map.of("data", updatedLoan, "status", "success"));
+    }
+
+    // ── LOAN TRANSACTIONS ──────────────────────────────────────────────────────
+
+    @GetMapping("/loans/{id}/transactions")
+    public ResponseEntity<Map<String, Object>> getLoanTransactions(
+            @PathVariable Long id,
+            @RequestParam(value = "page", defaultValue = "1") int page,
+            @RequestParam(value = "size", defaultValue = "10") int size) {
+        try {
+            Loan loan = loanService.requireLoan(id);
+            Pageable pageable = PageRequest.of(page - 1, size, Sort.by(Sort.Direction.DESC, "transactionTime"));
+            Page<Transaction> result = transactionRepository.findByFundingLoanAndUser(loan, loan.getUser(), pageable);
+            return ResponseEntity.ok(Map.of(
+                    "data", result.getContent(),
+                    "total_count", result.getTotalElements(),
+                    "has_more", result.hasNext()));
+        } catch (java.util.NoSuchElementException e) {
+            return ResponseEntity.status(404).body(Map.of("error", e.getMessage()));
+        } catch (SecurityException e) {
+            return ResponseEntity.status(403).body(Map.of("error", e.getMessage()));
+        }
     }
 }

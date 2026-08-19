@@ -37,6 +37,7 @@ public class TransactionSpecification {
             "group.id",
             "group.name",
             "fundinggoal.id",
+            "fundingloan.id",
             "loan.id",
             "includeinbudget",
             "createdby"
