@@ -1,9 +1,9 @@
 import { BASE_URL, fetchWithCredentials, handleResponse, handleResponseAndGetData, ResponseProps } from './common';
-import { Transaction, Expense, Income, Saving, Revolving, TransactionType, TimeRange, ImportStrategy, ImportColumnMapping, ImportPreviewResult, ImportJob } from '../../types';
+import { Transaction, Expense, Income, Saving, Revolving, TransactionType, TimeRange, ReportingMode, ImportStrategy, ImportColumnMapping, ImportPreviewResult, ImportJob } from '../../types';
 
 export const transactionsApi = {
-  getSummary: async (range: TimeRange = TimeRange.LAST_30_DAYS): Promise<any> => {
-    const response = await fetchWithCredentials(`${BASE_URL}/summary?range=${range}`);
+  getSummary: async (range: TimeRange = TimeRange.LAST_30_DAYS, mode: ReportingMode = 'CONSUMPTION'): Promise<any> => {
+    const response = await fetchWithCredentials(`${BASE_URL}/summary?range=${range}&mode=${mode}`);
     return handleResponse(response);
   },
 

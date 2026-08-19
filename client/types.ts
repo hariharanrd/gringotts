@@ -1,4 +1,47 @@
 
+export type ReportingMode = 'CONSUMPTION' | 'CASH_FLOW';
+
+export interface DashboardSummary {
+  mode?: ReportingMode;
+  range: string;
+  start_date: string;
+  end_date: string;
+  total_expenses: number;
+  consumption_expenses?: number;
+  cash_flow_expenses?: number;
+  loan_financed_spending?: number;
+  credit_card_spending?: number;
+  direct_cash_spending?: number;
+  loan_repayment_spending?: number;
+  total_incomes: number;
+  total_savings: number;
+  net_balance: number;
+  expense_count: number;
+  income_count: number;
+  saving_count: number;
+  total_i_owe: number;
+  total_others_owe_me: number;
+  category_breakdown: Record<string, number>;
+  savings_breakdown: Record<string, number>;
+  recent_transactions: Array<{
+    id: number;
+    description: string;
+    value: number;
+    transaction_time: string;
+    category?: { id: number; name: string; icon?: string; color?: string };
+    subcategory?: { id: number; name: string };
+    item?: { id: number; name: string };
+  }>;
+  credit_card_bills: {
+    overdue_amount: number;
+    pending_amount: number;
+    overdue_count: number;
+    pending_count: number;
+    oldest_overdue_due_date?: string;
+    nearest_pending_due_date?: string;
+  };
+}
+
 export enum TimeRange {
   LAST_WEEK = 'LAST_WEEK',
   LAST_30_DAYS = 'LAST_30_DAYS',

@@ -71,8 +71,10 @@ public class TransactionController {
     }
 
     @GetMapping("/summary")
-    public ResponseEntity<Map<String, Object>> getSummary(@RequestParam(value = "range", defaultValue = "LAST_30_DAYS") TimeRange range) {
-        Map<String, Object> summary = transactionService.getSummary(range);
+    public ResponseEntity<Map<String, Object>> getSummary(
+            @RequestParam(value = "range", defaultValue = "LAST_30_DAYS") TimeRange range,
+            @RequestParam(value = "mode", required = false, defaultValue = "CONSUMPTION") String mode) {
+        Map<String, Object> summary = transactionService.getSummary(range, mode);
         return ResponseEntity.ok(summary);
     }
 

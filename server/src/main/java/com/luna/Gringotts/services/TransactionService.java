@@ -33,6 +33,7 @@ import java.time.ZoneId;
 import java.time.temporal.TemporalAdjusters;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Service
 public class TransactionService {
@@ -802,6 +803,11 @@ public class TransactionService {
     }
 
     public Map<String, Object> getSummary(TimeRange range) {
+        return getSummary(range, "CONSUMPTION");
+    }
+
+    public Map<String, Object> getSummary(TimeRange range, String modeStr) {
+        String mode = (modeStr != null && modeStr.equalsIgnoreCase("CASH_FLOW")) ? "CASH_FLOW" : "CONSUMPTION";
         ZoneId zoneId = getUserZoneId();
         LocalDateTime start = range.getFrom(zoneId);
         LocalDateTime end = range.getTo(zoneId);
@@ -811,14 +817,46 @@ public class TransactionService {
         List<Income> incomes = incomeRepository.findByUserAndTransactionTimeBetween(user, start, end);
         List<Saving> savings = savingRepository.findByUserAndTransactionTimeBetween(user, start, end);
 
-        double totalExpenses = expenses.stream().mapToDouble(Transaction::getValue).sum();
+        // Classify expenses
+        List<Expense> loanFundedExpenses = new ArrayList<>();
+        List<Expense> creditCardExpenses = new ArrayList<>();
+        List<Expense> loanRepaymentExpenses = new ArrayList<>();
+        List<Expense> directCashExpenses = new ArrayList<>();
+
+        for (Expense e : expenses) {
+            if (e.getFundingLoan() != null) {
+                loanFundedExpenses.add(e);
+            } else if (e.getLoan() != null || e.getLoanPaymentType() != null) {
+                loanRepaymentExpenses.add(e);
+            } else if (e.getPaymentMode() != null && "CREDIT_CARD".equalsIgnoreCase(e.getPaymentMode())) {
+                creditCardExpenses.add(e);
+            } else {
+                directCashExpenses.add(e);
+            }
+        }
+
+        double loanFinancedSpending = loanFundedExpenses.stream().mapToDouble(Transaction::getValue).sum();
+        double creditCardSpending = creditCardExpenses.stream().mapToDouble(Transaction::getValue).sum();
+        double loanRepaymentSpending = loanRepaymentExpenses.stream().mapToDouble(Transaction::getValue).sum();
+        double directCashSpending = directCashExpenses.stream().mapToDouble(Transaction::getValue).sum();
+
+        // Consumption = direct cash expenses + credit card swipes (lifestyle goods & services consumed)
+        double consumptionExpenses = directCashSpending + creditCardSpending;
+        // Cash Flow = direct cash expenses + loan repayments paid out of bank
+        double cashFlowExpenses = directCashSpending + loanRepaymentSpending;
+
+        List<Expense> activeModeExpenses = "CASH_FLOW".equals(mode)
+                ? Stream.concat(directCashExpenses.stream(), loanRepaymentExpenses.stream()).collect(Collectors.toList())
+                : Stream.concat(directCashExpenses.stream(), creditCardExpenses.stream()).collect(Collectors.toList());
+
+        double totalExpenses = "CASH_FLOW".equals(mode) ? cashFlowExpenses : consumptionExpenses;
         double totalIncomes = incomes.stream().mapToDouble(Transaction::getValue).sum();
         double totalSavings = savings.stream()
                 .mapToDouble(s -> (s.getIsIn() != null && s.getIsIn()) ? s.getValue() : -s.getValue())
                 .sum();
 
-        // Category breakdown for expenses
-        Map<String, Double> categoryBreakdown = expenses.stream()
+        // Category breakdown for active mode
+        Map<String, Double> categoryBreakdown = activeModeExpenses.stream()
                 .collect(Collectors.groupingBy(
                         e -> e.getCategory() != null ? e.getCategory().getName() : "Uncategorized",
                         Collectors.summingDouble(Transaction::getValue)));
@@ -854,16 +892,23 @@ public class TransactionService {
         List<Transaction> recentTransactions = allTransactions.stream().limit(10).collect(Collectors.toList());
 
         Map<String, Object> summary = new LinkedHashMap<>();
+        summary.put("mode", mode);
         summary.put("range", range.name());
         summary.put("start_date", start);
         summary.put("end_date", end);
         summary.put("total_expenses", totalExpenses);
+        summary.put("consumption_expenses", consumptionExpenses);
+        summary.put("cash_flow_expenses", cashFlowExpenses);
+        summary.put("loan_financed_spending", loanFinancedSpending);
+        summary.put("credit_card_spending", creditCardSpending);
+        summary.put("direct_cash_spending", directCashSpending);
+        summary.put("loan_repayment_spending", loanRepaymentSpending);
         summary.put("total_incomes", totalIncomes);
         summary.put("total_savings", totalSavings);
         summary.put("total_i_owe", totalIOwe);
         summary.put("total_others_owe_me", totalOthersOweMe);
         summary.put("net_balance", totalIncomes - totalExpenses - totalSavings);
-        summary.put("expense_count", expenses.size());
+        summary.put("expense_count", activeModeExpenses.size());
         summary.put("income_count", incomes.size());
         summary.put("saving_count", savings.size());
         summary.put("category_breakdown", categoryBreakdown);
