@@ -1,8 +1,16 @@
 # 🚀 Release Notes
 
-## [August 19, 2026] Loan-Funded Transactions & Principal Spending Tracking
+## [August 19, 2026] Loan-Funded Transactions, Dual-Perspective Reporting (Consumption vs. Cash Flow) & Principal Spending
 
-This release introduces comprehensive support for **Transactions Funded by Loan** across Gringotts. Similar to funding from savings goals, users can now track disbursements and expenditures funded directly out of loan principals (such as Home Loans, Education Loans, or Auto Loans), automatically exclude funded spending from monthly budget utilization, and track principal spending inside the Loan Detail Vault.
+This release introduces comprehensive support for **Transactions Funded by Loan** and a new **Dual-Perspective Financial Reporting** architecture across Gringotts. Similar to funding from savings goals, users can now track disbursements and expenditures funded directly out of loan principals (such as Home Loans, Education Loans, or Auto Loans), automatically exclude funded spending from monthly budget utilization, track principal spending inside the Loan Detail Vault, and switch effortlessly between **Consumption** and **Cash Flow** analytics without double-counting liabilities.
+
+### 🔀 Dual-Perspective Reporting: Consumption vs. Cash Flow
+- **Eliminate Financial Double-Counting**: Cleanly separates **Consumption (Incurred Spending)** from **Cash Flow (Out-of-Pocket Bank Outflows)** to resolve double-counting between loan-funded purchases & EMIs, as well as credit card swipes & bill payments.
+- **Interactive Dashboard Perspective Switcher**: Added a dual-mode toggle (`📊 Consumption` vs `💵 Cash Flow`) in the Financial Activity dashboard section.
+- **Consumption Mode (Accrual / Incurred)**: Focuses on lifestyle consumption by aggregating direct cash payments and credit card swipes for 100% accurate category breakdown while excluding capital loan borrowings and debt settlements.
+- **Cash Flow Mode (Liquidity / Bank Outflows)**: Focuses on actual bank liquidity by tracking true money leaving bank accounts (direct expenses + loan EMIs) while deferring unsettled credit card swipes.
+- **Dynamic StatCard Context & Insight Badges**: Total Expenses card adapts dynamically with contextual tooltips and informative pill badges for `🏛️ Financed: ₹X`, `💳 Card Swipes: ₹Y`, `🏛️ EMIs Paid: ₹Z`, and `💵 Direct Cash: ₹W`.
+- **Session Persistence**: User's chosen reporting mode is saved automatically across sessions via `personalizationSync`.
 
 ### 🏛️ Loan-Funded Transactions & Scheduled Payments
 - **Fund Expenses & Savings from Loan**: Tag any Expense or Saving transaction with an active loan to record disbursements and purchases made against loan capital.
