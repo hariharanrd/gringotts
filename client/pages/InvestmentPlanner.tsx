@@ -74,7 +74,7 @@ const DualProgressBar: React.FC<{
         <div
           className="h-2 rounded-full transition-all duration-500 shadow-sm"
           style={{
-            width: `${Math.min(invPct, 100)}%`,
+            width: `${Math.min(valuePct, 100)}%`,
             background: `linear-gradient(90deg, ${color}, ${color}cc)`
           }}
         />
@@ -243,16 +243,16 @@ interface GoalCardProps {
 
 const GoalCard: React.FC<GoalCardProps> = ({ goal, onEdit, onDelete, onArchive, onUpdateValue, onClick }) => {
   const isOneTime = goal.goal_type === 'ONE_TIME';
-  const pct = goal.percent_achieved ?? 0;
-  const investedPct = goal.percent_invested ?? pct;
   const color = goal.is_closed ? '#94a3b8' : (goal.color ?? '#6366f1');
   const hasCurrentValue = goal.current_value != null;
   const totalFunded = goal.total_funded ?? 0;
   const activeInvested = goal.active_invested ?? (isOneTime ? Math.max(0, goal.current_amount - totalFunded) : goal.current_amount);
   const currentWorth = goal.current_value ?? activeInvested;
   const progressValue = goal.progress_value ?? (isOneTime ? (totalFunded + currentWorth) : currentWorth);
+  const pct = goal.percent_achieved ?? (goal.target_amount > 0 ? (progressValue / goal.target_amount) * 100 : 0);
+  const investedPct = goal.percent_invested ?? (goal.target_amount > 0 ? (activeInvested / goal.target_amount) * 100 : pct);
   const remaining = Math.max(goal.target_amount - progressValue, 0);
-  const displayValue = Math.min(progressValue, goal.target_amount);
+  const displayValue = progressValue;
 
   return (
     <div
@@ -316,15 +316,6 @@ const GoalCard: React.FC<GoalCardProps> = ({ goal, onEdit, onDelete, onArchive, 
 
         {/* Two-column stat boxes: Invested vs Current Value */}
         <div className="mt-4 grid grid-cols-2 gap-2">
-          <div className="rounded-xl px-3 py-2 bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800/40">
-            <p className="text-[9px] uppercase font-bold text-slate-400 tracking-wider">💰 Invested</p>
-            <p className="text-sm font-black tabular-nums text-slate-700 dark:text-slate-200 mt-0.5">{fmtCompact(goal.current_amount)}</p>
-            {goal.goal_type === 'ONE_TIME' && goal.total_funded && goal.total_funded > 0 ? (
-              <p className="text-[9px] text-slate-400 dark:text-slate-500 font-medium truncate mt-0.5" title={`Active: ${fmt(goal.active_invested ?? (goal.current_amount - goal.total_funded))} · Spent: ${fmt(goal.total_funded)}`}>
-                {fmtCompact(goal.active_invested ?? (goal.current_amount - goal.total_funded))} active · {fmtCompact(goal.total_funded)} spent
-              </p>
-            ) : null}
-          </div>
           <div className={`rounded-xl px-3 py-2 border ${hasCurrentValue
             ? 'bg-slate-50 dark:bg-slate-800/60 border-slate-100 dark:border-slate-800/40'
             : 'bg-slate-50/40 dark:bg-slate-800/30 border-dashed border-slate-200 dark:border-slate-700/40'
@@ -345,6 +336,15 @@ const GoalCard: React.FC<GoalCardProps> = ({ goal, onEdit, onDelete, onArchive, 
             ) : (
               <p className="text-[11px] text-slate-400 italic mt-0.5">Not tracked</p>
             )}
+          </div>
+          <div className="rounded-xl px-3 py-2 bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800/40">
+            <p className="text-[9px] uppercase font-bold text-slate-400 tracking-wider">💰 Invested</p>
+            <p className="text-sm font-black tabular-nums text-slate-700 dark:text-slate-200 mt-0.5">{fmtCompact(goal.current_amount)}</p>
+            {goal.goal_type === 'ONE_TIME' && goal.total_funded && goal.total_funded > 0 ? (
+              <p className="text-[9px] text-slate-400 dark:text-slate-500 font-medium truncate mt-0.5" title={`Active: ${fmt(goal.active_invested ?? (goal.current_amount - goal.total_funded))} · Spent: ${fmt(goal.total_funded)}`}>
+                {fmtCompact(goal.active_invested ?? (goal.current_amount - goal.total_funded))} active · {fmtCompact(goal.total_funded)} spent
+              </p>
+            ) : null}
           </div>
         </div>
 
@@ -1135,14 +1135,14 @@ const GoalDetailModal: React.FC<GoalDetailModalProps> = ({ goal, onClose, onUpda
   if (!goal) return null;
 
   const isOneTime = goal.goal_type === 'ONE_TIME';
-  const pct = goal.percent_achieved ?? 0;
-  const investedPct = goal.percent_invested ?? pct;
   const color = goal.color ?? '#6366f1';
   const totalFunded = goal.total_funded ?? 0;
   const hasCurrentValue = goal.current_value != null;
   const activeInvested = goal.active_invested ?? (isOneTime ? Math.max(0, goal.current_amount - totalFunded) : goal.current_amount);
   const currentWorth = goal.current_value ?? activeInvested;
   const progressValue = goal.progress_value ?? (isOneTime ? (totalFunded + currentWorth) : currentWorth);
+  const pct = goal.percent_achieved ?? (goal.target_amount > 0 ? (progressValue / goal.target_amount) * 100 : 0);
+  const investedPct = goal.percent_invested ?? (goal.target_amount > 0 ? (activeInvested / goal.target_amount) * 100 : pct);
   const remaining = Math.max(goal.target_amount - progressValue, 0);
   const displayValue = Math.min(progressValue, goal.target_amount);
 
@@ -1479,14 +1479,24 @@ const InvestmentPlanner: React.FC = () => {
   const archivedGoals = goals.filter(g => g.is_closed);
   const displayedGoals = activeTab === 'active' ? activeGoals : archivedGoals;
 
+  const getGoalProgressValue = (g: InvestmentGoal): number => {
+    if (g.progress_value != null) return g.progress_value;
+    const isOneTime = g.goal_type === 'ONE_TIME';
+    const totalFunded = g.total_funded ?? 0;
+    const activeInvested = g.active_invested ?? (isOneTime ? Math.max(0, g.current_amount - totalFunded) : g.current_amount);
+    const currentWorth = g.current_value ?? activeInvested;
+    return isOneTime ? (totalFunded + currentWorth) : currentWorth;
+  };
+
   // Summary stats (based on active goals)
   const totalTarget = activeGoals.reduce((s, g) => s + g.target_amount, 0);
   const totalInvested = activeGoals.reduce((s, g) => s + (g.active_invested ?? g.current_amount), 0);
   const totalPortfolioValue = activeGoals.reduce((s, g) => s + (g.current_value ?? g.active_invested ?? g.current_amount), 0);
   const totalReturns = totalPortfolioValue - totalInvested;
   const totalMonthly = activeGoals.reduce((s, g) => s + g.monthly_contribution, 0);
-  const overallPct = totalTarget > 0 ? Math.min(Math.round(totalPortfolioValue / totalTarget * 100), 100) : 0;
-  const achievedCount = activeGoals.filter(g => (g.current_value ?? g.active_invested ?? g.current_amount) >= g.target_amount).length;
+  const totalProgressValue = activeGoals.reduce((s, g) => s + getGoalProgressValue(g), 0);
+  const overallPct = totalTarget > 0 ? Math.min(Math.round(totalProgressValue / totalTarget * 100), 100) : 0;
+  const achievedCount = activeGoals.filter(g => g.target_amount > 0 && getGoalProgressValue(g) >= g.target_amount).length;
   const hasAnyReturns = activeGoals.some(g => g.current_value != null);
 
   return (
