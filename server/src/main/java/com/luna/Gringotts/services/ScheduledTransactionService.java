@@ -94,6 +94,20 @@ public class ScheduledTransactionService {
             s.setFundingGoal(null);
         }
 
+        if (s.getFundingLoan() != null && s.getFundingLoan().getId() != null) {
+            if ("INCOME".equals(s.getTransactionType())) {
+                throw new IllegalArgumentException("Income scheduled transactions cannot be funded from a loan");
+            }
+            Loan fullLoan = loanService.requireLoan(s.getFundingLoan().getId());
+            s.setFundingLoan(fullLoan);
+        } else {
+            s.setFundingLoan(null);
+        }
+
+        if (s.getFundingGoal() != null && s.getFundingLoan() != null) {
+            throw new IllegalArgumentException("A scheduled transaction cannot be funded by both a goal and a loan at the same time");
+        }
+
         if (s.getNextRunDate() == null) {
             s.setNextRunDate(s.getStartDate());
         }
@@ -154,6 +168,20 @@ public class ScheduledTransactionService {
                 existing.setFundingGoal(null);
             }
         }
+        if (incoming.getFundingLoan() != null) {
+            if (incoming.getFundingLoan().getId() != null) {
+                if ("INCOME".equals(incoming.getTransactionType() != null ? incoming.getTransactionType() : existing.getTransactionType())) {
+                    throw new IllegalArgumentException("Income scheduled transactions cannot be funded from a loan");
+                }
+                Loan fullLoan = loanService.requireLoan(incoming.getFundingLoan().getId());
+                existing.setFundingLoan(fullLoan);
+            } else {
+                existing.setFundingLoan(null);
+            }
+        }
+        if (existing.getFundingGoal() != null && existing.getFundingLoan() != null) {
+            throw new IllegalArgumentException("A scheduled transaction cannot be funded by both a goal and a loan at the same time");
+        }
         if (incoming.getLoan() != null) {
             if (incoming.getLoan().getId() != null) {
                 String type = incoming.getTransactionType() != null ? incoming.getTransactionType() : existing.getTransactionType();
@@ -171,6 +199,10 @@ public class ScheduledTransactionService {
         String finalType = incoming.getTransactionType() != null ? incoming.getTransactionType() : existing.getTransactionType();
         if (!"EXPENSE".equals(finalType)) {
             existing.setLoan(null);
+        }
+        if ("INCOME".equals(finalType)) {
+            existing.setFundingGoal(null);
+            existing.setFundingLoan(null);
         }
 
         // Only validate/reset if start date is actually changing and provided
@@ -309,6 +341,31 @@ public class ScheduledTransactionService {
         investmentGoalService.deductFromGoal(goalId, t.getValue(), null);
     }
 
+    private void handleScheduledLoanFunding(Transaction t, Loan loan) {
+        if (loan == null) return;
+        if (t instanceof Income) {
+            throw new IllegalArgumentException("Income transactions cannot be funded from a loan");
+        }
+
+        Long loanId = loan.getId();
+        Loan fullLoan = loanService.findById(loanId)
+                .orElseThrow(() -> new java.util.NoSuchElementException("Loan not found: " + loanId));
+
+        // Multi-user ownership isolation check (background run safe)
+        if (!fullLoan.getUser().getId().equals(t.getUser().getId())) {
+            throw new SecurityException("Loan ownership mismatch for scheduled transaction");
+        }
+
+        double available = loanService.getAvailableLoanBalance(fullLoan, t.getId());
+        if (t.getValue() > available) {
+            throw new IllegalArgumentException(
+                "Scheduled transaction value (₹" + t.getValue() + ") exceeds the loan's available balance (₹" + available + ")");
+        }
+
+        t.setFundingLoan(fullLoan);
+        t.setIncludeInBudget(false);
+    }
+
     @Transactional
     public Transaction executeSchedule(Long scheduleId, boolean isManual) {
         ScheduledTransaction s;
@@ -358,6 +415,7 @@ public class ScheduledTransactionService {
                     e.setScheduleId(s.getId());
                     e.setLoan(s.getLoan());
                     handleScheduledGoalFunding(e, s.getFundingGoal());
+                    handleScheduledLoanFunding(e, s.getFundingLoan());
                     created = expenseRepository.save(e);
 
                     if (e.getLoan() != null && e.getLoan().getId() != null) {
@@ -403,6 +461,7 @@ public class ScheduledTransactionService {
                     sv.setCreatedBy("SCHEDULE");
                     sv.setScheduleId(s.getId());
                     handleScheduledGoalFunding(sv, s.getFundingGoal());
+                    handleScheduledLoanFunding(sv, s.getFundingLoan());
                     created = savingRepository.save(sv);
                     // adjust goals similar to TransactionService.saveSaving
                     double delta = Boolean.TRUE.equals(sv.getIsIn()) ? sv.getValue() : -sv.getValue();

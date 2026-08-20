@@ -28,7 +28,7 @@ import {
   Cell,
 } from 'recharts';
 import { api } from '../services/api';
-import { TransactionType } from '../types';
+import { TransactionType, ReportingMode, DashboardSummary } from '../types';
 import { useTheme } from '../components/ThemeContext';
 import { DashboardSkeleton } from '../components/Skeleton';
 import { BudgetUtilization, TimeRange } from '../types';
@@ -38,42 +38,8 @@ import CategoryIcon from '../components/CategoryIcon';
 
 const PIE_COLORS = ['#06b6d4', '#10b981', '#8b5cf6', '#f43f5e', '#f59e0b', '#ec4899', '#14b8a6', '#a855f7'];
 
-interface SummaryData {
-  range: string;
-  start_date: string;
-  end_date: string;
-  total_expenses: number;
-  total_incomes: number;
-  total_savings: number;
-  net_balance: number;
-  expense_count: number;
-  income_count: number;
-  saving_count: number;
-  total_i_owe: number;
-  total_others_owe_me: number;
-  category_breakdown: Record<string, number>;
-  savings_breakdown: Record<string, number>;
-  recent_transactions: Array<{
-    id: number;
-    description: string;
-    value: number;
-    transaction_time: string;
-    category?: { id: number; name: string; icon?: string; color?: string };
-    subcategory?: { id: number; name: string };
-    item?: { id: number; name: string };
-  }>;
-  credit_card_bills: {
-    overdue_amount: number;
-    pending_amount: number;
-    overdue_count: number;
-    pending_count: number;
-    oldest_overdue_due_date?: string;
-    nearest_pending_due_date?: string;
-  };
-}
-
 const Dashboard: React.FC = () => {
-  const [summary, setSummary] = useState<SummaryData | null>(null);
+  const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [budgetUtil, setBudgetUtil] = useState<BudgetUtilization | null>(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
@@ -86,10 +52,14 @@ const Dashboard: React.FC = () => {
     const saved = localStorage.getItem('dashboard_range');
     return (saved as TimeRange) || TimeRange.LAST_30_DAYS;
   });
+  const [reportingMode, setReportingMode] = useState<ReportingMode>(() => {
+    const saved = localStorage.getItem('dashboard_reporting_mode');
+    return (saved as ReportingMode) || 'CONSUMPTION';
+  });
 
-  const fetchSummary = async (selectedRange: TimeRange) => {
+  const fetchSummary = async (selectedRange: TimeRange, selectedMode: ReportingMode = reportingMode) => {
     try {
-      const summaryData = await api.getSummary(selectedRange);
+      const summaryData = await api.getSummary(selectedRange, selectedMode);
       setSummary(summaryData);
     } catch (err) {
       console.error('Failed to fetch summary:', err);
@@ -101,7 +71,7 @@ const Dashboard: React.FC = () => {
     const fetchData = async () => {
       try {
         const [summaryData, budgetData, categoriesData] = await Promise.all([
-          api.getSummary(range),
+          api.getSummary(range, reportingMode),
           api.getActiveBudgetUtilization().catch(() => null),
           api.getCategories()
         ]);
@@ -124,7 +94,16 @@ const Dashboard: React.FC = () => {
     localStorage.setItem('dashboard_range', newRange);
     personalizationSync.save('FILTERS', 'DASHBOARD_RANGE', newRange);
     setSummaryLoading(true);
-    await fetchSummary(newRange);
+    await fetchSummary(newRange, reportingMode);
+    setSummaryLoading(false);
+  };
+
+  const handleReportingModeChange = async (newMode: ReportingMode) => {
+    setReportingMode(newMode);
+    localStorage.setItem('dashboard_reporting_mode', newMode);
+    personalizationSync.save('FILTERS', 'DASHBOARD_REPORTING_MODE', newMode);
+    setSummaryLoading(true);
+    await fetchSummary(range, newMode);
     setSummaryLoading(false);
   };
 
@@ -389,7 +368,7 @@ const Dashboard: React.FC = () => {
 
       {/* ── SECTION: Financial Activity (Range Dependent) ── */}
       <section className={`space-y-6 pt-6 transition-all duration-300 ${summaryLoading ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-4">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-4">
           <div className="flex items-center gap-3">
             <div className="w-1.5 h-6 bg-violet-500 rounded-full" />
             <div>
@@ -406,21 +385,54 @@ const Dashboard: React.FC = () => {
             </div>
           </div>
 
-          <div className="flex items-center gap-3 bg-slate-100 dark:bg-slate-800/50 p-1 rounded-xl border border-slate-200 dark:border-slate-700">
-            <label htmlFor="range-selector" className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-3">View Range:</label>
-            <div className="relative">
-              <select
-                id="range-selector"
-                value={range}
-                onChange={(e) => handleRangeChange(e.target.value as TimeRange)}
-                className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg pl-3 pr-8 py-1.5 text-xs font-bold text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500/20 transition-all appearance-none cursor-pointer shadow-sm hover:border-slate-300 dark:hover:border-slate-600"
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Reporting Mode Toggle */}
+            <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl border border-slate-200 dark:border-slate-700">
+              <button
+                type="button"
+                onClick={() => handleReportingModeChange('CONSUMPTION')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                  reportingMode === 'CONSUMPTION'
+                    ? 'bg-white dark:bg-slate-900 text-cyan-600 dark:text-cyan-400 shadow-sm border border-slate-200/50 dark:border-slate-700/50'
+                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
+                }`}
+                title="Incurred spending: Includes direct spending & card swipes; excludes loan principal & debt settlements."
               >
-                {Object.values(TimeRange).map((r) => (
-                  <option key={r} value={r}>{getRangeLabel(r)}</option>
-                ))}
-              </select>
-              <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
-                <ChevronDown className="w-3.5 h-3.5" />
+                <span>📊</span>
+                <span>Consumption</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleReportingModeChange('CASH_FLOW')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                  reportingMode === 'CASH_FLOW'
+                    ? 'bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400 shadow-sm border border-slate-200/50 dark:border-slate-700/50'
+                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
+                }`}
+                title="Cash flow: Actual bank outflows including loan EMIs and debt payments; excludes loan-funded purchases."
+              >
+                <span>💵</span>
+                <span>Cash Flow</span>
+              </button>
+            </div>
+
+            {/* Range Selector */}
+            <div className="flex items-center gap-3 bg-slate-100 dark:bg-slate-800/50 p-1 rounded-xl border border-slate-200 dark:border-slate-700">
+              <label htmlFor="range-selector" className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-3">View Range:</label>
+              <div className="relative">
+                <select
+                  id="range-selector"
+                  value={range}
+                  onChange={(e) => handleRangeChange(e.target.value as TimeRange)}
+                  className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg pl-3 pr-8 py-1.5 text-xs font-bold text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500/20 transition-all appearance-none cursor-pointer shadow-sm hover:border-slate-300 dark:hover:border-slate-600"
+                >
+                  {Object.values(TimeRange).map((r) => (
+                    <option key={r} value={r}>{getRangeLabel(r)}</option>
+                  ))}
+                </select>
+                <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                  <ChevronDown className="w-3.5 h-3.5" />
+                </div>
               </div>
             </div>
           </div>
@@ -438,13 +450,47 @@ const Dashboard: React.FC = () => {
             count={summary.income_count}
           />
           <StatCard
-            label="Total Expenses"
+            label={reportingMode === 'CONSUMPTION' ? 'Total Consumption' : 'Total Bank Outflows'}
             value={fmt(summary.total_expenses)}
             icon={ArrowDownRight}
             accentFrom="from-rose-500"
             accentTo="to-pink-600"
             glow="shadow-rose-500/15"
             count={summary.expense_count}
+            info={
+              reportingMode === 'CONSUMPTION'
+                ? 'Lifestyle goods and services consumed (direct spending + card swipes). Excludes loan disbursements and debt settlements.'
+                : 'Real money paid out of your bank account in this period (direct spending + loan EMIs). Excludes loan borrowings.'
+            }
+            subText={
+              reportingMode === 'CONSUMPTION' ? (
+                <>
+                  {summary.loan_financed_spending !== undefined && summary.loan_financed_spending > 0 ? (
+                    <span className="text-[10px] font-bold text-cyan-600 dark:text-cyan-400 bg-cyan-500/10 px-2 py-0.5 rounded-md border border-cyan-500/20">
+                      🏛️ Financed: {fmt(summary.loan_financed_spending)}
+                    </span>
+                  ) : null}
+                  {summary.credit_card_spending !== undefined && summary.credit_card_spending > 0 ? (
+                    <span className="text-[10px] font-bold text-violet-600 dark:text-violet-400 bg-violet-500/10 px-2 py-0.5 rounded-md border border-violet-500/20">
+                      💳 Card Swipes: {fmt(summary.credit_card_spending)}
+                    </span>
+                  ) : null}
+                </>
+              ) : (
+                <>
+                  {summary.loan_repayment_spending !== undefined && summary.loan_repayment_spending > 0 ? (
+                    <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-md border border-amber-500/20">
+                      🏛️ EMIs Paid: {fmt(summary.loan_repayment_spending)}
+                    </span>
+                  ) : null}
+                  {summary.direct_cash_spending !== undefined && summary.direct_cash_spending > 0 ? (
+                    <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20">
+                      💵 Direct Cash: {fmt(summary.direct_cash_spending)}
+                    </span>
+                  ) : null}
+                </>
+              )
+            }
           />
           <StatCard
             label="Total Savings"
@@ -588,9 +634,10 @@ interface StatCardProps {
   count?: number;
   highlight?: string;
   info?: string;
+  subText?: React.ReactNode;
 }
 
-const StatCard: React.FC<StatCardProps> = ({ label, value, icon: Icon, accentFrom, accentTo, glow, count, highlight, info }) => (
+const StatCard: React.FC<StatCardProps> = ({ label, value, icon: Icon, accentFrom, accentTo, glow, count, highlight, info, subText }) => (
   <div className={`glass-card rounded-2xl p-5 group hover:border-slate-300 dark:hover:border-slate-600/30 transition-all duration-300 ${glow}`}>
     <div className="flex items-center justify-between mb-3">
       <div className={`bg-gradient-to-br ${accentFrom} ${accentTo} p-2 rounded-xl shadow-lg ${glow} transition-transform group-hover:scale-110 duration-300`}>
@@ -605,14 +652,19 @@ const StatCard: React.FC<StatCardProps> = ({ label, value, icon: Icon, accentFro
       {info && (
         <div className="group/info relative">
           <Info className="w-3 h-3 text-slate-400 dark:text-slate-600 cursor-help" />
-          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover/info:block w-48 p-2.5 bg-slate-900/90 dark:bg-slate-800 backdrop-blur-md text-[10px] text-slate-200 dark:text-slate-300 rounded-xl shadow-2xl border border-slate-700/50 z-50 animate-in fade-in zoom-in-95 duration-200">
+          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover/info:block w-52 p-2.5 bg-slate-900/95 dark:bg-slate-800 backdrop-blur-md text-[10px] text-slate-200 dark:text-slate-300 rounded-xl shadow-2xl border border-slate-700/50 z-50 animate-in fade-in zoom-in-95 duration-200 leading-relaxed">
             {info}
-            <div className="absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-slate-900/90 dark:border-t-slate-800"></div>
+            <div className="absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-slate-900/95 dark:border-t-slate-800"></div>
           </div>
         </div>
       )}
     </div>
     <p className={`text-xl font-bold mt-1 ${highlight || 'text-slate-900 dark:text-white'}`}>{value}</p>
+    {subText && (
+      <div className="mt-2 text-[11px] font-semibold flex flex-wrap gap-1">
+        {subText}
+      </div>
+    )}
   </div>
 );
 

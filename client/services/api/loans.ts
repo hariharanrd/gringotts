@@ -81,5 +81,10 @@ export const loansApi = {
     });
     const result = await handleResponse(response);
     return result.data;
+  },
+
+  getLoanTransactions: async (id: number, page: number = 1, size: number = 10): Promise<{ data: Transaction[], total_count: number, has_more: boolean }> => {
+    const response = await fetchWithCredentials(`${BASE_URL}/loans/${id}/transactions?page=${page}&size=${size}`);
+    return handleResponse(response);
   }
 };

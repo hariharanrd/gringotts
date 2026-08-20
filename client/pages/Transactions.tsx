@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { personalizationSync } from '../services/personalizationSync';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
-import { Transaction, TransactionType, Category, SubCategory, Item, CreditCard, Saving, Revolving, InvestmentGoal, Expense, Income, TransactionGroup } from '../types';
+import { Transaction, TransactionType, Category, SubCategory, Item, CreditCard, Saving, Revolving, InvestmentGoal, Expense, Income, TransactionGroup, Loan } from '../types';
 import { PAYMENT_MODES, SAVING_DIRECTIONS, REVOLVING_DIRECTIONS, REVOLVING_STATUSES } from '../constants';
 import {
   Landmark,
@@ -53,7 +53,7 @@ const TABS: { id: TabType; label: string; icon: any; color: string }[] = [
   { id: 'revolving', label: 'Revolving', icon: RefreshCw, color: 'from-blue-500 to-cyan-600' },
 ];
 
-type BulkField = 'category' | 'subcategory' | 'item' | 'notes' | 'payment_mode' | 'is_in' | 'is_give' | 'closed' | 'credit_card' | 'funding_goal' | 'group';
+type BulkField = 'category' | 'subcategory' | 'item' | 'notes' | 'payment_mode' | 'is_in' | 'is_give' | 'closed' | 'credit_card' | 'funding_goal' | 'funding_loan' | 'group';
 
 type ColumnKey = 'date' | 'description' | 'category' | 'subcategory' | 'item' | 'amount' | 'type' | 'payment_mode' | 'is_in' | 'is_give' | 'closed' | 'notes' | 'group';
 
@@ -150,6 +150,8 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
   const [isBulkDeleteDialogOpen, setIsBulkDeleteDialogOpen] = useState(false);
   const [bulkFundingGoalId, setBulkFundingGoalId] = useState<number | ''>('');
   const [goals, setGoals] = useState<InvestmentGoal[]>([]);
+  const [bulkFundingLoanId, setBulkFundingLoanId] = useState<number | ''>('');
+  const [loans, setLoans] = useState<Loan[]>([]);
   const [bulkGroups, setBulkGroups] = useState<TransactionGroup[]>([]);
   const [bulkGroupId, setBulkGroupId] = useState<number | ''>('');
 
@@ -158,6 +160,10 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
       return g.current_amount - (g.total_funded ?? 0);
     }
     return g.current_amount;
+  };
+
+  const getAvailableLoanBalance = (l: Loan) => {
+    return Math.max(l.available_to_fund ?? (l.principal_amount - (l.total_funded ?? 0)), 0);
   };
 
 
@@ -368,6 +374,12 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
   }, [isBulkEditDialogOpen, bulkField, goals.length]);
 
   useEffect(() => {
+    if (isBulkEditDialogOpen && bulkField === 'funding_loan' && loans.length === 0) {
+      api.getLoans().then(res => setLoans(res.data.filter(l => !l.is_closed))).catch(() => { });
+    }
+  }, [isBulkEditDialogOpen, bulkField, loans.length]);
+
+  useEffect(() => {
     if (isBulkEditDialogOpen && bulkField === 'group' && bulkGroups.length === 0) {
       api.getTransactionGroups().then(res => setBulkGroups(res.data.filter(g => g.status === 'ACTIVE'))).catch(() => { });
     }
@@ -451,6 +463,7 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
       if (bulkField === 'closed') fields['closed'] = bulkClosed;
       if (bulkField === 'credit_card') fields['credit_card'] = { id: bulkCreditCardId };
       if (bulkField === 'funding_goal') fields['funding_goal_id'] = bulkFundingGoalId === '' ? null : bulkFundingGoalId;
+      if (bulkField === 'funding_loan') fields['funding_loan_id'] = bulkFundingLoanId === '' ? null : bulkFundingLoanId;
       if (bulkField === 'group') fields['group'] = bulkGroupId === '' ? null : { id: bulkGroupId };
 
       await api.bulkUpdate(Array.from(selectedIds), fields);
@@ -458,6 +471,7 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
       setSelectedIds(new Set());
       setBulkField('');
       setBulkFundingGoalId('');
+      setBulkFundingLoanId('');
       setBulkGroupId('');
       setIsBulkEditDialogOpen(false);
       fetchTransactions(currentPage, filters);
@@ -956,12 +970,18 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
                               <CategoryIcon category={t.category} className={viewMode === 'compact' ? 'w-3.5 h-3.5' : 'w-4 h-4'} />
                               <div className="flex flex-col min-w-0 flex-1">
                                 <span className={`font-semibold text-slate-800 dark:text-slate-200 line-clamp-1 ${viewMode === 'compact' ? 'text-xs' : 'text-sm'}`}>{t.description}</span>
-                                {(t.funding_goal || (t.group && !visibleColumns.has('group'))) && (
+                                {(t.funding_goal || t.funding_loan || (t.group && !visibleColumns.has('group'))) && (
                                   <div className={`flex flex-wrap items-center gap-1.5 ${viewMode === 'compact' ? 'mt-0' : 'mt-0.5'}`}>
                                     {t.funding_goal && (
                                       <span className={`px-2 py-0.5 bg-violet-500/10 text-violet-500 dark:bg-violet-500/20 dark:text-violet-400 rounded-md flex items-center gap-1 border border-violet-500/20 ${viewMode === 'compact' ? 'text-[8px] font-black' : 'text-[9px] font-black'}`}>
                                         <span>{t.funding_goal.icon || '🎯'}</span>
                                         <span>{t.funding_goal.name}</span>
+                                      </span>
+                                    )}
+                                    {t.funding_loan && (
+                                      <span className={`px-2 py-0.5 bg-cyan-500/10 text-cyan-600 dark:bg-cyan-500/20 dark:text-cyan-400 rounded-md flex items-center gap-1 border border-cyan-500/20 ${viewMode === 'compact' ? 'text-[8px] font-black' : 'text-[9px] font-black'}`}>
+                                        <span>🏛️</span>
+                                        <span>{t.funding_loan.name}</span>
                                       </span>
                                     )}
                                     {t.group && !visibleColumns.has('group') && (
@@ -1331,12 +1351,18 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
                       </span>
                     </div>
 
-                    {((t as any).payment_mode || t.notes || t.funding_goal || t.group) && (
+                        {((t as any).payment_mode || t.notes || t.funding_goal || t.funding_loan || t.group) && (
                       <div className="pt-0.5 flex gap-2 flex-wrap animate-in fade-in duration-200">
                         {t.funding_goal && (
                           <span className="px-1.5 py-0.5 bg-violet-500/10 text-violet-500 dark:bg-violet-500/20 dark:text-violet-400 text-[9px] font-black rounded border border-violet-500/20 flex items-center gap-1">
                             <span>{t.funding_goal.icon || '🎯'}</span>
                             <span>{t.funding_goal.name}</span>
+                          </span>
+                        )}
+                        {t.funding_loan && (
+                          <span className="px-1.5 py-0.5 bg-cyan-500/10 text-cyan-600 dark:bg-cyan-500/20 dark:text-cyan-400 text-[9px] font-black rounded border border-cyan-500/20 flex items-center gap-1">
+                            <span>🏛️</span>
+                            <span>{t.funding_loan.name}</span>
                           </span>
                         )}
                         {t.group && (
@@ -1358,9 +1384,9 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
                           </span>
                         )}
                         {t.notes && (
-                          <div className="w-full text-xs text-slate-400 italic line-clamp-1 mt-1 font-medium bg-slate-50/50 dark:bg-slate-900/30 p-2 rounded-xl">
-                            {t.notes.substring(0, 25) + (t.notes.length > 25 ? '...' : '')}
-                          </div>
+                          <span className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 text-[9px] text-slate-400 rounded max-w-[120px] truncate">
+                            {t.notes}
+                          </span>
                         )}
                       </div>
                     )}
@@ -1401,7 +1427,7 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
 
       {/* Bulk Edit Dialog */}
       {isBulkEditDialogOpen && (
-        <div className="fixed inset-0 z-[100] overflow-y-auto flex flex-col items-center p-4 bg-slate-900/40 dark:bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="my-auto flex flex-col w-full max-w-md bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-2xl border border-slate-200 dark:border-slate-800 scale-in-center max-h-[calc(100dvh-2rem)] sm:max-h-[calc(100dvh-4rem)]">
             <div className="mb-6 shrink-0">
               <h3 className="text-xl font-black text-slate-900 dark:text-white mb-1">Bulk Edit</h3>
@@ -1415,6 +1441,7 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
                 onChange={e => {
                   setBulkField(e.target.value as BulkField | '');
                   setBulkFundingGoalId('');
+                  setBulkFundingLoanId('');
                   setBulkGroupId('');
                 }}
               >
@@ -1427,7 +1454,10 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
                 <option value="credit_card">Credit Card</option>
                 <option value="group">Transaction Group</option>
                 {currentTab !== 'income' && currentTab !== 'all' && (
-                  <option value="funding_goal">Fund from Goal</option>
+                  <>
+                    <option value="funding_goal">Fund from Goal</option>
+                    <option value="funding_loan">Fund from Loan</option>
+                  </>
                 )}
                 {currentTab === 'saving' && <option value="is_in">In/Out</option>}
                 {currentTab === 'revolving' && (
@@ -1548,6 +1578,26 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
                       return (
                         <option key={g.id} value={g.id}>
                           {g.icon || '🎯'} {g.name} — Available: ₹{available.toLocaleString('en-IN')} ({g.goal_type === 'ONE_TIME' ? 'One-Time' : 'Persistent'})
+                        </option>
+                      );
+                    })}
+                </select>
+              )}
+
+              {bulkField === 'funding_loan' && (
+                <select
+                  value={bulkFundingLoanId}
+                  onChange={(e) => setBulkFundingLoanId(e.target.value ? Number(e.target.value) : '')}
+                  className={`${selectClass} w-full`}
+                >
+                  <option value="">Do not fund from a Loan (Clear funding)</option>
+                  {loans
+                    .filter(l => !l.is_closed && getAvailableLoanBalance(l) > 0)
+                    .map(l => {
+                      const available = getAvailableLoanBalance(l);
+                      return (
+                        <option key={l.id} value={l.id}>
+                          🏛️ {l.name} — Available: ₹{available.toLocaleString('en-IN')}
                         </option>
                       );
                     })}

@@ -1,4 +1,47 @@
 
+export type ReportingMode = 'CONSUMPTION' | 'CASH_FLOW';
+
+export interface DashboardSummary {
+  mode?: ReportingMode;
+  range: string;
+  start_date: string;
+  end_date: string;
+  total_expenses: number;
+  consumption_expenses?: number;
+  cash_flow_expenses?: number;
+  loan_financed_spending?: number;
+  credit_card_spending?: number;
+  direct_cash_spending?: number;
+  loan_repayment_spending?: number;
+  total_incomes: number;
+  total_savings: number;
+  net_balance: number;
+  expense_count: number;
+  income_count: number;
+  saving_count: number;
+  total_i_owe: number;
+  total_others_owe_me: number;
+  category_breakdown: Record<string, number>;
+  savings_breakdown: Record<string, number>;
+  recent_transactions: Array<{
+    id: number;
+    description: string;
+    value: number;
+    transaction_time: string;
+    category?: { id: number; name: string; icon?: string; color?: string };
+    subcategory?: { id: number; name: string };
+    item?: { id: number; name: string };
+  }>;
+  credit_card_bills: {
+    overdue_amount: number;
+    pending_amount: number;
+    overdue_count: number;
+    pending_count: number;
+    oldest_overdue_due_date?: string;
+    nearest_pending_due_date?: string;
+  };
+}
+
 export enum TimeRange {
   LAST_WEEK = 'LAST_WEEK',
   LAST_30_DAYS = 'LAST_30_DAYS',
@@ -130,6 +173,9 @@ export interface Transaction {
   credit_card?: CreditCard;
   include_in_budget?: boolean;
   funding_goal?: InvestmentGoal;
+  funding_loan?: Loan;
+  funding_loan_id?: number;
+  funding_loan_name?: string;
   loan_id?: number;
   loan_payment_type?: 'EMI' | 'PART_PAYMENT';
   loan_name?: string;
@@ -266,6 +312,7 @@ export interface ScheduledTransaction {
   created_at?: string;
   credit_card?: CreditCard;
   funding_goal?: InvestmentGoal;
+  funding_loan?: Loan;
   loan?: Loan;
 }
 
@@ -298,9 +345,13 @@ export interface CreditCardBill {
   billing_month: number;
   billing_year: number;
   amount_due: number;
-  amount_paid: number;
-  payment_status: 'PAID' | 'UNPAID' | 'PARTIALLY_PAID';
-  created_at?: string;
+  minimum_due: number;
+  due_date: string;
+  is_paid: boolean;
+  paid_at?: string;
+  status: 'PENDING' | 'PAID' | 'OVERDUE';
+  created_at: string;
+  last_active_at: string;
   category_spending?: { name: string; value: number }[];
 }
 
@@ -348,6 +399,9 @@ export interface LoanSummary {
   emis_remaining: number;
   completion_percent: number;
   adjusted_tenure_months: number;
+  total_funded?: number;
+  available_to_fund?: number;
+  funded_percent?: number;
 }
 
 export interface LoanAmortizationRow {
@@ -383,6 +437,8 @@ export interface Loan {
   closed_at?: string;
   notes?: string;
   created_at?: string;
+  total_funded?: number;
+  available_to_fund?: number;
   summary?: LoanSummary;
   part_payments?: LoanPartPayment[];
   expense_category?: Category;

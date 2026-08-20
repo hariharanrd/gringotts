@@ -5,9 +5,11 @@ import com.luna.Gringotts.records.Item;
 import com.luna.Gringotts.records.Loan;
 import com.luna.Gringotts.records.LoanPartPayment;
 import com.luna.Gringotts.records.SubCategory;
+import com.luna.Gringotts.records.Transaction;
 import com.luna.Gringotts.records.User;
 import com.luna.Gringotts.repository.LoanRepository;
 import com.luna.Gringotts.repository.LoanPartPaymentRepository;
+import com.luna.Gringotts.repository.TransactionRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,6 +29,9 @@ public class LoanService {
     private LoanPartPaymentRepository loanPartPaymentRepository;
 
     @Autowired
+    private TransactionRepository<Transaction> transactionRepository;
+
+    @Autowired
     private IAMService iamService;
 
     @Autowired
@@ -44,6 +49,10 @@ public class LoanService {
     public Map<String, Object> getLoanById(Long id) {
         Loan loan = requireLoan(id);
         return toDto(loan);
+    }
+
+    public Optional<Loan> findById(Long id) {
+        return loanRepository.findById(id);
     }
 
     @Transactional
@@ -106,7 +115,11 @@ public class LoanService {
 
     @Transactional
     public void deleteLoan(Long id) {
-        requireLoan(id);
+        Loan loan = requireLoan(id);
+        List<Transaction> funded = transactionRepository.findByFundingLoanAndUser(loan, loan.getUser());
+        if (!funded.isEmpty()) {
+            throw new IllegalStateException("Cannot delete loan because it has " + funded.size() + " funded transaction(s). Please reassign or delete those transactions first.");
+        }
         loanRepository.deleteById(id);
     }
 
@@ -314,6 +327,14 @@ public class LoanService {
         summary.put("completion_percent", Math.min(100.0, Math.round(completion * 10.0) / 10.0));
         summary.put("adjusted_tenure_months", activeMonths);
 
+        List<Transaction> funded = transactionRepository.findByFundingLoanAndUser(loan, loan.getUser());
+        double totalFunded = funded.stream().mapToDouble(Transaction::getValue).sum();
+        double availableToFund = Math.max(0.0, principal - totalFunded);
+        summary.put("total_funded", Math.round(totalFunded * 100.0) / 100.0);
+        summary.put("available_to_fund", Math.round(availableToFund * 100.0) / 100.0);
+        double fundedPct = principal > 0 ? (totalFunded / principal) * 100.0 : 0.0;
+        summary.put("funded_percent", Math.min(100.0, Math.round(fundedPct * 10.0) / 10.0));
+
         return summary;
     }
 
@@ -416,7 +437,7 @@ public class LoanService {
 
     // ── Helper Methods ─────────────────────────────────────────────────────────
 
-    protected Loan requireLoan(Long id) {
+    public Loan requireLoan(Long id) {
         User user = iamService.getCurrentUser();
         Loan loan = loanRepository.findById(id)
                 .orElseThrow(() -> new NoSuchElementException("Loan not found: " + id));
@@ -424,6 +445,15 @@ public class LoanService {
             throw new SecurityException("Access denied to loan: " + id);
         }
         return loan;
+    }
+
+    public double getAvailableLoanBalance(Loan loan, Long excludeTransactionId) {
+        List<Transaction> funded = transactionRepository.findByFundingLoanAndUser(loan, loan.getUser());
+        double otherFunded = funded.stream()
+                .filter(t -> t.getId() != null && !t.getId().equals(excludeTransactionId))
+                .mapToDouble(Transaction::getValue)
+                .sum();
+        return Math.max(0.0, loan.getPrincipalAmount() - otherFunded);
     }
 
     private void validateLoan(Loan loan) {
@@ -465,6 +495,12 @@ public class LoanService {
         dto.put("closed_at", loan.getClosedAt() != null ? loan.getClosedAt().toString() : null);
         dto.put("notes", loan.getNotes());
         dto.put("created_at", loan.getCreatedAt() != null ? loan.getCreatedAt().toString() : null);
+
+        List<Transaction> funded = transactionRepository.findByFundingLoanAndUser(loan, loan.getUser());
+        double totalFunded = funded.stream().mapToDouble(Transaction::getValue).sum();
+        double availableToFund = Math.max(0.0, loan.getPrincipalAmount() - totalFunded);
+        dto.put("total_funded", Math.round(totalFunded * 100.0) / 100.0);
+        dto.put("available_to_fund", Math.round(availableToFund * 100.0) / 100.0);
 
         dto.put("expense_category", categoryToDto(loan.getExpenseCategory()));
         dto.put("expense_subcategory", subCategoryToDto(loan.getExpenseSubCategory()));

@@ -31,6 +31,7 @@ type TransactionFormState = Omit<Partial<Transaction>, 'value' | 'credit_card'> 
   credit_card?: number;
   include_in_budget?: boolean;
   funding_goal_id?: number;
+  funding_loan_id?: number;
   loan_id?: number;
   group_id?: number;
   group_category?: GroupCategory;
@@ -75,6 +76,7 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
     credit_card: undefined,
     include_in_budget: true,
     funding_goal_id: undefined,
+    funding_loan_id: undefined,
     loan_id: undefined,
     group_id: undefined,
     group_category: undefined
@@ -93,11 +95,26 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
     }
     return Math.max(baseAvailable, 0);
   };
+
+  const getAvailableLoanBalance = (l: Loan, currentTx?: Transaction | null) => {
+    let baseAvailable = l.available_to_fund ?? Math.max(0, l.principal_amount - (l.total_funded ?? 0));
+    if (currentTx && currentTx.funding_loan?.id === l.id) {
+      baseAvailable += Number(currentTx.value);
+    }
+    return Math.max(baseAvailable, 0);
+  };
   const [showTypeChangeConfirm, setShowTypeChangeConfirm] = useState(false);
 
   const selectedGoalForValidation = formData.funding_goal_id ? goals.find(g => g.id === formData.funding_goal_id) : undefined;
   const isGoalFundingInvalid = selectedGoalForValidation ? (() => {
     const available = getAvailableBalance(selectedGoalForValidation, transaction);
+    const txVal = Number(formData.value) || 0;
+    return available === 0 || txVal > available;
+  })() : false;
+
+  const selectedLoanForValidation = formData.funding_loan_id ? loans.find(l => l.id === formData.funding_loan_id) : undefined;
+  const isLoanFundingInvalid = selectedLoanForValidation ? (() => {
+    const available = getAvailableLoanBalance(selectedLoanForValidation, transaction);
     const txVal = Number(formData.value) || 0;
     return available === 0 || txVal > available;
   })() : false;
@@ -162,6 +179,7 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
             transaction.notes ||
             transaction.group?.id ||
             transaction.funding_goal?.id ||
+            transaction.funding_loan?.id ||
             transaction.loan_id ||
             transaction.include_in_budget === false
           )) ||
@@ -198,6 +216,7 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
             credit_card: (transaction as any).credit_card?.id,
             include_in_budget: transaction.include_in_budget ?? true,
             funding_goal_id: transaction.funding_goal?.id,
+            funding_loan_id: transaction.funding_loan?.id,
             loan_id: transaction.loan_id,
             group_id: transaction.group?.id,
             group_category: transaction.group_category
@@ -225,6 +244,7 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
             credit_card: undefined,
             include_in_budget: true,
             funding_goal_id: undefined,
+            funding_loan_id: undefined,
             loan_id: undefined,
             group_id: defaultGroupId || undefined,
             group_category: undefined
@@ -248,11 +268,8 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
         // Fetch active groups
         api.getTransactionGroups().then(res => {
           let filtered = res.data.filter(g => g.status === 'ACTIVE');
-          if (defaultGroupId && !filtered.some(g => g.id === defaultGroupId)) {
-            const defaultGroup = res.data.find(g => g.id === defaultGroupId);
-            if (defaultGroup) {
-              filtered.push(defaultGroup);
-            }
+          if (transaction?.group && !filtered.some(g => g.id === transaction.group?.id)) {
+            filtered = [...filtered, transaction.group];
           }
           setGroups(filtered);
         });
@@ -304,6 +321,14 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
 
   const handleSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
+    if (isGoalFundingInvalid) {
+      showToast("Cannot save: Selected funding goal doesn't have sufficient available balance.", 'error');
+      return;
+    }
+    if (isLoanFundingInvalid) {
+      showToast("Cannot save: Selected funding loan doesn't have sufficient available balance.", 'error');
+      return;
+    }
 
     if (isEditing && transaction && type !== transaction.type && !showTypeChangeConfirm) {
       setShowTypeChangeConfirm(true);
@@ -338,8 +363,9 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
         ...commonPayload,
         payment_mode: formData.payment_mode,
         credit_card: formData.payment_mode === 'CREDIT_CARD' && formData.credit_card ? { id: formData.credit_card } : undefined,
-        include_in_budget: formData.funding_goal_id ? false : formData.include_in_budget,
+        include_in_budget: (formData.funding_goal_id || formData.funding_loan_id) ? false : formData.include_in_budget,
         funding_goal: formData.funding_goal_id ? { id: formData.funding_goal_id } : undefined,
+        funding_loan: formData.funding_loan_id ? { id: formData.funding_loan_id } : undefined,
         loan: formData.loan_id ? { id: formData.loan_id } : undefined,
         group: formData.group_id ? { id: formData.group_id } : null,
         group_category: formData.group_id && formData.group_category ? { id: formData.group_category.id } : null
@@ -642,72 +668,140 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
             {showOptional && (
               <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-slate-800/80 animate-in fade-in slide-in-from-top-2 duration-300">
                 {type !== TransactionType.INCOME && (
-                  <div className="space-y-1.5">
-                    <label className="text-sm font-medium text-slate-600 dark:text-slate-300">Fund from Goal (Optional)</label>
-                    <select
-                      className="w-full px-4 py-2.5 bg-slate-100 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 rounded-xl focus:ring-2 focus:ring-cyan-500/40 outline-none text-slate-900 dark:text-white"
-                      value={formData.funding_goal_id || ''}
-                      onChange={(e) => {
-                        const goalIdVal = e.target.value ? Number(e.target.value) : undefined;
-                        setFormData(prev => ({
-                          ...prev,
-                          funding_goal_id: goalIdVal,
-                          include_in_budget: goalIdVal ? false : prev.include_in_budget
-                        }));
-                      }}
-                    >
-                      <option value="">Do not fund from a Goal</option>
-                      {goals.map(g => {
-                        const available = getAvailableBalance(g, transaction);
+                  <>
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium text-slate-600 dark:text-slate-300">Fund from Goal (Optional)</label>
+                      <select
+                        className="w-full px-4 py-2.5 bg-slate-100 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 rounded-xl focus:ring-2 focus:ring-cyan-500/40 outline-none text-slate-900 dark:text-white disabled:opacity-50"
+                        value={formData.funding_goal_id || ''}
+                        disabled={!!formData.funding_loan_id}
+                        onChange={(e) => {
+                          const goalIdVal = e.target.value ? Number(e.target.value) : undefined;
+                          setFormData(prev => ({
+                            ...prev,
+                            funding_goal_id: goalIdVal,
+                            funding_loan_id: undefined,
+                            include_in_budget: goalIdVal ? false : prev.include_in_budget
+                          }));
+                        }}
+                      >
+                        <option value="">Do not fund from a Goal</option>
+                        {goals.map(g => {
+                          const available = getAvailableBalance(g, transaction);
+                          return (
+                            <option key={g.id} value={g.id}>
+                              {g.icon || '🎯'} {g.name} — Available: ₹{available.toLocaleString('en-IN')} ({g.goal_type === 'ONE_TIME' ? 'One-Time' : 'Persistent'})
+                            </option>
+                          );
+                        })}
+                      </select>
+                      {formData.funding_goal_id && (() => {
+                        const selectedGoal = goals.find(g => g.id === formData.funding_goal_id);
+                        if (!selectedGoal) return null;
+                        const available = getAvailableBalance(selectedGoal, transaction);
+                        const txVal = Number(formData.value) || 0;
+
                         return (
-                          <option key={g.id} value={g.id}>
-                            {g.icon || '🎯'} {g.name} — Available: ₹{available.toLocaleString('en-IN')} ({g.goal_type === 'ONE_TIME' ? 'One-Time' : 'Persistent'})
-                          </option>
+                          <div className="space-y-1.5 mt-2">
+                            <p className="text-[11px] text-indigo-600 dark:text-indigo-400 font-medium">
+                              Note: Funding from a goal automatically excludes this transaction from the budget.
+                            </p>
+
+                            {available === 0 ? (
+                              <div className="flex gap-2.5 p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl">
+                                <AlertTriangle className="w-4.5 h-4.5 text-amber-500 shrink-0 mt-0.5" />
+                                <div className="text-xs">
+                                  <p className="font-bold text-amber-600 dark:text-amber-400">Zero Balance Warning</p>
+                                  <p className="text-amber-500/90 leading-tight">
+                                    This goal has an available balance of ₹0. Please contribute savings first.
+                                  </p>
+                                </div>
+                              </div>
+                            ) : txVal > available ? (
+                              <div className="flex gap-2.5 p-3 bg-rose-500/10 border border-rose-500/20 rounded-xl">
+                                <AlertTriangle className="w-4.5 h-4.5 text-rose-500 shrink-0 mt-0.5" />
+                                <div className="text-xs">
+                                  <p className="font-bold text-rose-600 dark:text-rose-400">Overdraft Warning</p>
+                                  <p className="text-rose-500/90 leading-tight">
+                                    Transaction amount (₹{txVal.toLocaleString('en-IN')}) exceeds the goal's available balance (₹{available.toLocaleString('en-IN')}). Saving this will throw an error.
+                                  </p>
+                                </div>
+                              </div>
+                            ) : null}
+                          </div>
                         );
-                      })}
-                    </select>
-                    {formData.funding_goal_id && (() => {
-                      const selectedGoal = goals.find(g => g.id === formData.funding_goal_id);
-                      if (!selectedGoal) return null;
-                      const available = getAvailableBalance(selectedGoal, transaction);
-                      const txVal = Number(formData.value) || 0;
+                      })()}
+                    </div>
 
-                      return (
-                        <div className="space-y-1.5 mt-2">
-                          <p className="text-[11px] text-indigo-600 dark:text-indigo-400 font-medium">
-                            Note: Funding from a goal automatically excludes this transaction from the budget.
-                          </p>
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium text-slate-600 dark:text-slate-300">Fund from Loan (Optional)</label>
+                      <select
+                        className="w-full px-4 py-2.5 bg-slate-100 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 rounded-xl focus:ring-2 focus:ring-cyan-500/40 outline-none text-slate-900 dark:text-white disabled:opacity-50"
+                        value={formData.funding_loan_id || ''}
+                        disabled={!!formData.funding_goal_id}
+                        onChange={(e) => {
+                          const loanIdVal = e.target.value ? Number(e.target.value) : undefined;
+                          setFormData(prev => ({
+                            ...prev,
+                            funding_loan_id: loanIdVal,
+                            funding_goal_id: undefined,
+                            include_in_budget: loanIdVal ? false : prev.include_in_budget
+                          }));
+                        }}
+                      >
+                        <option value="">Do not fund from a Loan</option>
+                        {loans.map(l => {
+                          const available = getAvailableLoanBalance(l, transaction);
+                          return (
+                            <option key={l.id} value={l.id}>
+                              🏛️ {l.name} — Available: ₹{available.toLocaleString('en-IN')} (Principal: ₹{l.principal_amount.toLocaleString('en-IN')})
+                            </option>
+                          );
+                        })}
+                      </select>
+                      {formData.funding_loan_id && (() => {
+                        const selectedLoan = loans.find(l => l.id === formData.funding_loan_id);
+                        if (!selectedLoan) return null;
+                        const available = getAvailableLoanBalance(selectedLoan, transaction);
+                        const txVal = Number(formData.value) || 0;
 
-                          {available === 0 ? (
-                            <div className="flex gap-2.5 p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl">
-                              <AlertTriangle className="w-4.5 h-4.5 text-amber-500 shrink-0 mt-0.5" />
-                              <div className="text-xs">
-                                <p className="font-bold text-amber-600 dark:text-amber-400">Zero Balance Warning</p>
-                                <p className="text-amber-500/90 leading-tight">
-                                  This goal has an available balance of ₹0. Please contribute savings first.
-                                </p>
+                        return (
+                          <div className="space-y-1.5 mt-2">
+                            <p className="text-[11px] text-cyan-600 dark:text-cyan-400 font-medium">
+                              Note: Funding from a loan automatically excludes this transaction from the budget.
+                            </p>
+
+                            {available === 0 ? (
+                              <div className="flex gap-2.5 p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl">
+                                <AlertTriangle className="w-4.5 h-4.5 text-amber-500 shrink-0 mt-0.5" />
+                                <div className="text-xs">
+                                  <p className="font-bold text-amber-600 dark:text-amber-400">Zero Available Balance</p>
+                                  <p className="text-amber-500/90 leading-tight">
+                                    This loan has no remaining principal available to fund transactions.
+                                  </p>
+                                </div>
                               </div>
-                            </div>
-                          ) : txVal > available ? (
-                            <div className="flex gap-2.5 p-3 bg-rose-500/10 border border-rose-500/20 rounded-xl">
-                              <AlertTriangle className="w-4.5 h-4.5 text-rose-500 shrink-0 mt-0.5" />
-                              <div className="text-xs">
-                                <p className="font-bold text-rose-600 dark:text-rose-400">Overdraft Warning</p>
-                                <p className="text-rose-500/90 leading-tight">
-                                  Transaction amount (₹{txVal.toLocaleString('en-IN')}) exceeds the goal's available balance (₹{available.toLocaleString('en-IN')}). Saving this will throw an error.
-                                </p>
+                            ) : txVal > available ? (
+                              <div className="flex gap-2.5 p-3 bg-rose-500/10 border border-rose-500/20 rounded-xl">
+                                <AlertTriangle className="w-4.5 h-4.5 text-rose-500 shrink-0 mt-0.5" />
+                                <div className="text-xs">
+                                  <p className="font-bold text-rose-600 dark:text-rose-400">Overdraft Warning</p>
+                                  <p className="text-rose-500/90 leading-tight">
+                                    Transaction amount (₹{txVal.toLocaleString('en-IN')}) exceeds the loan's available balance (₹{available.toLocaleString('en-IN')}). Saving this will throw an error.
+                                  </p>
+                                </div>
                               </div>
-                            </div>
-                          ) : null}
-                        </div>
-                      );
-                    })()}
-                  </div>
+                            ) : null}
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  </>
                 )}
 
-                {type === TransactionType.EXPENSE && !formData.funding_goal_id && (
+                {type === TransactionType.EXPENSE && !formData.funding_goal_id && !formData.funding_loan_id && (
                   <div className="space-y-1.5">
-                    <label className="text-sm font-medium text-slate-600 dark:text-slate-300">Link to Loan (Optional)</label>
+                    <label className="text-sm font-medium text-slate-600 dark:text-slate-300">Link Repayment to Loan (Optional)</label>
                     <select
                       className="w-full px-4 py-2.5 bg-slate-100 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 rounded-xl focus:ring-2 focus:ring-cyan-500/40 outline-none text-slate-900 dark:text-white"
                       value={formData.loan_id || ''}
@@ -755,12 +849,12 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
                         type="checkbox"
                         id="exclude-budget-checkbox"
                         className="w-5 h-5 rounded border-slate-300 dark:border-slate-650 bg-white dark:bg-slate-800 text-cyan-500 focus:ring-cyan-500/40 cursor-pointer accent-cyan-500 disabled:opacity-50"
-                        checked={formData.include_in_budget === false || !!formData.funding_goal_id}
-                        disabled={!!formData.funding_goal_id}
-                        onChange={(e) => !formData.funding_goal_id && setFormData(prev => ({ ...prev, include_in_budget: !e.target.checked }))}
+                        checked={formData.include_in_budget === false || !!formData.funding_goal_id || !!formData.funding_loan_id}
+                        disabled={!!formData.funding_goal_id || !!formData.funding_loan_id}
+                        onChange={(e) => !formData.funding_goal_id && !formData.funding_loan_id && setFormData(prev => ({ ...prev, include_in_budget: !e.target.checked }))}
                       />
-                      <label htmlFor="exclude-budget-checkbox" className={`text-sm font-medium cursor-pointer ${formData.funding_goal_id ? 'text-slate-400 dark:text-slate-500' : 'text-slate-600 dark:text-slate-300'}`}>
-                        Exclude from budget utilization {formData.funding_goal_id && '(Locked by goal funding)'}
+                      <label htmlFor="exclude-budget-checkbox" className={`text-sm font-medium cursor-pointer ${formData.funding_goal_id || formData.funding_loan_id ? 'text-slate-400 dark:text-slate-500' : 'text-slate-600 dark:text-slate-300'}`}>
+                        Exclude from budget utilization {formData.funding_goal_id ? '(Locked by goal funding)' : formData.funding_loan_id ? '(Locked by loan funding)' : ''}
                       </label>
                     </div>
                   )}

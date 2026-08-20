@@ -108,6 +108,11 @@ public class Transaction {
     InvestmentGoal fundingGoal;
 
     @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "funding_loan_id")
+    @JsonProperty("funding_loan")
+    Loan fundingLoan;
+
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "loan_id")
     @JsonProperty("loan")
     Loan loan;
@@ -240,6 +245,24 @@ public class Transaction {
 
     public void setFundingGoal(InvestmentGoal fundingGoal) {
         this.fundingGoal = fundingGoal;
+    }
+
+    public Loan getFundingLoan() {
+        return fundingLoan;
+    }
+
+    public void setFundingLoan(Loan fundingLoan) {
+        this.fundingLoan = fundingLoan;
+    }
+
+    @JsonProperty("funding_loan_id")
+    public Long getFundingLoanId() {
+        return fundingLoan != null ? fundingLoan.getId() : null;
+    }
+
+    @JsonProperty("funding_loan_name")
+    public String getFundingLoanName() {
+        return fundingLoan != null ? fundingLoan.getName() : null;
     }
 
     public String getCreatedBy() {

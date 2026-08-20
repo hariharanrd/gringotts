@@ -1,6 +1,7 @@
 package com.luna.Gringotts.repository;
 
 import com.luna.Gringotts.records.CreditCard;
+import com.luna.Gringotts.records.Loan;
 import com.luna.Gringotts.records.Transaction;
 import com.luna.Gringotts.records.User;
 import com.luna.Gringotts.records.InvestmentGoal;
@@ -51,6 +52,12 @@ public interface TransactionRepository<T extends Transaction> extends JpaReposit
 
     @EntityGraph(attributePaths = {"fundingGoal", "category", "subCategory", "item"})
     Page<T> findByFundingGoalAndUser(InvestmentGoal fundingGoal, User user, Pageable pageable);
+
+    @EntityGraph(attributePaths = {"fundingLoan", "category", "subCategory", "item"})
+    List<T> findByFundingLoanAndUser(Loan fundingLoan, User user);
+
+    @EntityGraph(attributePaths = {"fundingLoan", "category", "subCategory", "item"})
+    Page<T> findByFundingLoanAndUser(Loan fundingLoan, User user, Pageable pageable);
 
     boolean existsByCategoryId(Long categoryId);
     boolean existsBySubCategoryId(Long subCategoryId);
