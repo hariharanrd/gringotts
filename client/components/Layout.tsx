@@ -26,7 +26,7 @@ import {
 
 import { useTheme } from './ThemeContext';
 
-import { GoblinAvatar } from './GoblinAvatar';
+import { MovableGoblinPill } from './MovableGoblinPill';
 import { AIChatPanel } from './AIChatPanel';
 import { GoblinFeatureIntroModal } from './GoblinFeatureIntroModal';
 import { GroupInvitation, ParsedTransaction } from '../types';
@@ -410,16 +410,10 @@ const Layout: React.FC<LayoutProps> = ({
         {/* Floating Goblin AI Drawer Trigger Button & Slide-in Panel */}
         {!isAIChatPage && (
           <>
-            <button
+            <MovableGoblinPill
+              isOpen={isGoblinChatOpen}
               onClick={() => setIsGoblinChatOpen(!isGoblinChatOpen)}
-              className="fixed bottom-6 right-6 z-40 p-3 rounded-2xl bg-gradient-to-r from-slate-900 via-emerald-950 to-slate-900 border border-emerald-500/40 text-emerald-300 shadow-2xl shadow-emerald-950/80 hover:scale-110 active:scale-95 transition-all duration-300 flex items-center gap-2.5 group goblin-glow goblin-trigger-btn"
-              title="Ask Goblin AI Vault Keeper"
-            >
-              <GoblinAvatar size="sm" />
-              <span className="text-xs font-extrabold tracking-wide hidden sm:inline text-emerald-300 group-hover:text-white">
-                Goblin AI
-              </span>
-            </button>
+            />
 
             <AIChatPanel
               isOpen={isGoblinChatOpen}
