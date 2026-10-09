@@ -316,7 +316,8 @@ export const AIChatPage: React.FC<AIChatPageProps> = ({ userName, profilePicture
           if (found) {
             actionPayload.target_transaction = found;
           } else {
-            const hasValidCriteria = actionPayload.search_filter?.criteria?.some(c => c.value && String(c.value).trim().length > 0);
+            const isCriteriaValid = (c: any) => c.condition === 'isEmpty' || c.condition === 'isNotEmpty' || (c.value && String(c.value).trim().length > 0);
+            const hasValidCriteria = actionPayload.search_filter?.criteria?.some(isCriteriaValid);
             if (hasValidCriteria) {
               const queried = await executeReadQuery({
                 ...actionPayload.search_filter,
@@ -329,7 +330,8 @@ export const AIChatPage: React.FC<AIChatPageProps> = ({ userName, profilePicture
             }
           }
         } else if (actionPayload.search_filter) {
-          const hasValidCriteria = actionPayload.search_filter?.criteria?.some(c => c.value && String(c.value).trim().length > 0);
+          const isCriteriaValid = (c: any) => c.condition === 'isEmpty' || c.condition === 'isNotEmpty' || (c.value && String(c.value).trim().length > 0);
+          const hasValidCriteria = actionPayload.search_filter?.criteria?.some(isCriteriaValid);
           if (hasValidCriteria) {
             const queried = await executeReadQuery({
               ...actionPayload.search_filter,
@@ -345,7 +347,12 @@ export const AIChatPage: React.FC<AIChatPageProps> = ({ userName, profilePicture
         if (!actionPayload.target_transaction) {
           actionPayload.action_type = 'CONVERSATIONAL';
           const verb = parseResult.actionPayload.action_type === 'DELETE' ? 'delete' : 'update';
-          const filterVal = actionPayload.search_filter?.criteria?.find(c => c.value && String(c.value).trim().length > 0)?.value;
+          const filterCriteria = actionPayload.search_filter?.criteria?.find((c: any) => c.condition === 'isEmpty' || c.condition === 'isNotEmpty' || (c.value && String(c.value).trim().length > 0));
+          const filterVal = filterCriteria?.condition === 'isEmpty'
+            ? `${filterCriteria.field} is empty`
+            : filterCriteria?.condition === 'isNotEmpty'
+            ? `${filterCriteria.field} is not empty`
+            : filterCriteria?.value;
           const targetDesc = filterVal ? `'${filterVal}'` : 'your query';
           parseResult.goblinResponse = `*adjusts spectacles* I searched the Gringotts ledger, wizard, but found no transaction matching ${targetDesc} to ${verb}. No entry was modified.`;
         }
