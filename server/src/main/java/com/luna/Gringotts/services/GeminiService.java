@@ -194,7 +194,11 @@ public class GeminiService {
                             List<SearchCriteria> criteriaList = objectMapper.readValue(criteriaJson, new TypeReference<List<SearchCriteria>>() {});
                             
                             for (SearchCriteria sc : criteriaList) {
-                                if (sc.getValue() != null && !sc.getValue().toString().trim().isEmpty()) {
+                                String cond = sc.getCondition() != null ? sc.getCondition().toLowerCase().replace("_", "") : "";
+                                if (cond.equals("isempty") || cond.equals("empty") || cond.equals("isnotempty") || cond.equals("notempty")) {
+                                    keywordSearched = sc.getField() + ":" + cond;
+                                    break;
+                                } else if (sc.getValue() != null && !sc.getValue().toString().trim().isEmpty()) {
                                     keywordSearched = sc.getValue().toString().trim();
                                     break;
                                 }

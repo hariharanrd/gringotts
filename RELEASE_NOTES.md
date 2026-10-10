@@ -1,5 +1,17 @@
 # 🚀 Release Notes
 
+## [October 10, 2026] Advanced Ledger Filtering: Empty / Not Empty Criteria & Imported Transaction Filters
+
+This release introduces expanded ledger search and filtering capabilities across Gringotts. Users can now filter transactions using unary **`is empty`** and **`is not empty`** criteria (perfect for locating uncategorized transactions or missing items), and quickly isolate **Imported transactions** versus manual entries through advanced filters or a dedicated one-click Quick Filter preset.
+
+---
+
+## [August 21, 2026] Usability & AI Enhancements: Movable Goblin AI Vault Keeper
+
+This release introduces a **Movable & Draggable Goblin AI Pill**, ensuring the floating AI assistant trigger never obscures critical action buttons, table controls, pagination, or forms across the application.
+
+---
+
 ## [August 19, 2026] Loan-Funded Transactions, Dual-Perspective Reporting (Consumption vs. Cash Flow) & Principal Spending
 
 This release introduces comprehensive support for **Transactions Funded by Loan** and a new **Dual-Perspective Financial Reporting** architecture across Gringotts. Similar to funding from savings goals, users can now track disbursements and expenditures funded directly out of loan principals (such as Home Loans, Education Loans, or Auto Loans), automatically exclude funded spending from monthly budget utilization, track principal spending inside the Loan Detail Vault, and switch effortlessly between **Consumption** and **Cash Flow** analytics without double-counting liabilities.

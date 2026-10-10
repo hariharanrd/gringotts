@@ -21,26 +21,32 @@ public class TransactionSpecification {
             "value",
             "transactiontime",
             "createdat",
+            "category",
             "category.name",
             "category.id",
+            "subcategory",
             "subcategory.name",
             "subcategory.id",
+            "item",
             "item.name",
             "item.id",
             "paymentmode",
+            "creditcard",
             "creditcard.id",
             "creditcard.nickname",
             "creditcard.name",
             "isin",
             "isgive",
             "closed",
+            "group",
             "group.id",
             "group.name",
             "fundinggoal.id",
             "fundingloan.id",
             "loan.id",
             "includeinbudget",
-            "createdby"
+            "createdby",
+            "imported"
     );
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
@@ -53,7 +59,7 @@ public class TransactionSpecification {
             List<Predicate> predicates = new ArrayList<>();
             for (SearchCriteria criteria : criteriaList) {
                 try {
-                    if (criteria.getField() == null || criteria.getCondition() == null || criteria.getValue() == null) {
+                    if (criteria.getField() == null || criteria.getCondition() == null) {
                         continue;
                     }
                     String normalizedField = criteria.getField().toLowerCase().replace("_", "");
@@ -61,8 +67,74 @@ public class TransactionSpecification {
                         continue;
                     }
 
+                    String condition = criteria.getCondition().toLowerCase().replace("_", "");
+                    boolean isEmpty = condition.equals("isempty") || condition.equals("empty") || condition.equals("isnull");
+                    boolean isNotEmpty = condition.equals("isnotempty") || condition.equals("notempty") || condition.equals("isnotnull");
+                    boolean isUnary = isEmpty || isNotEmpty;
+
+                    if (!isUnary && (criteria.getValue() == null || criteria.getValue().trim().isEmpty())) {
+                        continue;
+                    }
+
+                    if (isUnary) {
+                        if (criteria.getField().contains(".")) {
+                            String[] parts = criteria.getField().split("\\.");
+                            Class<?> currentClass = root.getJavaType();
+                            String firstPart = resolveFieldName(currentClass, parts[0]);
+                            Path<?> assocPath = root.get(firstPart);
+
+                            if (parts.length == 2 && parts[1].equalsIgnoreCase("id")) {
+                                predicates.add(isEmpty ? builder.isNull(assocPath) : builder.isNotNull(assocPath));
+                                continue;
+                            }
+
+                            Join<?, ?> join = root.join(firstPart, JoinType.LEFT);
+                            Path<?> childPath = join.get(resolveFieldName(assocPath.getJavaType(), parts[1]));
+                            for (int i = 2; i < parts.length; i++) {
+                                childPath = childPath.get(resolveFieldName(childPath.getJavaType(), parts[i]));
+                            }
+                            if (childPath.getJavaType().equals(String.class)) {
+                                if (isEmpty) {
+                                    predicates.add(builder.or(
+                                            builder.isNull(assocPath),
+                                            builder.isNull(childPath),
+                                            builder.equal(builder.trim(childPath.as(String.class)), "")
+                                    ));
+                                } else {
+                                    predicates.add(builder.and(
+                                            builder.isNotNull(assocPath),
+                                            builder.isNotNull(childPath),
+                                            builder.notEqual(builder.trim(childPath.as(String.class)), "")
+                                    ));
+                                }
+                            } else {
+                                predicates.add(isEmpty ?
+                                        builder.or(builder.isNull(assocPath), builder.isNull(childPath)) :
+                                        builder.and(builder.isNotNull(assocPath), builder.isNotNull(childPath))
+                                );
+                            }
+                        } else {
+                            Path<?> path = root.get(resolveFieldName(root.getJavaType(), criteria.getField()));
+                            if (path.getJavaType().equals(String.class)) {
+                                if (isEmpty) {
+                                    predicates.add(builder.or(
+                                            builder.isNull(path),
+                                            builder.equal(builder.trim(path.as(String.class)), "")
+                                    ));
+                                } else {
+                                    predicates.add(builder.and(
+                                            builder.isNotNull(path),
+                                            builder.notEqual(builder.trim(path.as(String.class)), "")
+                                    ));
+                                }
+                            } else {
+                                predicates.add(isEmpty ? builder.isNull(path) : builder.isNotNull(path));
+                            }
+                        }
+                        continue;
+                    }
+
                     Path<?> path = getPath(root, criteria.getField());
-                    String condition = criteria.getCondition().toLowerCase();
                     String value = criteria.getValue();
 
                     Class<?> targetType = path.getJavaType();
@@ -98,7 +170,11 @@ public class TransactionSpecification {
                     } else {
                         switch (condition) {
                             case "eq":
-                                predicates.add(builder.equal(path, castToRequiredType(targetType, value)));
+                                if (normalizedField.equals("imported") && "false".equalsIgnoreCase(value)) {
+                                    predicates.add(builder.or(builder.equal(path, false), builder.isNull(path)));
+                                } else {
+                                    predicates.add(builder.equal(path, castToRequiredType(targetType, value)));
+                                }
                                 break;
                             case "like":
                             case "contains":

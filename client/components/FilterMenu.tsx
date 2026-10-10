@@ -197,6 +197,8 @@ export const FilterChips: React.FC<{
       case 'ge': return type === 'number' ? 'greater than or equal to' : 'on or after';
       case 'lt': return type === 'number' ? 'lesser than' : 'before';
       case 'le': return type === 'number' ? 'lesser than or equal to' : 'on or before';
+      case 'isEmpty': return 'is empty';
+      case 'isNotEmpty': return 'is not empty';
       default: return cond;
     }
   };
@@ -208,11 +210,14 @@ export const FilterChips: React.FC<{
       {activeFilters.map((filter, idx) => {
         const fieldDef = availableFields.find(f => f.value === filter.field);
         const type = fieldDef?.type || 'string';
+        const isUnary = filter.condition === 'isEmpty' || filter.condition === 'isNotEmpty';
         return (
           <div key={idx} className="flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/60 rounded-xl text-[11px] font-bold text-slate-600 dark:text-slate-300 shadow-sm animate-in fade-in zoom-in-95">
             <span className="text-slate-400 uppercase tracking-tighter text-[9px]">{getFieldLabel(filter.field)}</span>
             <span className="text-slate-400 dark:text-slate-500 lowercase font-medium">{getConditionLabel(filter.condition, type)}</span>
-            <span className="text-cyan-600 dark:text-cyan-400 truncate max-w-[120px]" title={filter.value}>"{filter.label || filter.value}"</span>
+            {!isUnary && (
+              <span className="text-cyan-600 dark:text-cyan-400 truncate max-w-[120px]" title={filter.value}>"{filter.label || filter.value}"</span>
+            )}
             <button
               onClick={() => onRemoveFilter(idx)}
               className="ml-1 -mr-1 text-slate-400 hover:text-rose-500 transition-colors p-0.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800"
@@ -234,6 +239,8 @@ export const FilterMenu: React.FC<FilterMenuProps> = ({ activeFilters, onApplyFi
   const [isSavingQf, setIsSavingQf] = useState(false);
   const [qfName, setQfName] = useState('');
 
+  const isValidFilter = (f: FilterCriteria) => f.condition === 'isEmpty' || f.condition === 'isNotEmpty' || f.value.trim() !== '';
+
   const handleSaveQuickFilter = async () => {
     if (!qfName.trim() || !tab) return;
     try {
@@ -243,7 +250,7 @@ export const FilterMenu: React.FC<FilterMenuProps> = ({ activeFilters, onApplyFi
         label: qfName.trim(),
         tab,
         isSystem: false,
-        filters: draftFilters.filter(f => f.value.trim() !== '')
+        filters: draftFilters.filter(isValidFilter)
       };
       await saveUserQuickFilters(tab, [...existing, newQf]);
       setIsSavingQf(false);
@@ -300,6 +307,11 @@ export const FilterMenu: React.FC<FilterMenuProps> = ({ activeFilters, onApplyFi
           delete updated.label;
         }
 
+        if (key === 'condition' && (val === 'isEmpty' || val === 'isNotEmpty')) {
+          updated.value = '';
+          delete updated.label;
+        }
+
         if (label !== undefined) {
           updated.label = label;
         } else if (key === 'value' && !label) {
@@ -324,7 +336,7 @@ export const FilterMenu: React.FC<FilterMenuProps> = ({ activeFilters, onApplyFi
   };
 
   const apply = () => {
-    const validFilters = draftFilters.filter(f => f.value.trim() !== '');
+    const validFilters = draftFilters.filter(isValidFilter);
     onApplyFilters(validFilters);
     setIsOpen(false);
   };
@@ -336,10 +348,15 @@ export const FilterMenu: React.FC<FilterMenuProps> = ({ activeFilters, onApplyFi
   };
 
   const getAvailableConditions = (fieldDef?: FilterFieldDef) => {
-    if (!fieldDef) return [{ value: 'eq', label: 'equals' }];
+    const emptyConditions = [
+      { value: 'isEmpty', label: 'is empty' },
+      { value: 'isNotEmpty', label: 'is not empty' }
+    ];
+
+    if (!fieldDef) return [{ value: 'eq', label: 'equals' }, ...emptyConditions];
 
     if (fieldDef.options || fieldDef.fetchOptions || fieldDef.type === 'boolean') {
-      return [{ value: 'eq', label: 'equals' }];
+      return [{ value: 'eq', label: 'equals' }, ...emptyConditions];
     }
 
     switch (fieldDef.type) {
@@ -349,7 +366,8 @@ export const FilterMenu: React.FC<FilterMenuProps> = ({ activeFilters, onApplyFi
           { value: 'gt', label: 'greater than' },
           { value: 'ge', label: 'greater than or equal to' },
           { value: 'lt', label: 'lesser than' },
-          { value: 'le', label: 'lesser than or equal to' }
+          { value: 'le', label: 'lesser than or equal to' },
+          ...emptyConditions
         ];
       case 'date':
         return [
@@ -357,13 +375,15 @@ export const FilterMenu: React.FC<FilterMenuProps> = ({ activeFilters, onApplyFi
           { value: 'gt', label: 'after' },
           { value: 'ge', label: 'on or after' },
           { value: 'lt', label: 'before' },
-          { value: 'le', label: 'on or before' }
+          { value: 'le', label: 'on or before' },
+          ...emptyConditions
         ];
       case 'string':
       default:
         return [
           { value: 'eq', label: 'equals' },
-          { value: 'like', label: 'contains' }
+          { value: 'like', label: 'contains' },
+          ...emptyConditions
         ];
     }
   };
@@ -444,6 +464,17 @@ export const FilterMenu: React.FC<FilterMenuProps> = ({ activeFilters, onApplyFi
                   <div className="sm:col-span-4">
                     <label className="sm:hidden text-[10px] font-bold text-slate-400 uppercase mb-1 block">Value</label>
                     {(() => {
+                      if (filter.condition === 'isEmpty' || filter.condition === 'isNotEmpty') {
+                        return (
+                          <div className="w-full text-xs px-3 py-2 sm:py-1.5 rounded-xl bg-slate-100/70 dark:bg-slate-800/60 border border-dashed border-slate-200 dark:border-slate-700/80 text-slate-400 dark:text-slate-500 italic select-none flex items-center justify-between">
+                            <span>No value needed</span>
+                            <span className="text-[10px] font-semibold uppercase tracking-wider not-italic text-cyan-600 dark:text-cyan-400/80 bg-cyan-50 dark:bg-cyan-950/40 px-2 py-0.5 rounded-md">
+                              {filter.condition === 'isEmpty' ? 'Empty' : 'Not Empty'}
+                            </span>
+                          </div>
+                        );
+                      }
+
                       const fieldDef = availableFields.find(f => f.value === filter.field);
 
                       if (fieldDef?.fetchOptions && filter.condition === 'eq') {
@@ -568,7 +599,7 @@ export const FilterMenu: React.FC<FilterMenuProps> = ({ activeFilters, onApplyFi
                   >
                     <Plus className="w-3.5 h-3.5" /> Add Rule
                   </button>
-                  {tab && draftFilters.some(f => f.value.trim() !== '') && (
+                  {tab && draftFilters.some(isValidFilter) && (
                     <button
                       type="button"
                       onClick={() => setIsSavingQf(true)}

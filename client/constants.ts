@@ -51,3 +51,8 @@ export const REVOLVING_STATUSES = [
   { value: 'true', label: REVOLVING_STATUS_MAP.true },
   { value: 'false', label: REVOLVING_STATUS_MAP.false }
 ];
+
+export const IMPORTED_OPTIONS = [
+  { value: 'true', label: 'Imported only' },
+  { value: 'false', label: 'Manual only' }
+];

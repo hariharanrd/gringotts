@@ -46,11 +46,11 @@ export const QuickFilterBar: React.FC<QuickFilterBarProps> = ({
     // For date ranges (length > 1), check if all match
     // For single conditions, check if present
     return qf.filters.every(qfCond => 
-      activeFilters.some(actCond => 
-        actCond.field === qfCond.field &&
-        actCond.condition === qfCond.condition &&
-        actCond.value === qfCond.value
-      )
+      activeFilters.some(actCond => {
+        if (actCond.field !== qfCond.field || actCond.condition !== qfCond.condition) return false;
+        if (qfCond.condition === 'isEmpty' || qfCond.condition === 'isNotEmpty') return true;
+        return actCond.value === qfCond.value;
+      })
     ) && (activeFilters.length >= qf.filters.length);
   };
 
