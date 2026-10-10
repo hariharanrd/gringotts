@@ -1,5 +1,11 @@
 # 🚀 Release Notes
 
+## [October 10, 2026] Advanced Ledger Filtering: Empty / Not Empty Criteria & Imported Transaction Filters
+
+This release introduces expanded ledger search and filtering capabilities across Gringotts. Users can now filter transactions using unary **`is empty`** and **`is not empty`** criteria (perfect for locating uncategorized transactions or missing items), and quickly isolate **Imported transactions** versus manual entries through advanced filters or a dedicated one-click Quick Filter preset.
+
+---
+
 ## [August 21, 2026] Usability & AI Enhancements: Movable Goblin AI Vault Keeper
 
 This release introduces a **Movable & Draggable Goblin AI Pill**, ensuring the floating AI assistant trigger never obscures critical action buttons, table controls, pagination, or forms across the application.
