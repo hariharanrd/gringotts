@@ -77,9 +77,20 @@ export const getSystemQuickFilters = (tab: string): QuickFilter[] => {
     }
   ];
 
+  const baseQuickFilters: QuickFilter[] = [
+    ...timeFilters,
+    {
+      id: 'sys-imported',
+      label: 'Imported',
+      tab,
+      isSystem: true,
+      filters: [{ field: 'imported', condition: 'eq', value: 'true', label: 'Imported only' }]
+    }
+  ];
+
   if (tab === 'saving') {
     return [
-      ...timeFilters,
+      ...baseQuickFilters,
       {
         id: 'sys-saving-in',
         label: 'In',
@@ -99,7 +110,7 @@ export const getSystemQuickFilters = (tab: string): QuickFilter[] => {
 
   if (tab === 'revolving') {
     return [
-      ...timeFilters,
+      ...baseQuickFilters,
       {
         id: 'sys-revolving-active',
         label: 'Active',
@@ -131,7 +142,7 @@ export const getSystemQuickFilters = (tab: string): QuickFilter[] => {
     ];
   }
 
-  return timeFilters;
+  return baseQuickFilters;
 };
 
 export const loadUserQuickFilters = (tab: string): QuickFilter[] => {

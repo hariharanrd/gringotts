@@ -45,7 +45,8 @@ public class TransactionSpecification {
             "fundingloan.id",
             "loan.id",
             "includeinbudget",
-            "createdby"
+            "createdby",
+            "imported"
     );
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
@@ -169,7 +170,11 @@ public class TransactionSpecification {
                     } else {
                         switch (condition) {
                             case "eq":
-                                predicates.add(builder.equal(path, castToRequiredType(targetType, value)));
+                                if (normalizedField.equals("imported") && "false".equalsIgnoreCase(value)) {
+                                    predicates.add(builder.or(builder.equal(path, false), builder.isNull(path)));
+                                } else {
+                                    predicates.add(builder.equal(path, castToRequiredType(targetType, value)));
+                                }
                                 break;
                             case "like":
                             case "contains":

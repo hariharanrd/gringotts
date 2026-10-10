@@ -3,7 +3,7 @@ import { personalizationSync } from '../services/personalizationSync';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
 import { Transaction, TransactionType, Category, SubCategory, Item, CreditCard, Saving, Revolving, InvestmentGoal, Expense, Income, TransactionGroup, Loan } from '../types';
-import { PAYMENT_MODES, SAVING_DIRECTIONS, REVOLVING_DIRECTIONS, REVOLVING_STATUSES } from '../constants';
+import { PAYMENT_MODES, SAVING_DIRECTIONS, REVOLVING_DIRECTIONS, REVOLVING_STATUSES, IMPORTED_OPTIONS } from '../constants';
 import {
   Landmark,
   TrendingDown,
@@ -593,6 +593,10 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
         const filtered = search ? data.filter(d => d.label.toLowerCase().includes(search.toLowerCase())) : data;
         return { data: filtered, hasMore: false };
       }
+    });
+    baseFields.push({
+      label: 'Imported', value: 'imported', type: 'boolean',
+      options: IMPORTED_OPTIONS
     });
 
     if (currentTab === 'saving') {
