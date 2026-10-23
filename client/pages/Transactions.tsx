@@ -24,7 +24,8 @@ import {
   Rows4,
   Calendar as CalendarIcon,
   List,
-  FolderClosed
+  FolderClosed,
+  Clock
 } from 'lucide-react';
 import { useToast } from '../components/ToastContext';
 import Pagination from '../components/Pagination';
@@ -55,10 +56,11 @@ const TABS: { id: TabType; label: string; icon: any; color: string }[] = [
 
 type BulkField = 'category' | 'subcategory' | 'item' | 'notes' | 'payment_mode' | 'is_in' | 'is_give' | 'closed' | 'credit_card' | 'funding_goal' | 'funding_loan' | 'group';
 
-type ColumnKey = 'date' | 'description' | 'category' | 'subcategory' | 'item' | 'amount' | 'type' | 'payment_mode' | 'is_in' | 'is_give' | 'closed' | 'notes' | 'group';
+type ColumnKey = 'date' | 'created_at' | 'description' | 'category' | 'subcategory' | 'item' | 'amount' | 'type' | 'payment_mode' | 'is_in' | 'is_give' | 'closed' | 'notes' | 'group';
 
 const ALL_COLUMNS: { key: ColumnKey; label: string }[] = [
   { key: 'date', label: 'Date' },
+  { key: 'created_at', label: 'Created At' },
   { key: 'description', label: 'Description' },
   { key: 'type', label: 'Type' },
   { key: 'category', label: 'Category' },
@@ -85,6 +87,11 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
   const [isLoading, setIsLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [sortDirection, setSortDirection] = useState<'ASC' | 'DESC'>('DESC');
+  const [sortBy, setSortBy] = useState<'transactionTime' | 'createdAt'>(() => {
+    return (localStorage.getItem('gringotts_transaction_sort_by') as 'transactionTime' | 'createdAt') || 'transactionTime';
+  });
+  const [isSortMenuOpen, setIsSortMenuOpen] = useState(false);
+  const sortMenuRef = useRef<HTMLDivElement>(null);
   const [totalPages, setTotalPages] = useState(1);
   const [hasMore, setHasMore] = useState(false);
   const [pageSize, setPageSize] = useState(() => Number(localStorage.getItem('gringotts_transaction_pagesize')) || 10);
@@ -204,11 +211,11 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
     try {
       let response;
       switch (currentTab) {
-        case 'expense': response = await api.getExpenses(page, cleanedFilters, sortDirection, pageSize); break;
-        case 'income': response = await api.getIncomes(page, cleanedFilters, sortDirection, pageSize); break;
-        case 'saving': response = await api.getSavings(page, cleanedFilters, sortDirection, pageSize); break;
-        case 'revolving': response = await api.getRevolvings(page, cleanedFilters, sortDirection, pageSize); break;
-        default: response = await api.getTransactions(page, cleanedFilters, sortDirection, pageSize); break;
+        case 'expense': response = await api.getExpenses(page, cleanedFilters, sortDirection, pageSize, sortBy); break;
+        case 'income': response = await api.getIncomes(page, cleanedFilters, sortDirection, pageSize, sortBy); break;
+        case 'saving': response = await api.getSavings(page, cleanedFilters, sortDirection, pageSize, sortBy); break;
+        case 'revolving': response = await api.getRevolvings(page, cleanedFilters, sortDirection, pageSize, sortBy); break;
+        default: response = await api.getTransactions(page, cleanedFilters, sortDirection, pageSize, sortBy); break;
       }
       setTransactions(response.data);
       setTotalPages(Math.ceil(response.total_count / pageSize));
@@ -330,7 +337,7 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
   useEffect(() => {
     fetchTransactions(currentPage, filters);
     setSelectedIds(new Set());
-  }, [currentPage, filters, refreshTrigger, currentTab, sortDirection, pageSize]);
+  }, [currentPage, filters, refreshTrigger, currentTab, sortDirection, sortBy, pageSize]);
 
   const updateFilters = (newFilters: FilterCriteria[]) => {
     setFilters(newFilters);
@@ -347,6 +354,9 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
       }
       if (columnDropdownRef.current && !columnDropdownRef.current.contains(event.target as Node)) {
         setIsColumnChooserOpen(false);
+      }
+      if (sortMenuRef.current && !sortMenuRef.current.contains(event.target as Node)) {
+        setIsSortMenuOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -758,21 +768,124 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
           {/* Action Utilities Group */}
           {displayMode === 'list' && (
             <div className="flex items-center bg-slate-100 dark:bg-slate-800/85 p-1 rounded-xl border border-slate-200 dark:border-slate-700/60 shadow-sm">
-              {/* Sort Button */}
-              <button
-                onClick={() => {
-                  setSortDirection(prev => prev === 'ASC' ? 'DESC' : 'ASC');
-                  setCurrentPage(1);
-                }}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-white dark:hover:bg-slate-700 transition-all group"
-                title={`Sort by Date: ${sortDirection === 'DESC' ? 'Newest First' : 'Oldest First'}`}
-              >
-                {sortDirection === 'DESC' ? (
-                  <ArrowDown className="w-4 h-4 text-cyan-500 group-hover:scale-110 transition-transform" />
-                ) : (
-                  <ArrowUp className="w-4 h-4 text-cyan-500 group-hover:scale-110 transition-transform" />
-                )}
-              </button>
+              {/* Sort Control Group */}
+              <div className="flex items-center" ref={sortMenuRef}>
+                <button
+                  onClick={() => {
+                    setSortDirection(prev => prev === 'ASC' ? 'DESC' : 'ASC');
+                    setCurrentPage(1);
+                  }}
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-white dark:hover:bg-slate-700 transition-all group"
+                  title={`Sort by ${sortBy === 'createdAt' ? 'Created Time' : 'Transaction Date'}: ${sortDirection === 'DESC' ? 'Newest First' : 'Oldest First'}`}
+                >
+                  {sortDirection === 'DESC' ? (
+                    <ArrowDown className="w-4 h-4 text-cyan-500 group-hover:scale-110 transition-transform" />
+                  ) : (
+                    <ArrowUp className="w-4 h-4 text-cyan-500 group-hover:scale-110 transition-transform" />
+                  )}
+                </button>
+
+                <div className="relative">
+                  <button
+                    onClick={() => setIsSortMenuOpen(!isSortMenuOpen)}
+                    className={`flex items-center gap-1 px-1.5 py-1 rounded-lg text-[11px] font-semibold transition-all ${
+                      isSortMenuOpen ? 'bg-white dark:bg-slate-700 text-cyan-500' : 'text-slate-500 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-700'
+                    }`}
+                    title="Change Sort Field"
+                  >
+                    <span>{sortBy === 'createdAt' ? 'Created Time' : 'Tx Date'}</span>
+                    <ChevronDown className={`w-3 h-3 transition-transform ${isSortMenuOpen ? 'rotate-180 text-cyan-500' : ''}`} />
+                  </button>
+
+                  {isSortMenuOpen && (
+                    <div className="absolute left-0 mt-2 w-52 glass rounded-2xl shadow-2xl py-2 z-50 border border-slate-200 dark:border-slate-800">
+                      <p className="px-3 pb-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Sort Field</p>
+                      <div className="px-1 space-y-0.5">
+                        <button
+                          onClick={() => {
+                            setSortBy('transactionTime');
+                            localStorage.setItem('gringotts_transaction_sort_by', 'transactionTime');
+                            setIsSortMenuOpen(false);
+                            setCurrentPage(1);
+                          }}
+                          className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition-colors ${
+                            sortBy === 'transactionTime'
+                              ? 'bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 font-semibold'
+                              : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2">
+                            <CalendarIcon className="w-3.5 h-3.5" />
+                            <span>Transaction Date</span>
+                          </div>
+                          {sortBy === 'transactionTime' && <span className="w-1.5 h-1.5 rounded-full bg-cyan-500" />}
+                        </button>
+                        <button
+                          onClick={() => {
+                            setSortBy('createdAt');
+                            localStorage.setItem('gringotts_transaction_sort_by', 'createdAt');
+                            setIsSortMenuOpen(false);
+                            setCurrentPage(1);
+                          }}
+                          className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition-colors ${
+                            sortBy === 'createdAt'
+                              ? 'bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 font-semibold'
+                              : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2">
+                            <Clock className="w-3.5 h-3.5" />
+                            <span>Created Time</span>
+                          </div>
+                          {sortBy === 'createdAt' && <span className="w-1.5 h-1.5 rounded-full bg-cyan-500" />}
+                        </button>
+                      </div>
+
+                      <div className="my-1.5 border-t border-slate-100 dark:border-slate-800/80" />
+
+                      <p className="px-3 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Direction</p>
+                      <div className="px-1 space-y-0.5">
+                        <button
+                          onClick={() => {
+                            setSortDirection('DESC');
+                            setIsSortMenuOpen(false);
+                            setCurrentPage(1);
+                          }}
+                          className={`w-full flex items-center justify-between px-3 py-1.5 rounded-xl text-xs font-medium transition-colors ${
+                            sortDirection === 'DESC'
+                              ? 'bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 font-semibold'
+                              : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2">
+                            <ArrowDown className="w-3.5 h-3.5" />
+                            <span>Newest First (Desc)</span>
+                          </div>
+                          {sortDirection === 'DESC' && <span className="w-1.5 h-1.5 rounded-full bg-cyan-500" />}
+                        </button>
+                        <button
+                          onClick={() => {
+                            setSortDirection('ASC');
+                            setIsSortMenuOpen(false);
+                            setCurrentPage(1);
+                          }}
+                          className={`w-full flex items-center justify-between px-3 py-1.5 rounded-xl text-xs font-medium transition-colors ${
+                            sortDirection === 'ASC'
+                              ? 'bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 font-semibold'
+                              : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2">
+                            <ArrowUp className="w-3.5 h-3.5" />
+                            <span>Oldest First (Asc)</span>
+                          </div>
+                          {sortDirection === 'ASC' && <span className="w-1.5 h-1.5 rounded-full bg-cyan-500" />}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
 
               {/* Column Chooser Dropdown */}
               <div className="relative hidden lg:block" ref={columnDropdownRef}>
@@ -883,6 +996,7 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
                   )}
                 </th>
                 {visibleColumns.has('date') && <th className={`${cellPadding} text-[11px] font-bold text-slate-400 uppercase tracking-widest`}>Date</th>}
+                {visibleColumns.has('created_at') && <th className={`${cellPadding} text-[11px] font-bold text-slate-400 uppercase tracking-widest`}>Created At</th>}
                 {visibleColumns.has('description') && <th className={`${cellPadding} text-[11px] font-bold text-slate-400 uppercase tracking-widest`}>Description</th>}
                 {visibleColumns.has('type') && <th className={`${cellPadding} text-[11px] font-bold text-slate-400 uppercase tracking-widest`}>Type</th>}
                 {visibleColumns.has('category') && <th className={`${cellPadding} text-[11px] font-bold text-slate-400 uppercase tracking-widest`}>Category</th>}
@@ -952,6 +1066,18 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
                             <Pencil onClick={(e) => { e.stopPropagation(); startEditingCell(t, 'transaction_time'); }} className="w-3 h-3 text-slate-400 opacity-0 group-hover/cell:opacity-100 hover:text-cyan-500 transition-opacity ml-1.5 shrink-0 cursor-pointer" />
                           </div>
                         )}
+                      </td>
+                    )}
+                    {visibleColumns.has('created_at') && (
+                      <td className={`${cellPadding} whitespace-nowrap`}>
+                        <div className={viewMode === 'compact' ? 'flex items-baseline gap-1.5' : ''}>
+                          <p className="text-xs font-medium text-slate-600 dark:text-slate-300">
+                            {t.createdAt ? new Date(t.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}
+                          </p>
+                          <p className={`text-[10px] text-slate-400 font-medium ${viewMode === 'compact' ? 'opacity-80' : 'block'}`}>
+                            {t.createdAt ? new Date(t.createdAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : ''}
+                          </p>
+                        </div>
                       </td>
                     )}
                     {visibleColumns.has('description') && (
@@ -1654,6 +1780,7 @@ const Transactions: React.FC<TransactionsProps> = ({ onEdit, onAdd, refreshTrigg
         currentPage={currentPage}
         pageSize={pageSize}
         sortDirection={sortDirection}
+        sortBy={sortBy}
       />
     </div>
   );
