@@ -282,6 +282,18 @@ public class TransactionService {
             Integer page,
             Integer size,
             String direction) {
+        return getTransactionsForExport(type, startDate, endDate, filters, page, size, direction, "transactionTime");
+    }
+
+    public List<Transaction> getTransactionsForExport(
+            String type,
+            java.time.LocalDate startDate,
+            java.time.LocalDate endDate,
+            List<SearchCriteria> filters,
+            Integer page,
+            Integer size,
+            String direction,
+            String sortBy) {
         
         User user = iamService.getCurrentUser();
         List<SearchCriteria> criteriaList = new ArrayList<>();
@@ -298,8 +310,11 @@ public class TransactionService {
 
         int pageNum = (page != null) ? page - 1 : 0;
         int pageSize = (size != null) ? size : 3000;
+        String sortProperty = ("createdAt".equalsIgnoreCase(sortBy) || "created_at".equalsIgnoreCase(sortBy) || "createdTime".equalsIgnoreCase(sortBy))
+                ? "createdAt"
+                : "transactionTime";
         Sort.Direction sortDir = "ASC".equalsIgnoreCase(direction) ? Sort.Direction.ASC : Sort.Direction.DESC;
-        Pageable pageable = PageRequest.of(pageNum, pageSize, Sort.by(sortDir, "transactionTime"));
+        Pageable pageable = PageRequest.of(pageNum, pageSize, Sort.by(sortDir, sortProperty, "id"));
 
         if ("expense".equalsIgnoreCase(type)) {
             Specification<Expense> spec = TransactionSpecification.forUser(user, criteriaList);

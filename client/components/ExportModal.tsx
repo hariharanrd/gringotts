@@ -11,6 +11,7 @@ interface ExportModalProps {
   currentPage: number;
   pageSize: number;
   sortDirection: 'ASC' | 'DESC';
+  sortBy?: 'transactionTime' | 'createdAt';
 }
 
 const ExportModal: React.FC<ExportModalProps> = ({
@@ -21,6 +22,7 @@ const ExportModal: React.FC<ExportModalProps> = ({
   currentPage,
   pageSize,
   sortDirection,
+  sortBy = 'transactionTime',
 }) => {
   const { showToast } = useToast();
   const [format, setFormat] = useState<'csv' | 'xlsx'>('xlsx');
@@ -42,6 +44,7 @@ const ExportModal: React.FC<ExportModalProps> = ({
         page: currentPage,
         size: pageSize,
         direction: sortDirection,
+        sortBy,
       });
 
       // Trigger file download in browser

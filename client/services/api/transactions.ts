@@ -16,6 +16,7 @@ export const transactionsApi = {
     page?: number;
     size?: number;
     direction?: 'ASC' | 'DESC';
+    sortBy?: 'transactionTime' | 'createdAt';
   }): Promise<Blob> => {
     let url = `${BASE_URL}/transactions/export?format=${params.format}`;
     if (params.type) url += `&type=${encodeURIComponent(params.type)}`;
@@ -24,6 +25,7 @@ export const transactionsApi = {
     if (params.page !== undefined) url += `&page=${params.page}`;
     if (params.size !== undefined) url += `&size=${params.size}`;
     if (params.direction) url += `&direction=${params.direction}`;
+    if (params.sortBy) url += `&sortBy=${params.sortBy}`;
     if (params.filters && params.filters.length > 0) {
       const cleanedFilters = params.filters.map(({ field, condition, value }) => ({ field, condition, value }));
       url += `&filters=${encodeURIComponent(JSON.stringify(cleanedFilters))}`;
@@ -44,16 +46,16 @@ export const transactionsApi = {
     return response.blob();
   },
 
-  getTransactions: async (currentPage: number, filters?: { field: string, condition: string, value: string }[], direction: 'ASC' | 'DESC' = 'DESC', size: number = 10): Promise<ResponseProps> => {
-    let url = `${BASE_URL}/transactions?page=${currentPage}&direction=${direction}&size=${size}`;
+  getTransactions: async (currentPage: number, filters?: { field: string, condition: string, value: string }[], direction: 'ASC' | 'DESC' = 'DESC', size: number = 10, sortBy: 'transactionTime' | 'createdAt' = 'transactionTime'): Promise<ResponseProps> => {
+    let url = `${BASE_URL}/transactions?page=${currentPage}&direction=${direction}&size=${size}&sortBy=${sortBy}`;
     if (filters && filters.length > 0) url += `&filters=${encodeURIComponent(JSON.stringify(filters))}`;
     const response = await fetchWithCredentials(url);
     const data = await handleResponse(response);
     return data;
   },
 
-  getExpenses: async (currentPage: number, filters?: { field: string, condition: string, value: string }[], direction: 'ASC' | 'DESC' = 'DESC', size: number = 10): Promise<ResponseProps> => {
-    let url = `${BASE_URL}/expenses?page=${currentPage}&direction=${direction}&size=${size}`;
+  getExpenses: async (currentPage: number, filters?: { field: string, condition: string, value: string }[], direction: 'ASC' | 'DESC' = 'DESC', size: number = 10, sortBy: 'transactionTime' | 'createdAt' = 'transactionTime'): Promise<ResponseProps> => {
+    let url = `${BASE_URL}/expenses?page=${currentPage}&direction=${direction}&size=${size}&sortBy=${sortBy}`;
     if (filters && filters.length > 0) url += `&filters=${encodeURIComponent(JSON.stringify(filters))}`;
     const response = await fetchWithCredentials(url);
     const data = await handleResponse(response);
@@ -61,8 +63,8 @@ export const transactionsApi = {
     return data;
   },
 
-  getIncomes: async (currentPage: number, filters?: { field: string, condition: string, value: string }[], direction: 'ASC' | 'DESC' = 'DESC', size: number = 10): Promise<ResponseProps> => {
-    let url = `${BASE_URL}/incomes?page=${currentPage}&direction=${direction}&size=${size}`;
+  getIncomes: async (currentPage: number, filters?: { field: string, condition: string, value: string }[], direction: 'ASC' | 'DESC' = 'DESC', size: number = 10, sortBy: 'transactionTime' | 'createdAt' = 'transactionTime'): Promise<ResponseProps> => {
+    let url = `${BASE_URL}/incomes?page=${currentPage}&direction=${direction}&size=${size}&sortBy=${sortBy}`;
     if (filters && filters.length > 0) url += `&filters=${encodeURIComponent(JSON.stringify(filters))}`;
     const response = await fetchWithCredentials(url);
     const data = await handleResponse(response);
@@ -70,8 +72,8 @@ export const transactionsApi = {
     return data;
   },
 
-  getSavings: async (currentPage: number, filters?: { field: string, condition: string, value: string }[], direction: 'ASC' | 'DESC' = 'DESC', size: number = 10): Promise<ResponseProps> => {
-    let url = `${BASE_URL}/savings?page=${currentPage}&direction=${direction}&size=${size}`;
+  getSavings: async (currentPage: number, filters?: { field: string, condition: string, value: string }[], direction: 'ASC' | 'DESC' = 'DESC', size: number = 10, sortBy: 'transactionTime' | 'createdAt' = 'transactionTime'): Promise<ResponseProps> => {
+    let url = `${BASE_URL}/savings?page=${currentPage}&direction=${direction}&size=${size}&sortBy=${sortBy}`;
     if (filters && filters.length > 0) url += `&filters=${encodeURIComponent(JSON.stringify(filters))}`;
     const response = await fetchWithCredentials(url);
     const data = await handleResponse(response);
@@ -79,8 +81,8 @@ export const transactionsApi = {
     return data;
   },
 
-  getRevolvings: async (currentPage: number, filters?: { field: string, condition: string, value: string }[], direction: 'ASC' | 'DESC' = 'DESC', size: number = 10): Promise<ResponseProps> => {
-    let url = `${BASE_URL}/revolvings?page=${currentPage}&direction=${direction}&size=${size}`;
+  getRevolvings: async (currentPage: number, filters?: { field: string, condition: string, value: string }[], direction: 'ASC' | 'DESC' = 'DESC', size: number = 10, sortBy: 'transactionTime' | 'createdAt' = 'transactionTime'): Promise<ResponseProps> => {
+    let url = `${BASE_URL}/revolvings?page=${currentPage}&direction=${direction}&size=${size}&sortBy=${sortBy}`;
     if (filters && filters.length > 0) url += `&filters=${encodeURIComponent(JSON.stringify(filters))}`;
     const response = await fetchWithCredentials(url);
     const data = await handleResponse(response);

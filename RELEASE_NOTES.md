@@ -1,5 +1,9 @@
 # 🚀 Release Notes
 
+## [October 23, 2026] Sort by Created Time
+
+This release introduces the ability to sort transactions by created time in the ledger. Users can now sort transactions by created time in the ledger.
+
 ## [October 10, 2026] Advanced Ledger Filtering: Empty / Not Empty Criteria & Imported Transaction Filters
 
 This release introduces expanded ledger search and filtering capabilities across Gringotts. Users can now filter transactions using unary **`is empty`** and **`is not empty`** criteria (perfect for locating uncategorized transactions or missing items), and quickly isolate **Imported transactions** versus manual entries through advanced filters or a dedicated one-click Quick Filter preset.
